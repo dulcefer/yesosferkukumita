@@ -2476,9 +2476,9 @@ function elegirFotoGaleria() {
 function aplicarFotoPerfil(event) {
     const archivo = event.target.files[0];
     if (!archivo) return;
-    const user = (typeof auth !== 'undefined') ? auth.currentUser : null;
 
-    // Vista previa inmediata mientras sube
+    // Guardamos la foto solo en este dispositivo (localStorage), sin usar
+    // Firebase Storage (requiere plan Blaze, y este proyecto se mantiene en Spark).
     const reader = new FileReader();
     reader.onload = e => {
         const src = e.target.result;
@@ -2486,33 +2486,16 @@ function aplicarFotoPerfil(event) {
         const avatarPantalla = document.getElementById('pantallaAvatar');
         if (avatarDrawer) avatarDrawer.src = src;
         if (avatarPantalla) avatarPantalla.src = src;
-        localStorage.setItem('velas-foto-perfil', src); // fallback local
+        try {
+            localStorage.setItem('velas-foto-perfil', src);
+            mostrarToast('✅ Foto actualizada en este dispositivo');
+        } catch (e2) {
+            // La imagen puede ser demasiado grande para localStorage
+            console.warn('No se pudo guardar la foto localmente:', e2);
+            mostrarToast('⚠️ No se pudo guardar la foto (muy pesada). Intenta con una imagen más pequeña.');
+        }
     };
     reader.readAsDataURL(archivo);
-
-    // Subir a Firebase Storage si hay sesión
-    if (user && typeof firebase !== 'undefined' && firebase.storage) {
-        mostrarToast('⏳ Subiendo foto…');
-        const storage = firebase.storage();
-        const ref = storage.ref('fotos-perfil/' + user.uid + '/avatar.jpg');
-        ref.put(archivo).then(function() {
-            return ref.getDownloadURL();
-        }).then(function(url) {
-            return user.updateProfile({ photoURL: url }).then(function() {
-                localStorage.setItem('velas-foto-perfil', url);
-                const avatarDrawer = document.getElementById('drawerAvatar');
-                const avatarPantalla = document.getElementById('pantallaAvatar');
-                if (avatarDrawer) avatarDrawer.src = url;
-                if (avatarPantalla) avatarPantalla.src = url;
-                mostrarToast('✅ Foto de perfil actualizada');
-            });
-        }).catch(function(err) {
-            console.error('Error subiendo foto:', err);
-            mostrarToast('⚠️ Foto guardada solo en este dispositivo');
-        });
-    } else {
-        mostrarToast('✅ Foto actualizada en este dispositivo');
-    }
 }
 
 _ready(function() {
@@ -2652,18 +2635,27 @@ function renderizarResultadosDrawer(lista, titulo) {
 //  FIREBASE CONFIGURACIÓN
 // ═══════════════════════════════════════════
 const firebaseConfig = {
-    apiKey: "AIzaSyAkyPOwwU-HoDAVqNcMKIkiI7pkBhpTRmw",
-    authDomain: "yesos-kukumita.firebaseapp.com",
-    projectId: "yesos-kukumita",
-    storageBucket: "yesos-kukumita.firebasestorage.app",
-    messagingSenderId: "784730667884",
-    appId: "1:784730667884:web:95e50565255b6e1d379149",
-    measurementId: "G-B3ST4NJR1G"
+    apiKey: "AIzaSyBF09xyHMIy0nZH4nnSKEoYHycUmVCJBdQ",
+    authDomain: "yesosferkukumita-4a379.firebaseapp.com",
+    projectId: "yesosferkukumita-4a379",
+    storageBucket: "yesosferkukumita-4a379.firebasestorage.app",
+    messagingSenderId: "667938933315",
+    appId: "1:667938933315:web:ba47732f4a119c8b41e2f6",
+    measurementId: "G-EX63CLDFSB"
 };
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const providerGoogle = new firebase.auth.GoogleAuthProvider();
+
+// Analytics (opcional — no rompe el sitio si el navegador bloquea el script)
+try {
+    if (firebase.analytics) {
+        firebase.analytics();
+    }
+} catch (e) {
+    console.warn('Firebase Analytics no se pudo inicializar:', e);
+}
 
 // ─── TOAST ───
 function mostrarToast(msg) {
@@ -2860,13 +2852,14 @@ async function gestionarContrasena() {
     }
 }
 
-// ─── FOTO DE PERFIL (override con Firebase Storage si se desea) ───
+// ─── FOTO DE PERFIL (override) — solo local, sin Firebase Storage ───
+// Nota: el proyecto se mantiene en el plan Spark de Firebase, que no da acceso
+// a Cloud Storage. La foto de perfil se guarda únicamente en este dispositivo
+// (localStorage), no se sincroniza entre dispositivos ni se sube a la nube.
 function aplicarFotoPerfil(event) {
     const archivo = event.target.files[0];
     if (!archivo) return;
-    const user = (typeof auth !== 'undefined') ? auth.currentUser : null;
 
-    // Vista previa inmediata
     const reader = new FileReader();
     reader.onload = e => {
         const src = e.target.result;
@@ -2874,33 +2867,15 @@ function aplicarFotoPerfil(event) {
         const avatarPantalla = document.getElementById('pantallaAvatar');
         if (avatarDrawer) avatarDrawer.src = src;
         if (avatarPantalla) avatarPantalla.src = src;
-        localStorage.setItem('velas-foto-perfil', src);
+        try {
+            localStorage.setItem('velas-foto-perfil', src);
+            mostrarToast('✅ Foto actualizada en este dispositivo');
+        } catch (e2) {
+            console.warn('No se pudo guardar la foto localmente:', e2);
+            mostrarToast('⚠️ No se pudo guardar la foto (muy pesada). Intenta con una imagen más pequeña.');
+        }
     };
     reader.readAsDataURL(archivo);
-
-    // Subir a Firebase Storage si hay sesión
-    if (user && typeof firebase !== 'undefined' && firebase.storage) {
-        mostrarToast('⏳ Subiendo foto…');
-        const storage = firebase.storage();
-        const ref = storage.ref('fotos-perfil/' + user.uid + '/avatar.jpg');
-        ref.put(archivo).then(function() {
-            return ref.getDownloadURL();
-        }).then(function(url) {
-            return user.updateProfile({ photoURL: url }).then(function() {
-                localStorage.setItem('velas-foto-perfil', url);
-                const avatarDrawer = document.getElementById('drawerAvatar');
-                const avatarPantalla = document.getElementById('pantallaAvatar');
-                if (avatarDrawer) avatarDrawer.src = url;
-                if (avatarPantalla) avatarPantalla.src = url;
-                mostrarToast('✅ Foto de perfil actualizada');
-            });
-        }).catch(function(err) {
-            console.error('Error subiendo foto:', err);
-            mostrarToast('⚠️ Foto guardada solo en este dispositivo');
-        });
-    } else {
-        mostrarToast('✅ Foto actualizada en este dispositivo');
-    }
 }
 
 // ─── ABRIR PANTALLA PERFIL (override con datos reales) ───
