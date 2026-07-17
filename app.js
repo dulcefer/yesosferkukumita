@@ -170,7 +170,7 @@ var SHEET_ID = '1GoIVWBIyl9s0wYo2qyv0GQwco_xBl3sajDwF0qcnf5o';
 // Ejemplo: 'https://kukumita-og.TU-USUARIO.workers.dev'
 // Mientras no lo tengas configurado, deja el valor vacío ('') y funcionará
 // como antes (sin imagen en Facebook).
-var OG_WORKER_URL = 'https://cool-river-013e.dulceprincesa086.workers.dev';
+var OG_WORKER_URL = 'https://yesos-fer-kukumita-linker.dulceprincesa086.workers.dev';
 // ──────────────────────────────────────────────────────────────────────────────
 // COLUMNAS ESPERADAS EN LA HOJA (fila 1 = encabezados, datos desde fila 2):
 //   A(0):  Nombre
@@ -540,7 +540,7 @@ function _abrirProductoDesdeURL() {
     var imagenes  = [];
     try { imagenes = JSON.parse(cardEncontrada.getAttribute('data-imagenes') || '[]'); } catch(e) {}
     var imagen    = imagenes[0] || '';
-    var urlProd   = window.location.href.split('?')[0] + '?producto=' + encodeURIComponent(nombre);
+    var urlProd   = window.location.origin + window.location.pathname + '?producto=' + encodeURIComponent(nombre);
 
     _actualizarMetaOG(nombre, desc, imagen, urlProd);
 
@@ -555,16 +555,17 @@ function _abrirProductoDesdeURL() {
     var _tituloOriginal    = document.title;
     var _ogTitleOriginal   = 'Yesos Fer Kukúmita — Arreglos y Productos Artesanales';
     var _ogDescOriginal    = 'Descubre nuestros hermosos arreglos y productos artesanales de Yesos Fer Kukúmita.';
+    var _ogImagenOriginal  = 'https://dulcefer.github.io/yesosferkukumita/imagenes/perfil-yesoskukumita.webp';
 
     document.addEventListener('modalProductoCerrado', function() {
         document.title = _tituloOriginal;
         function setMeta(id, val) { var el=document.getElementById(id); if(el) el.setAttribute('content',val); }
         setMeta('og-title',       _ogTitleOriginal);
         setMeta('og-description', _ogDescOriginal);
-        setMeta('og-image',       '');
+        setMeta('og-image',       _ogImagenOriginal);
         setMeta('tw-title',       _ogTitleOriginal);
         setMeta('tw-description', _ogDescOriginal);
-        setMeta('tw-image',       '');
+        setMeta('tw-image',       _ogImagenOriginal);
     });
 })();
 
@@ -1280,7 +1281,7 @@ if (document.readyState === 'loading') {
         // Botón Compartir — actualiza OG y abre submenu
         document.getElementById('mpBtnCompartir').onclick = (e) => {
             e.stopPropagation();
-            const url    = window.location.href.split('?')[0] + '?producto=' + encodeURIComponent(nombre);
+            const url    = window.location.origin + window.location.pathname + '?producto=' + encodeURIComponent(nombre);
             const urlOG  = (typeof _urlOG === 'function') ? _urlOG(url) : url;
             // Actualizar meta OG con este producto antes de compartir
             if (typeof _actualizarMetaOG === 'function') {
@@ -4413,8 +4414,12 @@ function _copiarFallback(texto) {
 function _urlOG(urlPaginaReal) {
     if (!OG_WORKER_URL || !OG_WORKER_URL.trim()) return urlPaginaReal;
     try {
-        var params = new URL(urlPaginaReal).searchParams;
-        var producto = params.get('producto');
+        var urlObj = new URL(urlPaginaReal);
+        var producto = urlObj.searchParams.get('producto');
+        if (!producto && urlObj.hash) {
+            var m = urlObj.hash.match(/[?&]producto=([^&]+)/);
+            if (m) producto = decodeURIComponent(m[1]);
+        }
         if (!producto) return urlPaginaReal;
         return OG_WORKER_URL.replace(/\/$/, '') + '/?producto=' + encodeURIComponent(producto);
     } catch(e) {

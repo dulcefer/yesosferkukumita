@@ -2551,6 +2551,15 @@
             max-width: 1100px;
             margin: 0 auto 50px;
         }
+        .footer-logo {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(196,168,130,0.4);
+            display: block;
+            margin-bottom: 16px;
+        }
         .footer-brand h2 {
             font-size: 28px;
             font-weight: 700;
