@@ -2143,6 +2143,7 @@
         height: 340px;
         overflow: hidden;
         border-radius: 6px;
+        position: relative;
     }
 
     /* 📱 RESPONSIVO: Ajuste automático para Celulares */
