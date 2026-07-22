@@ -219,6 +219,12 @@
             color: white;
             border-color: #8c7565;
         }
+        /* Botones de precio con monto ($1, $2, $5...): al doble de tamaño.
+           "Ver Todo" y las flechas de scroll conservan su tamaño original. */
+        .btn-precio-monto {
+            padding: 18px 36px;
+            font-size: 28px;
+        }
         .btn-scroll-precios {
             flex-shrink: 0;
             background: #8c7565;

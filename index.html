@@ -39,7 +39,7 @@
 
     <!-- Estilos botones de modo catálogo -->
     <style>
-    /* ── Wrapper que apila fila superior + fila de 4 ── */
+    /* ── Wrapper: una sola fila con los 4 botones ── */
     .selector-modo-velas-wrap {
         display: flex;
         flex-direction: column;
@@ -48,34 +48,39 @@
         padding: 0 12px 14px;
     }
 
-    /* ── Fila superior: Mostrar Todo ── */
-    .selector-modo-fila-top {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
-    /* ── Fila de los 4 botones de categoría ── */
+    /* ── Fila de los 4 botones (Mostrar Todo + categorías), igual que la barra de píldoras ── */
     .selector-modo-velas {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 8px;
+        gap: 10px;
         width: 100%;
     }
 
-    /* ── Base del botón ── */
+    /* ── Base del botón: mismo tamaño/forma cuadrada que .pill-btn ── */
     .btn-modo-velas {
-        padding: 9px 16px;
-        border-radius: 999px;
         border: none;
-        font-size: 0.84rem;
+        font-size: 19px;
         font-weight: 700;
         font-family: inherit;
         cursor: pointer;
         transition: background 0.18s, color 0.18s, transform 0.12s, box-shadow 0.18s;
         white-space: nowrap;
         box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        width: 135px;
+        height: 135px;
+        padding: 12px 9px;
+        box-sizing: border-box;
+        text-align: center;
+        line-height: 1.2;
+        overflow: hidden;
+        border-radius: 24px;
+        white-space: normal;
     }
     .btn-modo-velas:active {
         transform: scale(0.96);
@@ -85,9 +90,6 @@
     .btn-modo-mostrar-todo {
         background: #1a1a1a;
         color: #fff;
-        min-width: 160px;
-        font-size: 0.9rem;
-        padding: 10px 32px;
     }
     .btn-modo-mostrar-todo:hover {
         background: #333;
@@ -1198,12 +1200,9 @@
 
         <!-- ===== BOTONES DE MODO: MOSTRAR TODO + PRODUCTOS / ARREGLOS / DECORACIONES / ETIQUETAS ===== -->
         <div class="selector-modo-velas-wrap">
-            <!-- Fila superior: Mostrar Todo -->
-            <div class="selector-modo-fila-top">
-                <button class="btn-modo-velas btn-modo-mostrar-todo activo" id="btnModoTodosProductos" onclick="cambiarModoVelas('mostrar_todo')">Mostrar Todo</button>
-            </div>
-            <!-- Fila inferior: 3 botones principales de categoría -->
+            <!-- Una sola fila con los 4 botones, mismo tamaño/forma que la barra de píldoras -->
             <div class="selector-modo-velas" id="selectorModoVelas">
+                <button class="btn-modo-velas btn-modo-mostrar-todo activo" id="btnModoTodosProductos" onclick="cambiarModoVelas('mostrar_todo')">Mostrar Todo</button>
                 <button class="btn-modo-velas btn-modo-arreglos" id="btnModoArreglos" onclick="cambiarModoVelas('arreglos')">🕯️ Arreglos</button>
                 <button class="btn-modo-velas btn-modo-paquetes" id="btnModoPaquetes" onclick="cambiarModoVelas('paquetes')">📦 Paquetes</button>
                 <button class="btn-modo-velas btn-modo-etiquetas" id="btnModoEtiquetas" onclick="cambiarModoVelas('etiquetas')">🏷️ Etiquetas</button>
@@ -1318,51 +1317,51 @@
                     <button class="btn-scroll-precios" onclick="scrollPrecios('lista-precios-arreglos', -200)" title="Ver precios anteriores" style="margin-left:0; margin-right:6px;">‹</button>
                     <div class="lista-precios-velas" id="lista-precios-arreglos">
                     <button class="btn-precio-velas activo" onclick="filtrarPrecioArreglos(this,'todos')">Ver Todo</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'1')">$1</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'2')">$2</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'5')">$5</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'8')">$8</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'10')">$10</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'12')">$12</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'15')">$15</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'20')">$20</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'25')">$25</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'30')">$30</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'35')">$35</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'40')">$40</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'45')">$45</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'50')">$50</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'55')">$55</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'60')">$60</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'65')">$65</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'70')">$70</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'75')">$75</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'80')">$80</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'85')">$85</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'90')">$90</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'95')">$95</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'100')">$100</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'120')">$120</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'150')">$150</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'180')">$180</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'200')">$200</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'220')">$220</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'250')">$250</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'280')">$280</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'300')">$300</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'320')">$320</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'350')">$350</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'380')">$380</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'400')">$400</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'420')">$420</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'450')">$450</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'480')">$480</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'500')">$500</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'550')">$550</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'600')">$600</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'650')">$650</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'700')">$700</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioArreglos(this,'800')">$800</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'1')">$1</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'2')">$2</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'5')">$5</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'8')">$8</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'10')">$10</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'12')">$12</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'15')">$15</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'20')">$20</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'25')">$25</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'30')">$30</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'35')">$35</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'40')">$40</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'45')">$45</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'50')">$50</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'55')">$55</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'60')">$60</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'65')">$65</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'70')">$70</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'75')">$75</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'80')">$80</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'85')">$85</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'90')">$90</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'95')">$95</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'100')">$100</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'120')">$120</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'150')">$150</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'180')">$180</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'200')">$200</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'220')">$220</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'250')">$250</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'280')">$280</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'300')">$300</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'320')">$320</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'350')">$350</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'380')">$380</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'400')">$400</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'420')">$420</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'450')">$450</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'480')">$480</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'500')">$500</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'550')">$550</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'600')">$600</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'650')">$650</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'700')">$700</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioArreglos(this,'800')">$800</button>
                 </div>
                     <button class="btn-scroll-precios" onclick="scrollPrecios('lista-precios-arreglos', 200)" title="Ver más precios">›</button>
                 </div>
@@ -1405,51 +1404,51 @@
                     <button class="btn-scroll-precios" onclick="scrollPrecios('lista-precios-todos', -200)" title="Ver precios anteriores" style="margin-left:0; margin-right:6px;">‹</button>
                     <div class="lista-precios-velas" id="lista-precios-todos">
                     <button class="btn-precio-velas activo" onclick="filtrarPrecioTodos(this,'todos')">Ver Todo</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'1')">$1</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'2')">$2</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'5')">$5</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'8')">$8</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'10')">$10</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'12')">$12</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'15')">$15</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'20')">$20</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'25')">$25</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'30')">$30</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'35')">$35</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'40')">$40</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'45')">$45</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'50')">$50</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'55')">$55</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'60')">$60</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'65')">$65</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'70')">$70</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'75')">$75</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'80')">$80</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'85')">$85</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'90')">$90</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'95')">$95</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'100')">$100</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'120')">$120</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'150')">$150</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'180')">$180</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'200')">$200</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'220')">$220</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'250')">$250</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'280')">$280</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'300')">$300</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'320')">$320</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'350')">$350</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'380')">$380</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'400')">$400</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'420')">$420</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'450')">$450</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'480')">$480</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'500')">$500</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'550')">$550</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'600')">$600</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'650')">$650</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'700')">$700</button>
-                    <button class="btn-precio-velas" onclick="filtrarPrecioTodos(this,'800')">$800</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'1')">$1</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'2')">$2</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'5')">$5</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'8')">$8</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'10')">$10</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'12')">$12</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'15')">$15</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'20')">$20</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'25')">$25</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'30')">$30</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'35')">$35</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'40')">$40</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'45')">$45</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'50')">$50</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'55')">$55</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'60')">$60</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'65')">$65</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'70')">$70</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'75')">$75</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'80')">$80</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'85')">$85</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'90')">$90</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'95')">$95</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'100')">$100</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'120')">$120</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'150')">$150</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'180')">$180</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'200')">$200</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'220')">$220</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'250')">$250</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'280')">$280</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'300')">$300</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'320')">$320</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'350')">$350</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'380')">$380</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'400')">$400</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'420')">$420</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'450')">$450</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'480')">$480</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'500')">$500</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'550')">$550</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'600')">$600</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'650')">$650</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'700')">$700</button>
+                    <button class="btn-precio-velas btn-precio-monto" onclick="filtrarPrecioTodos(this,'800')">$800</button>
                 </div>
                     <button class="btn-scroll-precios" onclick="scrollPrecios('lista-precios-todos', 200)" title="Ver más precios">›</button>
                 </div>
