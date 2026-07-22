@@ -361,13 +361,14 @@ var ENCABEZADOS_CATEGORIA_CATALOGO = {
     12: { texto: 'Ver Más Tazones',          accion: function() { irAFiltroForma('tazones'); } },
     15: { texto: 'Ver Más Porta Inciensos',  accion: function() { irAFiltroForma('portainciensos'); } },
     18: { texto: 'Ver Más Alajeros',         accion: function() { irAFiltroForma('alajero'); } },
-    21: { texto: 'Ver Más Etiquetas',        accion: function() { irAModoEtiquetas(); } },
-    24: { texto: 'Ver Velas',                accion: function() { visitarVelasKukumita(); } }
+    21: { texto: 'Ver Más Arreglos',         accion: function() { irAModoArreglos(); } },
+    24: { texto: 'Ver Más Etiquetas',        accion: function() { irAModoEtiquetas(); } },
+    27: { texto: 'Ver Velas',                accion: function() { visitarVelasKukumita(); } }
 };
 // Posiciones (idx) de los productos que forman el grupo "Velas" — solo estos
 // 3 muestran el botón exclusivo "Visitar Velas Kukúmita" en su submenú de compartir.
-var GRUPO_VELAS_POS_INICIO = 24;
-var GRUPO_VELAS_POS_FIN    = 26;
+var GRUPO_VELAS_POS_INICIO = 27;
+var GRUPO_VELAS_POS_FIN    = 29;
 
 function renderizarCatalogoCompleto() {
     var grid = document.getElementById('gridProductos');
@@ -608,12 +609,22 @@ function irAModoEtiquetas() {
     }, 60);
 }
 
+// ── Lleva al usuario a la sección "Arreglos" del catálogo ──
+function irAModoArreglos() {
+    if (typeof cambiarModoVelas === 'function') cambiarModoVelas('arreglos');
+    setTimeout(function() {
+        var destino = document.getElementById('panelArreglos') || document.getElementById('gridProductos');
+        if (destino) destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+}
+
 // ── Redirige a la página de Velas Kukúmita (negocio hermano) ──
 function visitarVelasKukumita() {
     window.open('https://velaskukumita.com', '_blank');
 }
 window.irAFiltroForma      = irAFiltroForma;
 window.irAModoEtiquetas    = irAModoEtiquetas;
+window.irAModoArreglos     = irAModoArreglos;
 window.visitarVelasKukumita = visitarVelasKukumita;
 
 // ══════════════════════════════════════════════════════════════════════════════
