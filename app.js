@@ -348,14 +348,49 @@ function mostrarEstadoCarga(mensaje, esError) {
 // renderizarCatalogoCompleto()
 // Lee listaProductos y genera dinámicamente cada tarjeta .card-dinamica
 // ══════════════════════════════════════════════════════════════════════════════
+// ── Encabezados de categoría: se muestran arriba de ciertos grupos de 3
+//    productos, únicamente en la primera página del catálogo (los primeros
+//    30, en el orden curado de la hoja de cálculo) y solo cuando no hay
+//    ningún filtro activo. 'idx' es la posición (0-based) del producto
+//    dentro de listaProductos, tal como aparece en la hoja. ──
+var ENCABEZADOS_CATEGORIA_CATALOGO = {
+    0:  { texto: 'Ver más Figuras Pequeñas', accion: function() { irAFiltroForma('figuras'); } },
+    3:  { texto: 'Ver Más Bases Planas',     accion: function() { irAFiltroForma('bases'); } },
+    6:  { texto: 'Ver más Macetas',          accion: function() { irAFiltroForma('macetas'); } },
+    9:  { texto: 'Ver Más Porta Velas',      accion: function() { irAFiltroForma('portavelas'); } },
+    12: { texto: 'Ver Más Tazones',          accion: function() { irAFiltroForma('tazones'); } },
+    15: { texto: 'Ver Más Porta Inciensos',  accion: function() { irAFiltroForma('portainciensos'); } },
+    18: { texto: 'Ver Más Alajeros',         accion: function() { irAFiltroForma('alajero'); } },
+    21: { texto: 'Ver Más Etiquetas',        accion: function() { irAModoEtiquetas(); } },
+    24: { texto: 'Ver Velas',                accion: function() { visitarVelasKukumita(); } }
+};
+// Posiciones (idx) de los productos que forman el grupo "Velas" — solo estos
+// 3 muestran el botón exclusivo "Visitar Velas Kukúmita" en su submenú de compartir.
+var GRUPO_VELAS_POS_INICIO = 24;
+var GRUPO_VELAS_POS_FIN    = 26;
+
 function renderizarCatalogoCompleto() {
     var grid = document.getElementById('gridProductos');
     if (!grid) { console.warn('renderizarCatalogoCompleto: #gridProductos no encontrado'); return; }
     grid.innerHTML = '';
 
-    listaProductos.forEach(function(p) {
+    listaProductos.forEach(function(p, idx) {
+        var infoEncabezado = ENCABEZADOS_CATEGORIA_CATALOGO[idx];
+        if (infoEncabezado) {
+            var encabezado = document.createElement('div');
+            encabezado.className = 'encabezado-categoria-catalogo';
+            var btnEncabezado = document.createElement('button');
+            btnEncabezado.type = 'button';
+            btnEncabezado.className = 'btn-encabezado-categoria';
+            btnEncabezado.textContent = infoEncabezado.texto;
+            btnEncabezado.addEventListener('click', infoEncabezado.accion);
+            encabezado.appendChild(btnEncabezado);
+            grid.appendChild(encabezado);
+        }
+
         var card = document.createElement('div');
         card.className = 'card-dinamica';
+        card.setAttribute('data-pos-catalogo', String(idx));
 
         // ── Data-attributes necesarios para filtros y modal ──
         card.setAttribute('data-num',             String(p.id));
@@ -496,7 +531,90 @@ function renderizarCatalogoCompleto() {
     });
     // Sincronizar corazones con favoritos guardados
     if (typeof syncBotonesLike === 'function') syncBotonesLike();
+
+    // Observar cambios de clase en las cards (filtros, forma, paginación) para
+    // mostrar/ocultar los encabezados de categoría automáticamente.
+    if (typeof iniciarObservadorEncabezadosCategoria === 'function') {
+        iniciarObservadorEncabezadosCategoria();
+    }
+    if (typeof actualizarEncabezadosCategoria === 'function') actualizarEncabezadosCategoria();
 }
+
+// ── Muestra/oculta los encabezados de categoría del catálogo ──
+// Reglas: solo se muestran si estamos viendo la página 1 de la paginación
+// Y no hay ningún filtro de forma/evento/búsqueda activo (es decir, el
+// catálogo se ve "tal cual" en su orden curado). Se recalcula solo, cada vez
+// que cambia alguna clase de las tarjetas (filtros, forma, paginación, etc).
+function actualizarEncabezadosCategoria() {
+    var grid = document.getElementById('gridProductos');
+    var encabezados = document.querySelectorAll('.encabezado-categoria-catalogo');
+    if (!grid || !encabezados.length) return;
+
+    var tarjetas = grid.querySelectorAll('.card-dinamica');
+    var hayFiltroActivo = false;
+    for (var i = 0; i < tarjetas.length; i++) {
+        if (tarjetas[i].classList.contains('oculto') || tarjetas[i].classList.contains('oculto-forma-carrusel')) {
+            hayFiltroActivo = true;
+            break;
+        }
+    }
+
+    var btnPagActivo = document.querySelector('#pagControlesArriba .btn-pag.activo, #pagControlesAbajo .btn-pag.activo');
+    var enPaginaUno = !btnPagActivo || btnPagActivo.textContent.trim() === '1';
+
+    var mostrar = !hayFiltroActivo && enPaginaUno;
+    encabezados.forEach(function(enc) { enc.style.display = mostrar ? '' : 'none'; });
+}
+
+var _observadorEncabezadosCategoria = null;
+function iniciarObservadorEncabezadosCategoria() {
+    if (_observadorEncabezadosCategoria) return; // ya está observando
+    var grid = document.getElementById('gridProductos');
+    if (!grid || typeof MutationObserver === 'undefined') return;
+    _observadorEncabezadosCategoria = new MutationObserver(function() {
+        actualizarEncabezadosCategoria();
+    });
+    _observadorEncabezadosCategoria.observe(grid, { attributes: true, attributeFilter: ['class'], subtree: true });
+}
+
+// ── Lleva al usuario al filtro "Filtrar por Forma" y activa la categoría indicada ──
+function irAFiltroForma(forma) {
+    // Asegurar que estamos en el modo "Mostrar Todo" (donde vive el catálogo general)
+    if (typeof cambiarModoVelas === 'function') {
+        var btnTodo = document.getElementById('btnModoTodosProductos');
+        if (btnTodo && !btnTodo.classList.contains('activo')) cambiarModoVelas('mostrar_todo');
+    }
+    // Abrir el panel de formas si está colapsado
+    var panel = document.getElementById('panelFormaCarrusel');
+    if (panel && panel.style.display === 'none' && typeof togglePanelFormas === 'function') {
+        togglePanelFormas();
+    }
+    var btnForma = document.querySelector('.btn-forma-carrusel[data-forma="' + forma + '"]');
+    if (btnForma && typeof seleccionarFormaCarrusel === 'function') {
+        seleccionarFormaCarrusel(btnForma, forma);
+    }
+    setTimeout(function() {
+        var destino = panel || document.getElementById('gridProductos');
+        if (destino) destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+}
+
+// ── Lleva al usuario a la sección "Etiquetas" del catálogo ──
+function irAModoEtiquetas() {
+    if (typeof cambiarModoVelas === 'function') cambiarModoVelas('etiquetas');
+    setTimeout(function() {
+        var destino = document.getElementById('panelEtiquetas') || document.getElementById('gridProductos');
+        if (destino) destino.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+}
+
+// ── Redirige a la página de Velas Kukúmita (negocio hermano) ──
+function visitarVelasKukumita() {
+    window.open('https://velaskukumita.com', '_blank');
+}
+window.irAFiltroForma      = irAFiltroForma;
+window.irAModoEtiquetas    = irAModoEtiquetas;
+window.visitarVelasKukumita = visitarVelasKukumita;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════════════════════
@@ -942,6 +1060,12 @@ if (document.readyState === 'loading') {
     let galeriaIndice = 0;
 
     function abrirModalProducto(card) {
+        // ── ¿Este producto pertenece al grupo "Velas" (últimos 3 de la página 1)? ──
+        const _posCatalogo = parseInt(card.getAttribute('data-pos-catalogo'), 10);
+        const esGrupoVelas = !isNaN(_posCatalogo) &&
+            typeof GRUPO_VELAS_POS_INICIO !== 'undefined' &&
+            _posCatalogo >= GRUPO_VELAS_POS_INICIO && _posCatalogo <= GRUPO_VELAS_POS_FIN;
+
         const nombre = card.getAttribute('data-nombre') || card.querySelector('h3')?.textContent || 'Producto';
         const descripcion = card.getAttribute('data-descripcion') || '';
         const alto = card.getAttribute('data-alto') || '';
@@ -1289,7 +1413,7 @@ if (document.readyState === 'loading') {
             if (typeof _actualizarMetaOG === 'function') {
                 _actualizarMetaOG(nombre, descripcion, galeriaImagenes[0] || '', urlOG);
             }
-            abrirSubmenuCompartir(url, nombre, galeriaImagenes[0] || '');
+            abrirSubmenuCompartir(url, nombre, galeriaImagenes[0] || '', esGrupoVelas);
         };
 
         renderizarGaleria();
@@ -1857,7 +1981,10 @@ if (document.readyState === 'loading') {
             'tazones':         ['tazon','tazones','tazón','tazónes'],
             'portavelas':      ['porta vela','porta velas','portavela','portavelas','porta_vela','porta_velas'],
             'portainciensos':  ['porta incienso','porta inciensos','portaincienso','portainciensos','porta_incienso','porta_inciensos'],
-            'aditamentos':     ['aditamento','aditamentos']
+            'aditamentos':     ['aditamento','aditamentos'],
+            // Alajero (alhajero): admite las variantes/erratas más comunes que se
+            // escriben en la columna H (EtiquetaPrincipal) de la hoja de cálculo.
+            'alajero':         ['alajero','alajeros','alajro','alajros','aljero','aljeros','ajalero','ajaleros','ajlaero','ajlaeros']
         };
         return buscar.some(function(b) {
             const lista = variantes[b] || [b];
@@ -4369,12 +4496,26 @@ var _scUrlActual = '';
 var _scNombreActual = '';
 var _scImagenActual = '';
 
-function abrirSubmenuCompartir(url, nombre, imagen) {
+function abrirSubmenuCompartir(url, nombre, imagen, esVelas) {
     _scUrlActual = url;
     _scNombreActual = nombre || 'Producto';
     _scImagenActual = imagen || '';
     var linkEl = document.getElementById('scLinkTexto');
     if (linkEl) linkEl.textContent = url;
+
+    // ── Productos del grupo "Velas": ocultar las opciones normales de
+    //    compartir y mostrar únicamente el botón hacia Velas Kukúmita. ──
+    var zonaLink  = document.querySelector('#submenuCompartir .sc-link-zona');
+    var separador = document.querySelector('#submenuCompartir .sc-separador');
+    var redes     = document.querySelector('#submenuCompartir .sc-redes');
+    var zonaVelas = document.getElementById('scVelasZona');
+    var mostrarSoloVelas = !!esVelas;
+
+    if (zonaLink)  zonaLink.style.display  = mostrarSoloVelas ? 'none' : '';
+    if (separador) separador.style.display = mostrarSoloVelas ? 'none' : '';
+    if (redes)     redes.style.display     = mostrarSoloVelas ? 'none' : '';
+    if (zonaVelas) zonaVelas.style.display = mostrarSoloVelas ? 'flex' : 'none';
+
     document.getElementById('submenuCompartir').classList.add('abierto');
     document.body.style.overflow = 'hidden';
 }

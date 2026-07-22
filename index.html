@@ -193,6 +193,11 @@
     .btn-modo-portainciensos:hover { background: #9272b5; }
     .btn-modo-portainciensos.activo { background: #6b4a9a; color: #fff; box-shadow: 0 3px 10px rgba(107,74,154,0.35); }
 
+    /* ── Alajero: rosa viejo / rosa oscuro activo ── */
+    .btn-modo-alajero { background: #c9899a; color: #fff; }
+    .btn-modo-alajero:hover { background: #b56f82; }
+    .btn-modo-alajero.activo { background: #8a4a5c; color: #fff; box-shadow: 0 3px 10px rgba(138,74,92,0.35); }
+
     /* ── Más: gris oscuro ── */
     .btn-modo-mas { background: #6b6b6b; color: #fff; }
     .btn-modo-mas:hover { background: #555; }
@@ -1256,6 +1261,7 @@
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-tazones" data-forma="tazones" onclick="seleccionarFormaCarrusel(this,'tazones')">🥣 Tazones</button>
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-portavelas" data-forma="portavelas" onclick="seleccionarFormaCarrusel(this,'portavelas')">🕯️ Porta Velas</button>
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-portainciensos" data-forma="portainciensos" onclick="seleccionarFormaCarrusel(this,'portainciensos')">🪔 Porta Inciensos</button>
+                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-alajero" data-forma="alajero" onclick="seleccionarFormaCarrusel(this,'alajero')">💍 Alajero</button>
             </div>
             </div><!-- /panelFormaCarrusel -->
         </div>
@@ -1982,6 +1988,15 @@
             <button class="sc-btn-red sc-btn-instagram" onclick="compartirEnInstagram()">
                 <span class="sc-red-icon">📸</span>
                 <span>Copiar link para Instagram</span>
+            </button>
+        </div>
+
+        <!-- Zona exclusiva para los productos de vela: reemplaza las opciones
+             normales de compartir por un único botón hacia Velas Kukúmita. -->
+        <div class="sc-redes" id="scVelasZona" style="display:none;">
+            <button class="sc-btn-red sc-btn-velas" onclick="visitarVelasKukumita()">
+                <span class="sc-red-icon">🕯️</span>
+                <span>Visitar Velas Kukúmita</span>
             </button>
         </div>
     </div>
