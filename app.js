@@ -348,23 +348,6 @@ function mostrarEstadoCarga(mensaje, esError) {
 // renderizarCatalogoCompleto()
 // Lee listaProductos y genera dinámicamente cada tarjeta .card-dinamica
 // ══════════════════════════════════════════════════════════════════════════════
-// ── Encabezados de categoría: se muestran arriba de ciertos grupos de 3
-//    productos, únicamente en la primera página del catálogo (los primeros
-//    30, en el orden curado de la hoja de cálculo) y solo cuando no hay
-//    ningún filtro activo. 'idx' es la posición (0-based) del producto
-//    dentro de listaProductos, tal como aparece en la hoja. ──
-var ENCABEZADOS_CATEGORIA_CATALOGO = {
-    0:  { texto: 'Ver más Figuras Pequeñas', accion: function() { irAFiltroForma('figuras'); } },
-    3:  { texto: 'Ver Más Bases Planas',     accion: function() { irAFiltroForma('bases'); } },
-    6:  { texto: 'Ver más Macetas',          accion: function() { irAFiltroForma('macetas'); } },
-    9:  { texto: 'Ver Más Porta Velas',      accion: function() { irAFiltroForma('portavelas'); } },
-    12: { texto: 'Ver Más Tazones',          accion: function() { irAFiltroForma('tazones'); } },
-    15: { texto: 'Ver Más Porta Inciensos',  accion: function() { irAFiltroForma('portainciensos'); } },
-    18: { texto: 'Ver Más Alajeros',         accion: function() { irAFiltroForma('alajero'); } },
-    21: { texto: 'Ver Más Arreglos',         accion: function() { irAModoArreglos(); } },
-    24: { texto: 'Ver Más Etiquetas',        accion: function() { irAModoEtiquetas(); } },
-    27: { texto: 'Ver Velas',                accion: function() { visitarVelasKukumita(); } }
-};
 // Posiciones (idx) de los productos que forman el grupo "Velas" — solo estos
 // 3 muestran el botón exclusivo "Visitar Velas Kukúmita" en su submenú de compartir.
 var GRUPO_VELAS_POS_INICIO = 27;
@@ -376,19 +359,6 @@ function renderizarCatalogoCompleto() {
     grid.innerHTML = '';
 
     listaProductos.forEach(function(p, idx) {
-        var infoEncabezado = ENCABEZADOS_CATEGORIA_CATALOGO[idx];
-        if (infoEncabezado) {
-            var encabezado = document.createElement('div');
-            encabezado.className = 'encabezado-categoria-catalogo';
-            var btnEncabezado = document.createElement('button');
-            btnEncabezado.type = 'button';
-            btnEncabezado.className = 'btn-encabezado-categoria';
-            btnEncabezado.textContent = infoEncabezado.texto;
-            btnEncabezado.addEventListener('click', infoEncabezado.accion);
-            encabezado.appendChild(btnEncabezado);
-            grid.appendChild(encabezado);
-        }
-
         var card = document.createElement('div');
         card.className = 'card-dinamica';
         card.setAttribute('data-pos-catalogo', String(idx));
@@ -532,50 +502,6 @@ function renderizarCatalogoCompleto() {
     });
     // Sincronizar corazones con favoritos guardados
     if (typeof syncBotonesLike === 'function') syncBotonesLike();
-
-    // Observar cambios de clase en las cards (filtros, forma, paginación) para
-    // mostrar/ocultar los encabezados de categoría automáticamente.
-    if (typeof iniciarObservadorEncabezadosCategoria === 'function') {
-        iniciarObservadorEncabezadosCategoria();
-    }
-    if (typeof actualizarEncabezadosCategoria === 'function') actualizarEncabezadosCategoria();
-}
-
-// ── Muestra/oculta los encabezados de categoría del catálogo ──
-// Reglas: solo se muestran si estamos viendo la página 1 de la paginación
-// Y no hay ningún filtro de forma/evento/búsqueda activo (es decir, el
-// catálogo se ve "tal cual" en su orden curado). Se recalcula solo, cada vez
-// que cambia alguna clase de las tarjetas (filtros, forma, paginación, etc).
-function actualizarEncabezadosCategoria() {
-    var grid = document.getElementById('gridProductos');
-    var encabezados = document.querySelectorAll('.encabezado-categoria-catalogo');
-    if (!grid || !encabezados.length) return;
-
-    var tarjetas = grid.querySelectorAll('.card-dinamica');
-    var hayFiltroActivo = false;
-    for (var i = 0; i < tarjetas.length; i++) {
-        if (tarjetas[i].classList.contains('oculto') || tarjetas[i].classList.contains('oculto-forma-carrusel')) {
-            hayFiltroActivo = true;
-            break;
-        }
-    }
-
-    var btnPagActivo = document.querySelector('#pagControlesArriba .btn-pag.activo, #pagControlesAbajo .btn-pag.activo');
-    var enPaginaUno = !btnPagActivo || btnPagActivo.textContent.trim() === '1';
-
-    var mostrar = !hayFiltroActivo && enPaginaUno;
-    encabezados.forEach(function(enc) { enc.style.display = mostrar ? '' : 'none'; });
-}
-
-var _observadorEncabezadosCategoria = null;
-function iniciarObservadorEncabezadosCategoria() {
-    if (_observadorEncabezadosCategoria) return; // ya está observando
-    var grid = document.getElementById('gridProductos');
-    if (!grid || typeof MutationObserver === 'undefined') return;
-    _observadorEncabezadosCategoria = new MutationObserver(function() {
-        actualizarEncabezadosCategoria();
-    });
-    _observadorEncabezadosCategoria.observe(grid, { attributes: true, attributeFilter: ['class'], subtree: true });
 }
 
 // ── Lleva al usuario al filtro "Filtrar por Forma" y activa la categoría indicada ──

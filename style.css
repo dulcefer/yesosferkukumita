@@ -2013,45 +2013,6 @@
         position: relative;
     }
 
-    /* ── Encabezados de categoría sobre grupos de 3 productos (solo página 1, sin filtros) ── */
-    .encabezado-categoria-catalogo {
-        grid-column: 1 / -1;
-        display: flex;
-        justify-content: center;
-        margin: 10px 0 2px;
-    }
-    .btn-encabezado-categoria {
-        background: #fff8f0;
-        border: 2px solid #e0d5cc;
-        color: #5c4d43;
-        font-family: inherit;
-        font-weight: 800;
-        font-size: 0.92rem;
-        padding: 10px 22px;
-        border-radius: 999px;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
-        white-space: nowrap;
-    }
-    .btn-encabezado-categoria:hover {
-        background: #f0e6d8;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    }
-    .btn-encabezado-categoria:active { transform: scale(0.97); }
-    body.modo-oscuro .btn-encabezado-categoria {
-        background: #2a2220;
-        color: #d4c5b8;
-        border-color: #4a3b32;
-    }
-    @media (max-width: 768px) {
-        .btn-encabezado-categoria {
-            font-size: 0.78rem;
-            padding: 8px 16px;
-        }
-    }
-
     .card-precios-bloque {
         display: flex;
         align-items: flex-end;
