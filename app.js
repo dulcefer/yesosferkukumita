@@ -2389,8 +2389,12 @@ window.addEventListener('popstate', function(e) {
     // Modal de producto (ya tenía su propio manejo, lo respetamos)
     var modalProd = document.getElementById('modalProducto');
     if (modalProd && modalProd.classList.contains('abierto')) {
-        modalProd.classList.remove('abierto');
-        document.body.style.overflow = 'auto';
+        if (typeof cerrarModalProducto === 'function') {
+            cerrarModalProducto();
+        } else {
+            modalProd.classList.remove('abierto');
+            document.body.style.overflow = 'auto';
+        }
         _modalActivo = null;
         return;
     }
