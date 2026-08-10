@@ -1017,9 +1017,16 @@ function insertarBarrasCategoriaProductos() {
         // barra delgada de ancho completo y no como una tarjeta de producto.
         barra.style.cssText = 'grid-column:1/-1; width:100%; height:auto; min-height:0; aspect-ratio:auto; display:block; box-sizing:border-box;';
         barra.textContent = cfg.texto;
-        (function(filaCerrada) {
-            barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
-        })(fila);
+        (function(filaCerrada, cfgCerrada) {
+            // La barra "Mostrar Más Etiquetas" (fila 8, la 9ª) no filtra el grid
+            // principal: redirige al botón/modo "🏷️ Etiquetas", que muestra el
+            // catálogo completo de la Hoja 2 de la hoja de Google Sheets de Velas.
+            if (cfgCerrada.origenExterno === 'etiquetas-externas' && typeof irAModoEtiquetas === 'function') {
+                barra.addEventListener('click', function() { irAModoEtiquetas(); });
+            } else {
+                barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
+            }
+        })(fila, cfg);
         grid.insertBefore(barra, cards[idx]);
     }
 }
