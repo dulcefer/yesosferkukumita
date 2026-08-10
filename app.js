@@ -952,6 +952,12 @@ function filtrarPorBarraCategoria(fila) {
         // Ya estaba activa esta categoría: se desactiva y vuelve a mostrar todo
         _filtroBarraCategoriaActivo = null;
         grid.querySelectorAll('.card-dinamica').forEach(function(c) { c.classList.remove('oculto'); });
+        // Si el estado de historial actual corresponde a este filtro (lo empujamos
+        // nosotros al activarlo), lo consumimos para no dejar una entrada "fantasma"
+        // que el botón "adelante" del navegador pudiera reabrir.
+        if (history.state && history.state.kukumitaFiltroBarra === fila) {
+            history.replaceState(null, '');
+        }
     } else {
         _filtroBarraCategoriaActivo = fila;
         var coincidencias = 0;
@@ -967,6 +973,9 @@ function filtrarPorBarraCategoria(fila) {
                 '(H) de Google Sheets para esos productos.'
             );
         }
+        // Empuja un estado de historial para que el botón "atrás" del navegador
+        // (o del celular) quite el filtro, igual que hace con los demás modales/paneles.
+        history.pushState({ kukumitaFiltroBarra: fila }, '');
     }
 
     if (typeof window.actualizarPaginacion === 'function') window.actualizarPaginacion();
@@ -2803,6 +2812,18 @@ window.addEventListener('popstate', function(e) {
         modalEtiq.classList.remove('abierto');
         document.body.style.overflow = '';
         _modalActivo = null;
+        return;
+    }
+    // Filtro de barra de categoría ("Mostrar Más...") activo — el botón "atrás"
+    // lo quita igual que el botón "✕ Quitar filtro y ver todo".
+    if (_filtroBarraCategoriaActivo !== null) {
+        _filtroBarraCategoriaActivo = null;
+        var gridFiltroBack = document.getElementById('gridProductos');
+        if (gridFiltroBack) {
+            gridFiltroBack.querySelectorAll('.card-dinamica').forEach(function(c) { c.classList.remove('oculto'); });
+        }
+        if (typeof window.actualizarPaginacion === 'function') window.actualizarPaginacion();
+        if (typeof insertarBarrasCategoriaProductos === 'function') insertarBarrasCategoriaProductos();
         return;
     }
 });
