@@ -171,6 +171,18 @@ var SHEET_ID = '1GoIVWBIyl9s0wYo2qyv0GQwco_xBl3sajDwF0qcnf5o';
 // Mientras no lo tengas configurado, deja el valor vacío ('') y funcionará
 // como antes (sin imagen en Facebook).
 var OG_WORKER_URL = 'https://yesos-fer-kukumita-linker.dulceprincesa086.workers.dev';
+
+// 🔧 Hoja de cálculo de Velas Kukúmita — se reutiliza en TRES lugares:
+//   1) Botón "Etiquetas" (grid propio)                → Hoja 2 completa
+//   2) Zona "Mostrar Más Velas" en la 1ª hoja de Yesos → primeros 3 de la Hoja 1
+//   3) Zona "Mostrar Más Etiquetas" en la 1ª hoja      → primeros 3 de la Hoja 2
+// Columnas en el mismo formato que la hoja de arriba (A Nombre, B precio,
+// C precio mayoreo, D descripción, ... H EtiquetaPrincipal, etc.)
+// NOTA: por defecto Google Sheets nombra la segunda pestaña "Hoja 2". Si tu pestaña
+// tiene otro nombre, cámbialo aquí exactamente igual (respetando mayúsculas/espacios).
+// La Hoja 1 no necesita nombre: se lee automáticamente como pestaña por defecto.
+var SHEET_ID_ETIQUETAS   = '1jin2wMYingvbPD2csGxIbm5AhulfRvCRvIzAKJTUNMw';
+var SHEET_NOMBRE_ETIQUETAS = 'Hoja 2';
 // ──────────────────────────────────────────────────────────────────────────────
 // COLUMNAS ESPERADAS EN LA HOJA (fila 1 = encabezados, datos desde fila 2):
 //   A(0):  Nombre
@@ -216,18 +228,27 @@ function parsearCSV(texto) {
         } else if ((c === '\n' || c === '\r') && !dentroDeComillas) {
             if (c === '\r' && texto[i + 1] === '\n') i++;
             filaActual.push(campoActual.trim());
-            if (filaActual.some(function(f) { return f !== ''; })) {
-                lineas.push(filaActual);
-            }
+            lineas.push(filaActual);
             filaActual = [];
             campoActual = '';
         } else {
             campoActual += c;
         }
     }
-    // Última celda
-    filaActual.push(campoActual.trim());
-    if (filaActual.some(function(f) { return f !== ''; })) lineas.push(filaActual);
+    // Última celda — solo se agrega si el texto no terminaba ya en salto de línea
+    if (filaActual.length > 0 || campoActual !== '') {
+        filaActual.push(campoActual.trim());
+        lineas.push(filaActual);
+    }
+    // Quita únicamente líneas colgantes al final del archivo (por el último \n)
+    while (lineas.length > 0) {
+        var ultima = lineas[lineas.length - 1];
+        if (ultima.every(function(f) { return f === ''; })) {
+            lineas.pop();
+        } else {
+            break;
+        }
+    }
     return lineas;
 }
 
@@ -348,20 +369,19 @@ function mostrarEstadoCarga(mensaje, esError) {
 // renderizarCatalogoCompleto()
 // Lee listaProductos y genera dinámicamente cada tarjeta .card-dinamica
 // ══════════════════════════════════════════════════════════════════════════════
-// Posiciones (idx) de los productos que forman el grupo "Velas" — solo estos
-// 3 muestran el botón exclusivo "Visitar Velas Kukúmita" en su submenú de compartir.
-var GRUPO_VELAS_POS_INICIO = 27;
-var GRUPO_VELAS_POS_FIN    = 29;
-
 function renderizarCatalogoCompleto() {
-    var grid = document.getElementById('gridProductos');
-    if (!grid) { console.warn('renderizarCatalogoCompleto: #gridProductos no encontrado'); return; }
+    renderizarCatalogoEnGrid('gridProductos', listaProductos);
+}
+
+// ── Versión genérica: pinta cualquier lista de productos en cualquier grid ──
+function renderizarCatalogoEnGrid(gridId, productos) {
+    var grid = document.getElementById(gridId);
+    if (!grid) { console.warn('renderizarCatalogoEnGrid: #' + gridId + ' no encontrado'); return; }
     grid.innerHTML = '';
 
-    listaProductos.forEach(function(p, idx) {
+    (productos || []).forEach(function(p) {
         var card = document.createElement('div');
         card.className = 'card-dinamica';
-        card.setAttribute('data-pos-catalogo', String(idx));
 
         // ── Data-attributes necesarios para filtros y modal ──
         card.setAttribute('data-num',             String(p.id));
@@ -391,6 +411,7 @@ function renderizarCatalogoCompleto() {
         card.setAttribute('data-red-facebook',    JSON.stringify(p.redFacebook  || []));
         card.setAttribute('data-red-instagram',   JSON.stringify(p.redInstagram || []));
         card.setAttribute('data-red-tiktok',      JSON.stringify(p.redTiktok    || []));
+        card.setAttribute('data-origen-externo',  p._origenExterno || '');
         card.style.cursor = 'pointer';
 
         // ── Imagen principal ──
@@ -705,6 +726,288 @@ if (document.readyState === 'loading') {
     cargarDesdeGoogleSheets();
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CARGA DE PRODUCTOS PARA EL BOTÓN "ETIQUETAS" — Hoja 2 de un Google Sheets distinto
+// ══════════════════════════════════════════════════════════════════════════════
+var listaProductosEtiquetas = [];
+var _etiquetasCargando = false;
+var _etiquetasCargadas = false;
+
+function mostrarEstadoCargaEtiquetas(mensaje, esError) {
+    var grid = document.getElementById('gridProductosEtiquetas');
+    if (!grid) return;
+    grid.innerHTML =
+        '<div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:' +
+        (esError ? '#c0392b' : '#8c7565') + ';">' +
+        '<div style="font-size:2rem; margin-bottom:12px;">' + (esError ? '⚠️' : '⏳') + '</div>' +
+        '<p style="font-size:1rem; font-weight:600;">' + mensaje + '</p>' +
+        (esError ? '<p style="font-size:0.85rem; color:#999; margin-top:8px;">Revisa que "' + SHEET_NOMBRE_ETIQUETAS + '" sea el nombre correcto de la pestaña y que la hoja esté compartida como "Cualquiera con el enlace puede ver".</p>' : '') +
+        '</div>';
+}
+
+// Carga (una sola vez, con caché en memoria) los productos de la Hoja 2 del
+// Google Sheets de Etiquetas y los pinta en su propio grid.
+function cargarProductosEtiquetas(forzar) {
+    if (_etiquetasCargando) return;
+    if (_etiquetasCargadas && !forzar) {
+        renderizarCatalogoEnGrid('gridProductosEtiquetas', listaProductosEtiquetas);
+        return;
+    }
+    _etiquetasCargando = true;
+    mostrarEstadoCargaEtiquetas('Cargando productos desde Google Sheets…', false);
+
+    var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS +
+        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NOMBRE_ETIQUETAS);
+
+    fetch(csvUrl)
+        .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(function(texto) {
+            var filas = parsearCSV(texto);
+            var productos = csvAProductos(filas);
+
+            if (productos.length === 0) {
+                mostrarEstadoCargaEtiquetas('Esa hoja está vacía o no tiene el formato correcto.', true);
+                _etiquetasCargando = false;
+                return;
+            }
+
+            listaProductosEtiquetas = productos;
+            _etiquetasCargadas = true;
+            _etiquetasCargando = false;
+            renderizarCatalogoEnGrid('gridProductosEtiquetas', listaProductosEtiquetas);
+
+            if (typeof syncBotonesLike === 'function') syncBotonesLike();
+            document.dispatchEvent(new CustomEvent('catalogoEtiquetasCargado'));
+        })
+        .catch(function(err) {
+            console.error('Error cargando hoja de Etiquetas:', err);
+            _etiquetasCargando = false;
+            mostrarEstadoCargaEtiquetas('No se pudo cargar el catálogo de Etiquetas.', true);
+        });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRODUCTOS ESPECIALES INSERTADOS EN LA PRIMERA HOJA (Yesos Fer Kukúmita):
+//   • Zona "Mostrar Más Etiquetas" (fila 9,  posiciones 26-28) → primeras 3
+//     etiquetas de la Hoja 2 de Velas Kukúmita.
+//   • Zona "Mostrar Más Velas"     (fila 10, posiciones 29-31) → primeros 3
+//     productos de la Hoja 1 de Velas Kukúmita.
+// En la hoja de Yesos, las filas 26-31 deben quedar SIN link de imagen en la
+// columna G para que csvAProductos() las ignore y así dejar ese hueco libre
+// para estos 6 productos "prestados".
+// ══════════════════════════════════════════════════════════════════════════════
+var FILA_INICIO_ETIQUETAS = 26; // fila de Google Sheets (Yesos) que le correspondería al 1er producto de "Etiquetas"
+var FILA_INICIO_VELAS     = 29; // ídem para el 1er producto de Velas
+var _especialesInsertados = false;
+
+// Clona un producto (ya parseado desde OTRA hoja) y le asigna el "id" que le
+// haría mostrar en el badge del modal la fila que le correspondería dentro
+// del catálogo de Yesos (data-sheet-row = id + 1), en vez de su fila real
+// en la hoja de Velas Kukúmita.
+function _prepararProductoEspecial(p, filaSheetsSimulada, origen) {
+    var clone = Object.assign({}, p);
+    clone.id = filaSheetsSimulada - 1;
+    clone._origenExterno = origen;
+    return clone;
+}
+
+function cargarProductosEspecialesVelas() {
+    var urlHoja1 = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS + '/gviz/tq?tqx=out:csv';
+    var urlHoja2 = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS +
+        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NOMBRE_ETIQUETAS);
+
+    Promise.all([
+        fetch(urlHoja1).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+        fetch(urlHoja2).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    ]).then(function(textos) {
+        var productosVelas     = csvAProductos(parsearCSV(textos[0])).slice(0, 3);
+        var productosEtiquetas = csvAProductos(parsearCSV(textos[1])).slice(0, 3);
+
+        var especiales = [];
+        productosEtiquetas.forEach(function(p, i) {
+            especiales.push(_prepararProductoEspecial(p, FILA_INICIO_ETIQUETAS + i, 'etiquetas-externas'));
+        });
+        productosVelas.forEach(function(p, i) {
+            especiales.push(_prepararProductoEspecial(p, FILA_INICIO_VELAS + i, 'velas'));
+        });
+
+        _insertarProductosEspecialesEnListaPrincipal(especiales);
+    }).catch(function(err) {
+        console.error('No se pudieron cargar los productos especiales de Velas Kukúmita:', err);
+    });
+}
+
+function _insertarProductosEspecialesEnListaPrincipal(especiales) {
+    if (!especiales || especiales.length === 0) return;
+    // Punto de inserción: justo antes del primer producto real cuya fila de
+    // Google Sheets sea igual o mayor a donde deberían ir estos especiales.
+    var idx = listaProductos.findIndex(function(p) { return (p.id + 1) >= FILA_INICIO_ETIQUETAS; });
+    if (idx === -1) idx = listaProductos.length;
+    listaProductos.splice.apply(listaProductos, [idx, 0].concat(especiales));
+
+    renderizarCatalogoCompleto();
+    if (typeof syncBotonesLike === 'function') syncBotonesLike();
+    document.dispatchEvent(new CustomEvent('catalogoCargado'));
+}
+
+// Se dispara una sola vez, justo después de que el catálogo principal de
+// Yesos haya cargado por primera vez.
+document.addEventListener('catalogoCargado', function() {
+    if (_especialesInsertados) return;
+    _especialesInsertados = true;
+    cargarProductosEspecialesVelas();
+});
+
+
+
+// ===== BARRAS DE CATEGORÍA SOBRE CADA FILA (solo página 1, modo "Mostrar Todo") =====
+// Aparecen arriba de cada una de las 10 filas de 3 productos que forman los
+// primeros 30 productos de la hoja principal de productos (no aplica al grid de "Etiquetas").
+// Cada barra funciona como botón de filtro: al presionarla, filtra el catálogo
+// exactamente igual que si se hubiera seleccionado esa etiqueta en "Filtrar por".
+var CATEGORIAS_BARRAS = [
+    { texto: 'Mostrar Más Figuras',        tipo: 'figuras' },
+    { texto: 'Mostrar Más Bases',          tipo: 'bases' },
+    { texto: 'Mostrar Más Macetas',        tipo: 'macetas' },
+    { texto: 'Mostrar Más Porta Velas',    tipo: 'portavelas' },
+    { texto: 'Mostrar Más Tazones',        tipo: 'tazones' },
+    { texto: 'Mostrar Más Porta Inciensos',tipo: 'portainciensos' },
+    { texto: 'Mostrar Más Alajeros',       tipo: 'alajeros' },
+    { texto: 'Mostrar Más Arreglos',       tipo: 'arreglo' },
+    { texto: 'Mostrar Más Etiquetas',      origenExterno: 'etiquetas-externas' },
+    { texto: 'Mostrar Más Velas',          origenExterno: 'velas' }
+];
+
+// Grupos de palabras equivalentes usados para reconocer la categoría de cada
+// producto a partir de su(s) data-tipos, igual que el sistema de filtros del sitio.
+// Se comparan sin acentos, espacios ni mayúsculas para tolerar variaciones de
+// escritura en la columna "EtiquetaPrincipal" de Google Sheets.
+var _VARIANTES_CATEGORIA_BARRA = {
+    figuras:        ['figura', 'figuras', 'animal', 'animales'],
+    bases:          ['base', 'bases'],
+    macetas:        ['maceta', 'macetas'],
+    portavelas:     ['portavela', 'portavelas', 'porta vela', 'porta velas'],
+    tazones:        ['tazon', 'tazones', 'tazón', 'tazónes'],
+    portainciensos: ['portaincienso', 'portainciensos', 'porta incienso', 'porta inciensos'],
+    alajeros:       ['alajero', 'alajeros', 'alhajero', 'alhajeros', 'joyero', 'joyeros'],
+    arreglo:        ['arreglo', 'arreglos']
+};
+
+// Quita acentos, espacios, guiones y pasa a minúsculas para comparar sin
+// importar cómo se haya escrito la etiqueta en la hoja de cálculo.
+function _normalizarCategoriaBarra(str) {
+    return (str || '').toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\s_\-]+/g, '');
+}
+
+function _cardCoincideConCategoriaBarra(card, cfg) {
+    if (cfg.origenExterno) {
+        return card.getAttribute('data-origen-externo') === cfg.origenExterno;
+    }
+    var rawTipos = (card.getAttribute('data-tipos') || card.getAttribute('data-tipo') || '');
+    var rawSubtags = (card.getAttribute('data-subtags') || '');
+    var candidatos = (rawTipos + '|' + rawSubtags).split(/[|,]/)
+        .map(function(s) { return _normalizarCategoriaBarra(s.replace(/^"+|"+$/g, '')); })
+        .filter(Boolean);
+    var lista = (_VARIANTES_CATEGORIA_BARRA[cfg.tipo] || [cfg.tipo]).map(_normalizarCategoriaBarra);
+    return candidatos.some(function(c) {
+        return lista.some(function(v) { return c === v || c.indexOf(v) !== -1 || v.indexOf(c) !== -1; });
+    });
+}
+
+// Índice (0-9) de la barra actualmente usada como filtro, o null si no hay ninguna activa
+var _filtroBarraCategoriaActivo = null;
+
+function filtrarPorBarraCategoria(fila) {
+    var grid = document.getElementById('gridProductos');
+    if (!grid) return;
+    var cfg = CATEGORIAS_BARRAS[fila];
+    if (!cfg) return;
+
+    if (_filtroBarraCategoriaActivo === fila) {
+        // Ya estaba activa esta categoría: se desactiva y vuelve a mostrar todo
+        _filtroBarraCategoriaActivo = null;
+        grid.querySelectorAll('.card-dinamica').forEach(function(c) { c.classList.remove('oculto'); });
+    } else {
+        _filtroBarraCategoriaActivo = fila;
+        var coincidencias = 0;
+        grid.querySelectorAll('.card-dinamica').forEach(function(c) {
+            var coincide = _cardCoincideConCategoriaBarra(c, cfg);
+            if (coincide) coincidencias++;
+            c.classList.toggle('oculto', !coincide);
+        });
+        if (coincidencias === 0) {
+            console.warn(
+                '[Barra de categoría] "' + cfg.texto + '" no encontró productos con la etiqueta "' +
+                cfg.tipo + '". Revisa el texto exacto que escribiste en la columna EtiquetaPrincipal ' +
+                '(H) de Google Sheets para esos productos.'
+            );
+        }
+    }
+
+    if (typeof window.actualizarPaginacion === 'function') window.actualizarPaginacion();
+
+    var zonaFiltro = document.getElementById('panelTodos');
+    (zonaFiltro || grid).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.filtrarPorBarraCategoria = filtrarPorBarraCategoria;
+
+function insertarBarrasCategoriaProductos() {
+    var grid = document.getElementById('gridProductos');
+    if (!grid) return;
+
+    // Quitar barras insertadas previamente (se recalculan en cada render)
+    grid.querySelectorAll('.barra-categoria-fila').forEach(function(b) { b.remove(); });
+
+    // Solo debe aparecer en el modo "Mostrar Todo"
+    var btnTodosProductos = document.getElementById('btnModoTodosProductos');
+    var esModoMostrarTodo = btnTodosProductos && btnTodosProductos.classList.contains('activo');
+    if (!esModoMostrarTodo) return;
+
+    // Mientras haya un filtro de barra activo, se muestra una única barra para
+    // quitarlo en vez de las 10 (el listado ya no conserva la estructura de
+    // 10 filas de 3, así que las barras normales no aplican)
+    if (_filtroBarraCategoriaActivo !== null) {
+        var primeraCard = grid.querySelector('.card-dinamica');
+        var barraQuitar = document.createElement('button');
+        barraQuitar.type = 'button';
+        barraQuitar.className = 'barra-categoria-fila barra-categoria-fila-quitar';
+        barraQuitar.textContent = '✕ Quitar filtro y ver todo';
+        barraQuitar.addEventListener('click', function() { filtrarPorBarraCategoria(_filtroBarraCategoriaActivo); });
+        if (primeraCard) grid.insertBefore(barraQuitar, primeraCard);
+        else grid.appendChild(barraQuitar);
+        return;
+    }
+
+    // Solo en la página 1 de la paginación
+    var hashMatch = (window.location.hash || '').match(/pagina=(\d+)/);
+    var paginaActualNum = hashMatch ? parseInt(hashMatch[1], 10) : 1;
+    if (paginaActualNum !== 1) return;
+
+    var cards = Array.from(grid.querySelectorAll('.card-dinamica')).filter(function(c) {
+        return !c.classList.contains('oculto') && !c.classList.contains('paginacion-oculto');
+    });
+
+    for (var fila = 0; fila < 10; fila++) {
+        var idx = fila * 3;
+        if (idx >= cards.length) break;
+        var cfg = CATEGORIAS_BARRAS[fila] || { texto: 'Mostrar Más Productos' };
+        var barra = document.createElement('button');
+        barra.type = 'button';
+        barra.className = 'barra-categoria-fila';
+        barra.textContent = cfg.texto;
+        (function(filaCerrada) {
+            barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
+        })(fila);
+        grid.insertBefore(barra, cards[idx]);
+    }
+}
+window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
+
 
 
 // ===== PAGINACIÓN DE 30 PRODUCTOS POR PÁGINA =====
@@ -746,6 +1049,7 @@ if (document.readyState === 'loading') {
             }
         });
         renderControles();
+        insertarBarrasCategoriaProductos();
         if (_scrollAlCambiarPagina) {
             var grid = document.getElementById('gridProductos');
             if (grid) {
@@ -997,11 +1301,8 @@ if (document.readyState === 'loading') {
     let galeriaIndice = 0;
 
     function abrirModalProducto(card) {
-        // ── ¿Este producto pertenece al grupo "Velas" (últimos 3 de la página 1)? ──
-        const _posCatalogo = parseInt(card.getAttribute('data-pos-catalogo'), 10);
-        const esGrupoVelas = !isNaN(_posCatalogo) &&
-            typeof GRUPO_VELAS_POS_INICIO !== 'undefined' &&
-            _posCatalogo >= GRUPO_VELAS_POS_INICIO && _posCatalogo <= GRUPO_VELAS_POS_FIN;
+        // ── ¿Este producto pertenece al grupo "Velas" (traído de Velas Kukúmita)? ──
+        const esGrupoVelas = (card.getAttribute('data-origen-externo') || '') === 'velas';
 
         const nombre = card.getAttribute('data-nombre') || card.querySelector('h3')?.textContent || 'Producto';
         const descripcion = card.getAttribute('data-descripcion') || '';
@@ -1729,6 +2030,13 @@ if (document.readyState === 'loading') {
         const panelTod  = document.getElementById('panelTodos');
         const bloqueArr = document.getElementById('bloqueFiltroPrecioArreglos');
         const bloqueTod = document.getElementById('bloqueFiltroPrecioTodos');
+        const gridPrincipal   = document.getElementById('gridProductos');
+        const gridEtiquetas   = document.getElementById('gridProductosEtiquetas');
+
+        // Por defecto: grid principal visible, grid de etiquetas oculto.
+        // (el bloque "etiquetas" de abajo invierte esto cuando corresponde)
+        if (gridPrincipal) gridPrincipal.style.display = '';
+        if (gridEtiquetas) gridEtiquetas.style.display = 'none';
 
         // Desactivar todos los botones y paneles
         [btnTodosProductos, btnArreglos, btnPaquetes, btnEtiquetas]
@@ -1742,6 +2050,7 @@ if (document.readyState === 'loading') {
             if (btnTodosProductos) btnTodosProductos.classList.add('activo');
             if (panelTod) panelTod.classList.add('visible');
             if (bloqueTod) bloqueTod.style.display = 'block';
+            _filtroBarraCategoriaActivo = null;
             aplicarFiltrosUnificados('mostrar_todo');
         } else if (modo === 'arreglos') {
             if (btnArreglos) btnArreglos.classList.add('activo');
@@ -1756,6 +2065,9 @@ if (document.readyState === 'loading') {
         } else if (modo === 'etiquetas') {
             if (btnEtiquetas) btnEtiquetas.classList.add('activo');
             if (panelEtiq) panelEtiq.classList.add('visible');
+            if (gridPrincipal) gridPrincipal.style.display = 'none';
+            if (gridEtiquetas) gridEtiquetas.style.display = '';
+            cargarProductosEtiquetas();
             aplicarFiltrosUnificados('etiquetas');
         } else {
             // Fallback: mostrar todo
@@ -1963,7 +2275,10 @@ if (document.readyState === 'loading') {
             } else if (panel === 'decoraciones') {
                 card.classList.toggle('oculto', !tieneTipo(card, 'decoracion'));
             } else if (panel === 'etiquetas') {
-                card.classList.toggle('oculto', !(tieneTipo(card, 'etiqueta') && okEvento));
+                // Los productos de este panel vienen de una hoja dedicada (Hoja 2),
+                // así que se muestran todos por defecto; solo se filtran por
+                // nombre/evento si el usuario usa la búsqueda o los filtros de evento.
+                card.classList.toggle('oculto', !(okNombre && okEvento));
             } else if (panel === 'arreglos') {
                 // Respetar también el filtro de precio activo en arreglos
                 let okPrecio = true;
