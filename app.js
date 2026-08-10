@@ -575,6 +575,20 @@ function irAModoArreglos() {
 function visitarVelasKukumita() {
     window.open('https://velaskukumita.com', '_blank');
 }
+
+// ── Abre (sin togglear) el mini submenú con el logo de Velas Kukúmita y el
+// botón para visitar velaskukumita.com. Es el mismo submenú que despliega el
+// botón "🪨 También vendemos Velas — presiona aquí para visitar la página",
+// reutilizado aquí para la barra "Mostrar Más Velas". ──
+function abrirMiniSubmenuVelas() {
+    var sub = document.getElementById('submenuYesosKukumita');
+    if (!sub) { visitarVelasKukumita(); return; }
+    sub.style.display = 'block';
+    setTimeout(function() {
+        sub.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+}
+window.abrirMiniSubmenuVelas = abrirMiniSubmenuVelas;
 window.irAFiltroForma      = irAFiltroForma;
 window.irAModoEtiquetas    = irAModoEtiquetas;
 window.irAModoArreglos     = irAModoArreglos;
@@ -1023,6 +1037,12 @@ function insertarBarrasCategoriaProductos() {
             // catálogo completo de la Hoja 2 de la hoja de Google Sheets de Velas.
             if (cfgCerrada.origenExterno === 'etiquetas-externas' && typeof irAModoEtiquetas === 'function') {
                 barra.addEventListener('click', function() { irAModoEtiquetas(); });
+            // La barra "Mostrar Más Velas" (fila 9, la 10ª) tampoco filtra el grid:
+            // abre el mini submenú con el logo de Velas Kukúmita y el botón para
+            // visitar velaskukumita.com (el mismo submenú del botón "🪨 También
+            // vendemos Velas").
+            } else if (cfgCerrada.origenExterno === 'velas' && typeof abrirMiniSubmenuVelas === 'function') {
+                barra.addEventListener('click', function(e) { e.stopPropagation(); abrirMiniSubmenuVelas(); });
             } else {
                 barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
             }
@@ -1327,6 +1347,15 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     function abrirModalProducto(card) {
         // ── ¿Este producto pertenece al grupo "Velas" (traído de Velas Kukúmita)? ──
         const esGrupoVelas = (card.getAttribute('data-origen-externo') || '') === 'velas';
+
+        // Para productos del grupo "Velas": ocultar Favoritos/Carrito/Compartir y
+        // mostrar solo WhatsApp + "Ver Página de Velas" (enlaza a velaskukumita.com).
+        const filaFavCarrito = document.getElementById('mpFilaFavCarrito');
+        const btnCompartirModal = document.getElementById('mpBtnCompartir');
+        const btnVerVelasModal = document.getElementById('mpBtnVerVelas');
+        if (filaFavCarrito) filaFavCarrito.style.display = esGrupoVelas ? 'none' : '';
+        if (btnCompartirModal) btnCompartirModal.style.display = esGrupoVelas ? 'none' : '';
+        if (btnVerVelasModal) btnVerVelasModal.style.display = esGrupoVelas ? '' : 'none';
 
         const nombre = card.getAttribute('data-nombre') || card.querySelector('h3')?.textContent || 'Producto';
         const descripcion = card.getAttribute('data-descripcion') || '';

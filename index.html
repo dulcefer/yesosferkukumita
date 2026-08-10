@@ -1618,8 +1618,8 @@
                 </div>
             </div>
 
-            <!-- 9a. Botones Favoritos / Carrito -->
-            <div class="mp-botones-accion" style="margin-top:6px; margin-bottom:0;">
+            <!-- 9a. Botones Favoritos / Carrito (se ocultan para productos del grupo "Velas") -->
+            <div class="mp-botones-accion" id="mpFilaFavCarrito" style="margin-top:6px; margin-bottom:0;">
                 <button class="mp-btn-favoritos" id="mpBtnFavoritos">❤️ Favoritos</button>
                 <button class="mp-btn-carrito" id="mpBtnCarrito">🛒 Añadir al carrito</button>
             </div>
@@ -1628,6 +1628,8 @@
             <div class="mp-botones-accion">
                 <button class="mp-btn-wa" id="mpBtnWhatsapp">💬 WhatsApp</button>
                 <button class="mp-btn-compartir" id="mpBtnCompartir">🔗 Compartir</button>
+                <!-- Solo para productos del grupo "Velas" (traídos de la hoja de Velas Kukúmita) -->
+                <button class="mp-btn-compartir" id="mpBtnVerVelas" style="display:none;" onclick="visitarVelasKukumita()">🕯️ Ver Página de Velas</button>
             </div>
         </div>
     </div>
