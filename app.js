@@ -264,13 +264,6 @@ function csvAProductos(filas) {
         // Saltar filas sin nombre
         if (!get(0)) continue;
 
-        // Saltar filas marcadas como "Vacío" (placeholder para huecos reservados
-        // a productos prestados de otra hoja, p.ej. las filas de Etiquetas/Velas
-        // que se llenan con productos de la hoja de Velas Kukúmita)
-        var _nombreNormalizadoVacio = get(0).toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-        if (_nombreNormalizadoVacio === 'vacio') continue;
-
         // Nuevo orden de columnas (Google Sheets) — recorrido 1 lugar a la derecha desde G:
         // A=0  nombre
         // B=1  precio
@@ -884,19 +877,9 @@ var CATEGORIAS_BARRAS = [
     { texto: 'Mostrar Más Porta Inciensos',tipo: 'portainciensos' },
     { texto: 'Mostrar Más Alajeros',       tipo: 'alajeros' },
     { texto: 'Mostrar Más Arreglos',       tipo: 'arreglo' },
-    { texto: 'Mostrar Más Etiquetas',      origenExterno: 'etiquetas-externas', redirigirA: 'etiquetas' },
+    { texto: 'Mostrar Más Etiquetas',      origenExterno: 'etiquetas-externas' },
     { texto: 'Mostrar Más Velas',          origenExterno: 'velas' }
 ];
-
-// Cambia al modo indicado (usa cambiarModoVelas) y hace scroll hasta la zona
-// de los botones Mostrar Todo / Arreglos / Paquetes / Etiquetas, justo arriba
-// de "Filtrar por Forma" y "Busca por Evento".
-function irAModoYEnfocar(modo) {
-    if (typeof window.cambiarModoVelas === 'function') window.cambiarModoVelas(modo);
-    var zona = document.getElementById('selectorModoVelas');
-    if (zona) zona.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-window.irAModoYEnfocar = irAModoYEnfocar;
 
 // Grupos de palabras equivalentes usados para reconocer la categoría de cada
 // producto a partir de su(s) data-tipos, igual que el sistema de filtros del sitio.
@@ -999,6 +982,7 @@ function insertarBarrasCategoriaProductos() {
         var barraQuitar = document.createElement('button');
         barraQuitar.type = 'button';
         barraQuitar.className = 'barra-categoria-fila barra-categoria-fila-quitar';
+        barraQuitar.style.cssText = 'grid-column:1/-1; width:100%; height:auto; min-height:0; aspect-ratio:auto; display:block; box-sizing:border-box;';
         barraQuitar.textContent = '✕ Quitar filtro y ver todo';
         barraQuitar.addEventListener('click', function() { filtrarPorBarraCategoria(_filtroBarraCategoriaActivo); });
         if (primeraCard) grid.insertBefore(barraQuitar, primeraCard);
@@ -1022,16 +1006,14 @@ function insertarBarrasCategoriaProductos() {
         var barra = document.createElement('button');
         barra.type = 'button';
         barra.className = 'barra-categoria-fila';
+        // Estilo forzado en línea, por si algún estilo externo llegara a
+        // afectar a estos botones: garantiza que siempre se vean como una
+        // barra delgada de ancho completo y no como una tarjeta de producto.
+        barra.style.cssText = 'grid-column:1/-1; width:100%; height:auto; min-height:0; aspect-ratio:auto; display:block; box-sizing:border-box;';
         barra.textContent = cfg.texto;
-        if (cfg.redirigirA) {
-            (function(destino) {
-                barra.addEventListener('click', function() { irAModoYEnfocar(destino); });
-            })(cfg.redirigirA);
-        } else {
-            (function(filaCerrada) {
-                barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
-            })(fila);
-        }
+        (function(filaCerrada) {
+            barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
+        })(fila);
         grid.insertBefore(barra, cards[idx]);
     }
 }
