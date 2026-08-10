@@ -456,6 +456,14 @@ function renderizarCatalogoEnGrid(gridId, productos) {
         });
         imgContenedor.appendChild(btnCartCard);
 
+        // ── Badge: número de fila en Google Sheets (esquina superior izquierda) ──
+        var badgeFila = document.createElement('span');
+        badgeFila.className = 'card-badge-fila';
+        badgeFila.textContent = '#' + (p.id + 1);
+        badgeFila.title = 'Fila ' + (p.id + 1) + ' en Google Sheets';
+        badgeFila.style.cssText = 'position:absolute; top:6px; left:6px; z-index:2; font-size:10px; font-weight:800; color:#9a8878; background:rgba(245,240,235,0.92); border:1.5px solid #e0d5cc; border-radius:8px; padding:2px 7px; letter-spacing:0.3px; line-height:1.4; pointer-events:none; user-select:none;';
+        imgContenedor.appendChild(badgeFila);
+
         // ── Título ──
         var infoDiv = document.createElement('div');
         infoDiv.style.cssText = 'margin-top:10px; flex-grow:1;';
@@ -693,6 +701,19 @@ function cargarDesdeGoogleSheets() {
             console.groupEnd();
 
             var productos = csvAProductos(filas);
+
+            // ── Filas reservadas (26-31): siempre se excluyen del catálogo principal ──
+            // Estas filas están reservadas para los 3 productos "prestados" de Etiquetas
+            // (filas 26-28) y los 3 de Velas (filas 29-31) — ver cargarProductosEspecialesVelas().
+            // Se filtran aquí SIEMPRE, sin importar si la fila tiene nombre/datos o no, para
+            // que puedas usarlas como referencia/anotación en la hoja sin que aparezcan
+            // duplicadas ni rompan el conteo fila↔producto.
+            var FILA_RESERVADA_INICIO = 26;
+            var FILA_RESERVADA_FIN    = 31;
+            productos = productos.filter(function(p) {
+                var filaSheet = p.id + 1;
+                return filaSheet < FILA_RESERVADA_INICIO || filaSheet > FILA_RESERVADA_FIN;
+            });
 
             if (productos.length === 0) {
                 mostrarEstadoCarga('La hoja está vacía o no tiene el formato correcto.', true);
@@ -3375,7 +3396,7 @@ document.querySelectorAll('.card-dinamica').forEach(function(card) {
 var _pillBtns   = { biografia:'pillBiografia', productos:'pillProductos', ofertas:'pillOfertas', masvendidos:'pillMasVendidos' };
 var _pillPanels = { biografia:'panelPillBiografia', productos:null, ofertas:'panelPillOfertas', masvendidos:'panelPillMasVendidos' };
 
-function activarPill(cual) {
+function activarPill(cual, esInicial) {
     // Desactivar todos
     Object.values(_pillBtns).forEach(function(id) {
         var el = document.getElementById(id);
@@ -3398,7 +3419,7 @@ function activarPill(cual) {
     var catalogo = document.getElementById('zona-catalogo');
     if (catalogo) catalogo.style.display = (cual === 'biografia') ? 'none' : 'block';
 
-    if (cual === 'productos') {
+    if (cual === 'productos' && !esInicial) {
         setTimeout(function() {
             if (catalogo) catalogo.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 80);
@@ -3437,7 +3458,7 @@ function _actualizarBotonesInicio(cual) {
 (function() {
     var pref = localStorage.getItem('kukumita-inicio') || 'productos';
     _ready(function() {
-        activarPill(pref);
+        activarPill(pref, true); // true = carga inicial de la página: nunca debe scrollear solo
         _actualizarBotonesInicio(pref);
     });
 })();
