@@ -518,6 +518,21 @@
         </button>
     </div>
 
+    <!-- ===== BÚSQUEDA GLOBAL — arriba de la foto de perfil, debajo del banner,
+         para que sea visible de inmediato sin necesidad de hacer scroll ===== -->
+    <div style="display:flex; justify-content:center; padding:18px 16px 4px; background:transparent;">
+        <div class="barra-busqueda-unificada-wrap" style="max-width:600px;">
+            <div class="barra-busqueda-unificada" id="barraBuscadorGlobal">
+                <input type="text" id="inputBusquedaGlobal" class="bbu-input" placeholder="Buscar productos…" onkeydown="if(event.key==='Enter'){busquedaGlobal(this.value);}">
+                <button class="bbu-btn-lupa" onclick="busquedaGlobal(document.getElementById('inputBusquedaGlobal').value)" title="Buscar">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+            </div>
+            <p id="resultadosGlobalInfo" style="display:none; text-align:center; font-size:0.82rem; color:#8c7565; margin:8px 0 0;"></p>
+            <button id="btnLimpiarGlobal" type="button" style="display:none; margin:8px auto 0; background:#f0eae4; border:none; border-radius:999px; padding:6px 16px; font-size:0.78rem; font-weight:700; color:#5c4d43; cursor:pointer; font-family:inherit;" onclick="limpiarBusquedaGlobal()">✕ Quitar búsqueda</button>
+        </div>
+    </div>
+
     <!-- ===== IMAGEN DE PERFIL DE LA PÁGINA ===== -->
     <div style="display:flex; justify-content:center; align-items:center; padding:28px 16px; background:transparent;">
         <div style="position:relative;">
@@ -1360,7 +1375,7 @@
         <div class="panel-busqueda-unificado visible" id="panelArreglos">
             <div class="barra-busqueda-unificada-wrap">
                 <div class="barra-busqueda-unificada" id="barraBuscadorArreglos">
-                    <input type="text" id="inputBusquedaArreglos" class="bbu-input" placeholder="Buscar productos…" oninput="filtrarPorNombreUnificado('arreglos', this.value)">
+                    <input type="text" id="inputBusquedaArreglos" class="bbu-input" placeholder="Buscar productos…" onkeydown="if(event.key==='Enter'){filtrarPorNombreUnificado('arreglos', this.value);}">
                     <button class="bbu-btn-lupa" onclick="filtrarPorNombreUnificado('arreglos', document.getElementById('inputBusquedaArreglos').value)" title="Buscar">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
@@ -1372,7 +1387,7 @@
         <div class="panel-busqueda-unificado" id="panelTodos">
             <div class="barra-busqueda-unificada-wrap">
                 <div class="barra-busqueda-unificada" id="barraBuscadorTodos">
-                    <input type="text" id="inputBusquedaTodos" class="bbu-input" placeholder="Buscar Todos los Productos…" oninput="filtrarPorNombreUnificado('todos', this.value)">
+                    <input type="text" id="inputBusquedaTodos" class="bbu-input" placeholder="Buscar Todos los Productos…" onkeydown="if(event.key==='Enter'){filtrarPorNombreUnificado('todos', this.value);}">
                     <button class="bbu-btn-lupa" onclick="filtrarPorNombreUnificado('todos', document.getElementById('inputBusquedaTodos').value)" title="Buscar">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
@@ -1447,7 +1462,7 @@
         <div class="panel-busqueda-unificado" id="panelDecoraciones">
             <div class="barra-busqueda-unificada-wrap">
                 <div class="barra-busqueda-unificada" id="barraBuscadorDecoraciones">
-                    <input type="text" id="inputBusquedaDecoraciones" class="bbu-input" placeholder="Buscar Decoraciones y Aditamentos…" oninput="filtrarPorNombreUnificado('decoraciones', this.value)">
+                    <input type="text" id="inputBusquedaDecoraciones" class="bbu-input" placeholder="Buscar Decoraciones y Aditamentos…" onkeydown="if(event.key==='Enter'){filtrarPorNombreUnificado('decoraciones', this.value);}">
                     <button class="bbu-btn-lupa" onclick="filtrarPorNombreUnificado('decoraciones', document.getElementById('inputBusquedaDecoraciones').value)" title="Buscar">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
@@ -1459,7 +1474,7 @@
         <div class="panel-busqueda-unificado" id="panelEtiquetas">
             <div class="barra-busqueda-unificada-wrap">
                 <div class="barra-busqueda-unificada" id="barraBuscadorEtiquetas">
-                    <input type="text" id="inputBusquedaEtiquetas" class="bbu-input" placeholder="Buscar Etiquetas…" oninput="filtrarPorNombreUnificado('etiquetas', this.value)">
+                    <input type="text" id="inputBusquedaEtiquetas" class="bbu-input" placeholder="Buscar Etiquetas…" onkeydown="if(event.key==='Enter'){filtrarPorNombreUnificado('etiquetas', this.value);}">
                     <button class="bbu-btn-lupa" onclick="filtrarPorNombreUnificado('etiquetas', document.getElementById('inputBusquedaEtiquetas').value)" title="Buscar">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </button>
