@@ -3252,7 +3252,6 @@ body.modo-oscuro .cart-total-valor { color: #f0e8e0; }
     /* 2. El grid de productos: cero margen, cero padding lateral,
           pegado a la izquierda, ocupa todo el ancho */
     .grid-productos-inteligente {
-        display: grid !important;
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 6px !important;
         padding: 6px 0 !important;   /* SIN padding lateral */
@@ -3265,6 +3264,11 @@ body.modo-oscuro .cart-total-valor { color: #f0e8e0; }
         left: auto !important;
         overflow: hidden !important;
     }
+    /* Las cuadrículas que deben permanecer ocultas (ej. #gridProductosEtiquetas
+       antes de entrar a la pestaña "Etiquetas") deben seguir respetando su
+       display:none en línea; sin "display:grid !important" arriba ya no se
+       fuerza a mostrarlas vacías (esto era lo que causaba el hueco enorme
+       debajo del texto "Todos los productos... son de YESO" en móvil). */
 
     /* 3. Cada tarjeta */
     .card-dinamica {
