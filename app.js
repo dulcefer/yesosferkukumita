@@ -253,7 +253,12 @@ function parsearCSV(texto) {
 }
 
 // ── Convierte filas CSV en objetos de producto ──
-function csvAProductos(filas) {
+// colImagen: índice (0-based) de la columna con la URL de imagen principal.
+// Por defecto 6 = columna G (Imagen Fer, hoja de Yesos). La hoja de Velas
+// Kukúmita usa la columna F (índice 5) para sus imágenes de imgbb, así que
+// las llamadas que leen esa hoja pasan colImagen = 5.
+function csvAProductos(filas, colImagen) {
+    if (typeof colImagen !== 'number') colImagen = 6;
     if (filas.length < 2) return [];
     // Omitir la fila de encabezados (fila 0)
     var productos = [];
@@ -286,8 +291,9 @@ function csvAProductos(filas) {
         // Video principal (E=4)
         var videoPrincipal = get(4).replace(/^"+|"+$/g, '').trim();
 
-        // Imágenes: columna G=6 (Imagen Fer) — la columna F=5 (Imagen Polo) se ignora en este sitio
-        var _rawImg = get(6).replace(/^"+|"+$/g, '').trim();
+        // Imágenes: columna configurable vía colImagen (por defecto G=6, Imagen Fer;
+        // para la hoja de Velas Kukúmita se usa F=5 — ver llamadas a csvAProductos)
+        var _rawImg = get(colImagen).replace(/^"+|"+$/g, '').trim();
         var imagenesExtra = _rawImg
             ? _rawImg.split(',').map(function(s) { return s.trim().replace(/^"+|"+$/g, ''); }).filter(Boolean)
             : [];
@@ -766,7 +772,7 @@ function cargarProductosEtiquetas(forzar) {
         })
         .then(function(texto) {
             var filas = parsearCSV(texto);
-            var productos = csvAProductos(filas);
+            var productos = csvAProductos(filas, 5); // columna F: imágenes de la hoja de Velas Kukúmita
 
             if (productos.length === 0) {
                 mostrarEstadoCargaEtiquetas('Esa hoja está vacía o no tiene el formato correcto.', true);
@@ -823,8 +829,8 @@ function cargarProductosEspecialesVelas() {
         fetch(urlHoja1).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
         fetch(urlHoja2).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     ]).then(function(textos) {
-        var productosVelas     = csvAProductos(parsearCSV(textos[0])).slice(0, 3);
-        var productosEtiquetas = csvAProductos(parsearCSV(textos[1])).slice(0, 3);
+        var productosVelas     = csvAProductos(parsearCSV(textos[0]), 5).slice(0, 3); // columna F
+        var productosEtiquetas = csvAProductos(parsearCSV(textos[1]), 5).slice(0, 3); // columna F
 
         var especiales = [];
         productosEtiquetas.forEach(function(p, i) {

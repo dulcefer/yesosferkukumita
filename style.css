@@ -2013,6 +2013,39 @@
         position: relative;
     }
 
+    /* Barras "Mostrar Más..." arriba de cada fila de productos (modo "Mostrar Todo") */
+    .barra-categoria-fila {
+        background: linear-gradient(135deg, #d4af37, #b8860b);
+        color: #ffffff;
+        font-family: sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        text-align: center;
+        border: none;
+        border-radius: 10px;
+        padding: 30px 20px;
+        margin: 18px 0 10px;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(184, 134, 11, 0.35);
+        transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .barra-categoria-fila:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(184, 134, 11, 0.45);
+    }
+    .barra-categoria-fila:active {
+        transform: translateY(0);
+        filter: brightness(0.97);
+    }
+    /* Variante "✕ Quitar filtro y ver todo" — mismo tamaño, tono distinto para diferenciarla */
+    .barra-categoria-fila-quitar {
+        background: linear-gradient(135deg, #6b6b6b, #3f3f3f);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
     .card-precios-bloque {
         display: flex;
         align-items: flex-end;
