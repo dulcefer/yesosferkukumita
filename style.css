@@ -2001,42 +2001,6 @@
         overflow-x: hidden;
     }
 
-    /* — Barra de categoría arriba de cada fila (solo página 1, modo "Mostrar Todo") — */
-    .barra-categoria-fila {
-        grid-column: 1 / -1;
-        background: linear-gradient(135deg, #8c7565, #6e5a4f);
-        color: #fff;
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        text-align: center;
-        padding: 10px 14px;
-        border-radius: 10px;
-        margin-top: 6px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-        border: none;
-        width: 100%;
-        font-family: inherit;
-        cursor: pointer;
-        transition: filter 0.15s, transform 0.1s;
-    }
-    .barra-categoria-fila:hover { filter: brightness(1.1); }
-    .barra-categoria-fila:active { transform: scale(0.99); }
-    .barra-categoria-fila-quitar {
-        background: linear-gradient(135deg, #c0392b, #922b21);
-    }
-    .barra-categoria-fila:first-child { margin-top: 0; }
-    body.modo-oscuro .barra-categoria-fila {
-        background: linear-gradient(135deg, #4a3c33, #362a22);
-        color: #f0e8e0;
-    }
-    body.modo-oscuro .barra-categoria-fila-quitar {
-        background: linear-gradient(135deg, #7a2e24, #5c231c);
-    }
-    @media (max-width: 768px) {
-        .barra-categoria-fila { font-size: 13px; padding: 8px 10px; grid-column: 1 / -1; }
-    }
-
     .card-dinamica {
         border: 1px solid #ddd;
         border-radius: 8px;

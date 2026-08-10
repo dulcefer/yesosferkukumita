@@ -264,6 +264,13 @@ function csvAProductos(filas) {
         // Saltar filas sin nombre
         if (!get(0)) continue;
 
+        // Saltar filas marcadas como "Vacío" (placeholder para huecos reservados
+        // a productos prestados de otra hoja, p.ej. las filas de Etiquetas/Velas
+        // que se llenan con productos de la hoja de Velas Kukúmita)
+        var _nombreNormalizadoVacio = get(0).toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (_nombreNormalizadoVacio === 'vacio') continue;
+
         // Nuevo orden de columnas (Google Sheets) — recorrido 1 lugar a la derecha desde G:
         // A=0  nombre
         // B=1  precio
@@ -877,9 +884,19 @@ var CATEGORIAS_BARRAS = [
     { texto: 'Mostrar Más Porta Inciensos',tipo: 'portainciensos' },
     { texto: 'Mostrar Más Alajeros',       tipo: 'alajeros' },
     { texto: 'Mostrar Más Arreglos',       tipo: 'arreglo' },
-    { texto: 'Mostrar Más Etiquetas',      origenExterno: 'etiquetas-externas' },
+    { texto: 'Mostrar Más Etiquetas',      origenExterno: 'etiquetas-externas', redirigirA: 'etiquetas' },
     { texto: 'Mostrar Más Velas',          origenExterno: 'velas' }
 ];
+
+// Cambia al modo indicado (usa cambiarModoVelas) y hace scroll hasta la zona
+// de los botones Mostrar Todo / Arreglos / Paquetes / Etiquetas, justo arriba
+// de "Filtrar por Forma" y "Busca por Evento".
+function irAModoYEnfocar(modo) {
+    if (typeof window.cambiarModoVelas === 'function') window.cambiarModoVelas(modo);
+    var zona = document.getElementById('selectorModoVelas');
+    if (zona) zona.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.irAModoYEnfocar = irAModoYEnfocar;
 
 // Grupos de palabras equivalentes usados para reconocer la categoría de cada
 // producto a partir de su(s) data-tipos, igual que el sistema de filtros del sitio.
@@ -968,6 +985,12 @@ function insertarBarrasCategoriaProductos() {
     var esModoMostrarTodo = btnTodosProductos && btnTodosProductos.classList.contains('activo');
     if (!esModoMostrarTodo) return;
 
+    // Tampoco deben aparecer si el usuario está buscando algo por texto en el
+    // buscador de "Todos los productos" (los resultados ya no respetan el
+    // orden de 10 filas de 3 por categoría, así que las barras no aplican).
+    var inputBusquedaTodos = document.getElementById('inputBusquedaTodos');
+    if (inputBusquedaTodos && inputBusquedaTodos.value.trim()) return;
+
     // Mientras haya un filtro de barra activo, se muestra una única barra para
     // quitarlo en vez de las 10 (el listado ya no conserva la estructura de
     // 10 filas de 3, así que las barras normales no aplican)
@@ -1000,9 +1023,15 @@ function insertarBarrasCategoriaProductos() {
         barra.type = 'button';
         barra.className = 'barra-categoria-fila';
         barra.textContent = cfg.texto;
-        (function(filaCerrada) {
-            barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
-        })(fila);
+        if (cfg.redirigirA) {
+            (function(destino) {
+                barra.addEventListener('click', function() { irAModoYEnfocar(destino); });
+            })(cfg.redirigirA);
+        } else {
+            (function(filaCerrada) {
+                barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
+            })(fila);
+        }
         grid.insertBefore(barra, cards[idx]);
     }
 }
