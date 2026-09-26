@@ -163,7 +163,7 @@ function _resetBotonesRed() {
 // Para editar productos: abre el link de Google Sheets y modifica las filas.
 //
 // 🔧 CONFIGURACIÓN — cambia solo esta línea si mueves la hoja:
-var SHEET_ID = '1GoIVWBIyl9s0wYo2qyv0GQwco_xBl3sajDwF0qcnf5o';
+var SHEET_ID = '1GbAmlu9nHVQipFDeOPK4EBrq-5dZrni9cs5tWJDPGvc';
 
 // 🔧 URL del Cloudflare Worker para compartir en redes sociales (Facebook, etc.)
 // Cuando instales el worker, reemplaza esta URL con la que te asigne Cloudflare.
@@ -3277,6 +3277,130 @@ function actualizarPantallaPerfil() {
         }
     } else {
         if (btnContrasena) btnContrasena.onclick = gestionarContrasena;
+    }
+
+    actualizarBotonAgregarProducto();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ADMIN — BOTÓN OCULTO "AGREGAR PRODUCTO"
+// Solo visible para las cuentas de correo autorizadas abajo, y solo
+// si Firebase confirma que el correo de esa cuenta está verificado.
+// ══════════════════════════════════════════════════════════════
+
+// Lista de correos con permiso de administrador.
+var CORREOS_ADMIN = [
+    'dulceprincesa086@gmail.com',
+    'celvaguzman72@gmail.com',
+    'celvapreciosa27@gmail.com',
+    'velaskuku@gmail.com',
+    'yesosferkukumita@gmail.com'
+];
+
+// Pega aquí la URL de despliegue de tu Apps Script (Implementar → Nueva implementación → Aplicación web).
+var APPS_SCRIPT_URL_PRODUCTOS = 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT';
+
+var _imagenProductoSeleccionada = null; // dataURL en base64 de la imagen elegida
+
+// Revisa si el usuario actual es administrador. Esta comprobación es solo
+// para MOSTRAR U OCULTAR el botón — la verificación real y obligatoria
+// vuelve a hacerse del lado del servidor (Apps Script) antes de escribir
+// nada en la hoja, así que no se puede saltar editando el JavaScript.
+function esCorreoAdmin(user) {
+    if (!user || !user.email) return false;
+    if (user.emailVerified === false) return false; // debe estar verificado
+    return CORREOS_ADMIN.indexOf(user.email.toLowerCase()) !== -1;
+}
+
+function actualizarBotonAgregarProducto() {
+    var btn = document.getElementById('btnAgregarProducto');
+    if (!btn) return;
+    var user = auth.currentUser;
+    btn.style.display = esCorreoAdmin(user) ? 'flex' : 'none';
+    if (!esCorreoAdmin(user)) {
+        var panel = document.getElementById('panelAgregarProducto');
+        if (panel) panel.classList.remove('abierto');
+    }
+}
+
+function toggleFormularioAgregarProducto() {
+    if (!esCorreoAdmin(auth.currentUser)) return; // por si acaso
+    var panel = document.getElementById('panelAgregarProducto');
+    if (panel) panel.classList.toggle('abierto');
+}
+
+function elegirImagenProducto() {
+    var input = document.getElementById('inputImagenProducto');
+    if (input) input.click();
+}
+
+function previsualizarImagenProducto(event) {
+    var archivo = event.target.files && event.target.files[0];
+    if (!archivo) return;
+    var lector = new FileReader();
+    lector.onload = function(e) {
+        _imagenProductoSeleccionada = e.target.result; // "data:image/xxx;base64,...."
+        var preview = document.getElementById('previewImagenProducto');
+        if (preview) {
+            preview.src = _imagenProductoSeleccionada;
+            preview.style.display = 'block';
+        }
+        var btnGuardar = document.getElementById('btnGuardarProducto');
+        if (btnGuardar) btnGuardar.disabled = false;
+    };
+    lector.readAsDataURL(archivo);
+}
+
+async function guardarProductoAdmin() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) {
+        mostrarToast('No tienes permisos de administrador.');
+        return;
+    }
+    if (!_imagenProductoSeleccionada) {
+        mostrarToast('Primero elige una imagen.');
+        return;
+    }
+    if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
+        mostrarToast('Falta configurar la URL del Apps Script.');
+        return;
+    }
+
+    var btnGuardar = document.getElementById('btnGuardarProducto');
+    var textoOriginal = btnGuardar ? btnGuardar.textContent : 'Guardar';
+    if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
+
+    try {
+        // El idToken prueba, del lado del servidor, quién es realmente el usuario
+        // (no se puede falsificar cambiando el correo en el JavaScript del navegador).
+        var idToken = await user.getIdToken();
+
+        var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+            body: JSON.stringify({
+                idToken: idToken,
+                imagenBase64: _imagenProductoSeleccionada,
+                nombreArchivo: 'producto_' + Date.now() + '.jpg'
+            })
+        });
+        var resultado = await respuesta.json();
+
+        if (resultado.ok) {
+            mostrarToast('✅ Imagen guardada en la hoja. Completa nombre/precio/etc. desde Sheets.');
+            _imagenProductoSeleccionada = null;
+            var preview = document.getElementById('previewImagenProducto');
+            if (preview) { preview.style.display = 'none'; preview.src = ''; }
+            var input = document.getElementById('inputImagenProducto');
+            if (input) input.value = '';
+            toggleFormularioAgregarProducto();
+        } else {
+            mostrarToast('❌ ' + (resultado.error || 'No se pudo guardar el producto.'));
+        }
+    } catch (err) {
+        mostrarToast('❌ Error de conexión al guardar el producto.');
+    } finally {
+        if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = textoOriginal; }
     }
 }
 

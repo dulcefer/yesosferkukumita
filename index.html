@@ -378,6 +378,34 @@
                 </div>
             </button>
 
+            <!-- ══ BOTÓN OCULTO SOLO PARA ADMINISTRADORES ══ -->
+            <button class="btn-opcion-perfil" id="btnAgregarProducto" style="display:none;" onclick="toggleFormularioAgregarProducto()">
+                <span class="op-icono">➕</span>
+                <div>
+                    Agregar producto
+                    <span class="op-sub">Sube la imagen de un producto nuevo</span>
+                </div>
+            </button>
+
+            <!-- Panel inline agregar producto (solo admin) -->
+            <div id="panelAgregarProducto" class="panel-editar-nombre">
+                <div class="panel-editar-nombre-inner">
+                    <label class="panel-nombre-label">Nuevo producto</label>
+
+                    <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
+                    <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none; width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin:4px 0;">
+
+                    <div class="panel-nombre-acciones" style="justify-content:flex-start;">
+                        <button class="panel-nombre-btn cancelar" onclick="elegirImagenProducto()" type="button">🖼️ Agregar imagen</button>
+                    </div>
+
+                    <div class="panel-nombre-acciones">
+                        <button class="panel-nombre-btn cancelar" type="button" onclick="toggleFormularioAgregarProducto()">Cancelar</button>
+                        <button class="panel-nombre-btn guardar" id="btnGuardarProducto" type="button" disabled onclick="guardarProductoAdmin()">Guardar</button>
+                    </div>
+                </div>
+            </div>
+
             <button class="btn-cerrar-sesion-perfil" onclick="cerrarSesion()">
                 <span style="font-size:20px;">🚪</span>
                 Cerrar sesión
