@@ -1,5 +1,5 @@
 // ============================================================
-// YESOS KUKÚMITA — app.js
+// YESOS FER KUKÚMITA — app.js
 // JavaScript extraído y organizado desde index.html.
 // Incluye:
 //   - cargarCatalogo()  : fetch dinámico desde Google Sheets CSV
@@ -3364,7 +3364,7 @@ var CORREOS_ADMIN = [
 ];
 
 // Pega aquí la URL de despliegue de tu Apps Script (Implementar → Nueva implementación → Aplicación web).
-var APPS_SCRIPT_URL_PRODUCTOS = 'PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT';
+var APPS_SCRIPT_URL_PRODUCTOS = 'https://script.google.com/macros/s/AKfycbzBl2UE4LJvSAL94KaUXDXMIXaG2R-m3-UHvALqzw2CH22hui-JkXAdj_G3vXeD2kkMlw/exec';
 
 var _imagenProductoSeleccionada = null; // dataURL en base64 de la imagen elegida
 
@@ -4388,7 +4388,7 @@ window.refrescarCarruseles = function() {
 
 
 // ══════════════════════════════════════════════
-// SISTEMA DE CARRITO KUKUMITA
+// SISTEMA DE CARRITO YESOS FER KUKÚMITA
 // ══════════════════════════════════════════════
 var carrito = (function() {
     try { var g = localStorage.getItem('kukumita-carrito'); return g ? JSON.parse(g) : []; }
@@ -4717,7 +4717,7 @@ function pedirCotizacionWA() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// SISTEMA DE CUPONES KUKUMITA v2
+// SISTEMA DE CUPONES YESOS FER KUKÚMITA v2
 // - Cupones activos + cupones usados (historial)
 // - Persistencia en Firestore por usuario Google
 // - Modal de detalle al tocar un cupón
