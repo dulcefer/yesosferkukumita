@@ -3555,3 +3555,9 @@ body.modo-oscuro .sap-caja { background: #1e1812; }
 body.modo-oscuro .sap-config { background: #2a2218; border-color: #4a3a2e; }
 body.modo-oscuro .sap-fila { border-color: #3a3028; color: #a89080; }
 body.modo-oscuro .sap-fila strong { color: #e0d5cc; }
+
+/* ══ Formulario agregar producto ══ */
+.sap-dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sap-dos-col .panel-nombre-label { display: block; margin-bottom: 6px; }
+.sap-cuerpo > .panel-nombre-label { margin-bottom: -6px; }
+textarea.panel-nombre-input { resize: vertical; min-height: 70px; }

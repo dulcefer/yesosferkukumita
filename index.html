@@ -1997,19 +1997,39 @@
         </div>
 
         <div class="sap-cuerpo">
-            <div class="sap-seccion-titulo">Imagen del producto</div>
+            <div class="sap-seccion-titulo">Datos del producto</div>
+            <label class="panel-nombre-label" for="inputNombreProducto">Nombre *</label>
+            <input id="inputNombreProducto" class="panel-nombre-input" type="text" maxlength="80" placeholder="Ej. Maceta de Flor" oninput="validarFormularioProducto()">
+
+            <div class="sap-dos-col">
+                <div>
+                    <label class="panel-nombre-label" for="inputPrecioOriginal">Precio original *</label>
+                    <input id="inputPrecioOriginal" class="panel-nombre-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0" oninput="validarFormularioProducto()">
+                </div>
+                <div>
+                    <label class="panel-nombre-label" for="inputPrecioBazar">Precio bazar / mayoreo</label>
+                    <input id="inputPrecioBazar" class="panel-nombre-input" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+                </div>
+            </div>
+
+            <label class="panel-nombre-label" for="inputDescripcionProducto">Descripción</label>
+            <textarea id="inputDescripcionProducto" class="panel-nombre-input" rows="3" maxlength="500" placeholder="Opcional"></textarea>
+
+            <div class="sap-seccion-titulo">Imagen (imgbb)</div>
             <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
-            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">🖼️ Agregar imagen</button>
+            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">🖼️ Subir imagen a imgbb</button>
+            <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb</label>
+            <input id="inputUrlImagenProducto" class="panel-nombre-input" type="url" placeholder="https://i.ibb.co/...">
 
             <div class="sap-seccion-titulo">Configuración</div>
             <div class="sap-config">
                 <div class="sap-fila"><span>Cuenta</span><strong id="sapCuenta">—</strong></div>
-                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columna E</strong></div>
-                <div class="sap-fila"><span>Carpeta en Drive</span><strong>Productos Yesos Kukúmita</strong></div>
+                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columnas A–E</strong></div>
+                <div class="sap-fila"><span>Imágenes</span><strong>imgbb</strong></div>
                 <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
             </div>
-            <p class="sap-nota">Se guarda solo la imagen en una fila nueva. Nombre, precio y demás datos se completan desde Google Sheets.</p>
+            <p class="sap-nota">Se agrega una fila nueva al final de la hoja. Las demás columnas (video, etiquetas, medidas, existencia, oferta) se llenan desde Google Sheets.</p>
 
             <div class="panel-nombre-acciones">
                 <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>

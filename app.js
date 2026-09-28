@@ -3417,19 +3417,52 @@ function elegirImagenProducto() {
     if (input) input.click();
 }
 
+function _campoProducto(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+}
+
+// Habilita "Guardar" solo si hay nombre y precio original
+function validarFormularioProducto() {
+    var ok = _campoProducto('inputNombreProducto') !== '' && _campoProducto('inputPrecioOriginal') !== '';
+    var btn = document.getElementById('btnGuardarProducto');
+    if (btn) btn.disabled = !ok;
+}
+
+function limpiarFormularioProducto() {
+    ['inputNombreProducto', 'inputPrecioOriginal', 'inputPrecioBazar',
+     'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputImagenProducto'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    _imagenProductoSeleccionada = null;
+    var preview = document.getElementById('previewImagenProducto');
+    if (preview) { preview.style.display = 'none'; preview.src = ''; }
+    validarFormularioProducto();
+}
+
+// Lee la imagen y la reduce (máx. 1200 px, JPG) para que la subida sea rápida
 function previsualizarImagenProducto(event) {
     var archivo = event.target.files && event.target.files[0];
     if (!archivo) return;
     var lector = new FileReader();
     lector.onload = function(e) {
-        _imagenProductoSeleccionada = e.target.result; // "data:image/xxx;base64,...."
-        var preview = document.getElementById('previewImagenProducto');
-        if (preview) {
-            preview.src = _imagenProductoSeleccionada;
-            preview.style.display = 'block';
-        }
-        var btnGuardar = document.getElementById('btnGuardarProducto');
-        if (btnGuardar) btnGuardar.disabled = false;
+        var img = new Image();
+        img.onload = function() {
+            var escala = Math.min(1, 1200 / Math.max(img.width, img.height));
+            var canvas = document.createElement('canvas');
+            canvas.width  = Math.round(img.width * escala);
+            canvas.height = Math.round(img.height * escala);
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            _imagenProductoSeleccionada = canvas.toDataURL('image/jpeg', 0.85);
+            var preview = document.getElementById('previewImagenProducto');
+            if (preview) { preview.src = _imagenProductoSeleccionada; preview.style.display = 'block'; }
+        };
+        img.onerror = function() { mostrarToast('No se pudo leer esa imagen.'); };
+        img.src = e.target.result;
     };
     lector.readAsDataURL(archivo);
 }
@@ -3440,8 +3473,15 @@ async function guardarProductoAdmin() {
         mostrarToast('No tienes permisos de administrador.');
         return;
     }
-    if (!_imagenProductoSeleccionada) {
-        mostrarToast('Primero elige una imagen.');
+    var nombre = _campoProducto('inputNombreProducto');
+    var precioOriginal = _campoProducto('inputPrecioOriginal');
+    if (!nombre || precioOriginal === '' || isNaN(Number(precioOriginal))) {
+        mostrarToast('Escribe el nombre y el precio original.');
+        return;
+    }
+    var precioBazar = _campoProducto('inputPrecioBazar');
+    if (precioBazar !== '' && isNaN(Number(precioBazar))) {
+        mostrarToast('El precio bazar no es válido.');
         return;
     }
     if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
@@ -3450,12 +3490,10 @@ async function guardarProductoAdmin() {
     }
 
     var btnGuardar = document.getElementById('btnGuardarProducto');
-    var textoOriginal = btnGuardar ? btnGuardar.textContent : 'Guardar';
     if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
 
     try {
         // El idToken prueba, del lado del servidor, quién es realmente el usuario
-        // (no se puede falsificar cambiando el correo en el JavaScript del navegador).
         var idToken = await user.getIdToken();
 
         var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
@@ -3463,27 +3501,28 @@ async function guardarProductoAdmin() {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
             body: JSON.stringify({
                 idToken: idToken,
-                imagenBase64: _imagenProductoSeleccionada,
+                nombre: nombre,
+                precioOriginal: precioOriginal,
+                precioBazar: precioBazar,
+                descripcion: _campoProducto('inputDescripcionProducto'),
+                imagenUrl: _campoProducto('inputUrlImagenProducto'),
+                imagenBase64: _imagenProductoSeleccionada || '',
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
             })
         });
         var resultado = await respuesta.json();
 
         if (resultado.ok) {
-            mostrarToast('✅ Imagen guardada en la hoja. Completa nombre/precio/etc. desde Sheets.');
-            _imagenProductoSeleccionada = null;
-            var preview = document.getElementById('previewImagenProducto');
-            if (preview) { preview.style.display = 'none'; preview.src = ''; }
-            var input = document.getElementById('inputImagenProducto');
-            if (input) input.value = '';
-            toggleFormularioAgregarProducto();
+            mostrarToast('✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.');
+            limpiarFormularioProducto();
+            cerrarSubmenuAgregarProducto();
         } else {
             mostrarToast('❌ ' + (resultado.error || 'No se pudo guardar el producto.'));
         }
     } catch (err) {
         mostrarToast('❌ Error de conexión al guardar el producto.');
     } finally {
-        if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = textoOriginal; }
+        if (btnGuardar) { btnGuardar.textContent = 'Guardar'; validarFormularioProducto(); }
     }
 }
 
