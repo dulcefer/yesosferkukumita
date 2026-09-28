@@ -3510,3 +3510,48 @@ body.busqueda-global-activa #bloqueFiltroPrecioTodos { opacity: 0.4; pointer-eve
     color: #a89a8a;
     margin: 10px 0 0;
 }
+
+
+/* ══ FIX SCROLL: pantalla de perfil con scroll propio ══ */
+.pantalla-perfil {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    justify-content: flex-start;
+}
+.pantalla-perfil-header { flex-shrink: 0; }
+.pantalla-perfil-body   { flex-shrink: 0; padding-bottom: 60px; }
+
+/* html tiene overflow-x:hidden, por eso body{overflow:hidden} no bloqueaba la página
+   de fondo. Cuando cualquier modal/pantalla bloquea el body, bloqueamos también html. */
+html:has(body[style*="overflow: hidden"]) { overflow: hidden !important; }
+
+/* ══ SUBMENU AGREGAR PRODUCTO ══ */
+#submenuAgregarProducto {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 30000;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    align-items: flex-end; justify-content: center;
+}
+#submenuAgregarProducto.abierto { display: flex; }
+.sap-caja { max-height: 92vh; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 0; }
+.sap-cuerpo { padding: 6px 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.sap-seccion-titulo { font-size: 12px; font-weight: 700; color: #8c7565; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 10px; }
+#previewImagenProducto { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; }
+.sap-btn-imagen { align-self: flex-start; }
+.sap-config { background: #f8f4f0; border: 1.5px solid #e0d5cc; border-radius: 12px; padding: 4px 14px; }
+.sap-fila { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: 13px; color: #8c7565; border-bottom: 1px solid #ebe3db; }
+.sap-fila:last-child { border-bottom: none; }
+.sap-fila strong { color: #362a22; text-align: right; word-break: break-all; }
+.sap-nota { font-size: 12px; color: #a89080; margin: 0; }
+@media (min-width: 540px) {
+    #submenuAgregarProducto { align-items: center; }
+    .sap-caja { border-radius: 20px; }
+}
+body.modo-oscuro .sap-caja { background: #1e1812; }
+body.modo-oscuro .sap-config { background: #2a2218; border-color: #4a3a2e; }
+body.modo-oscuro .sap-fila { border-color: #3a3028; color: #a89080; }
+body.modo-oscuro .sap-fila strong { color: #e0d5cc; }

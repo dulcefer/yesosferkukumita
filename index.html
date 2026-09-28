@@ -379,32 +379,13 @@
             </button>
 
             <!-- ══ BOTÓN OCULTO SOLO PARA ADMINISTRADORES ══ -->
-            <button class="btn-opcion-perfil" id="btnAgregarProducto" style="display:none;" onclick="toggleFormularioAgregarProducto()">
+            <button class="btn-opcion-perfil" id="btnAgregarProducto" style="display:none;" onclick="abrirSubmenuAgregarProducto()">
                 <span class="op-icono">➕</span>
                 <div>
                     Agregar producto
                     <span class="op-sub">Sube la imagen de un producto nuevo</span>
                 </div>
             </button>
-
-            <!-- Panel inline agregar producto (solo admin) -->
-            <div id="panelAgregarProducto" class="panel-editar-nombre">
-                <div class="panel-editar-nombre-inner">
-                    <label class="panel-nombre-label">Nuevo producto</label>
-
-                    <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
-                    <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none; width:100%; max-height:220px; object-fit:cover; border-radius:10px; margin:4px 0;">
-
-                    <div class="panel-nombre-acciones" style="justify-content:flex-start;">
-                        <button class="panel-nombre-btn cancelar" onclick="elegirImagenProducto()" type="button">🖼️ Agregar imagen</button>
-                    </div>
-
-                    <div class="panel-nombre-acciones">
-                        <button class="panel-nombre-btn cancelar" type="button" onclick="toggleFormularioAgregarProducto()">Cancelar</button>
-                        <button class="panel-nombre-btn guardar" id="btnGuardarProducto" type="button" disabled onclick="guardarProductoAdmin()">Guardar</button>
-                    </div>
-                </div>
-            </div>
 
             <button class="btn-cerrar-sesion-perfil" onclick="cerrarSesion()">
                 <span style="font-size:20px;">🚪</span>
@@ -2001,6 +1982,40 @@
     <div class="burbuja-bg">
         🛒
         <div class="burbuja-badge" id="burbujaBadge" style="display:none;">0</div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     SUBMENU AGREGAR PRODUCTO (solo administradores)
+     ══════════════════════════════════════════════════════ -->
+<div id="submenuAgregarProducto" onclick="if(event.target===this) cerrarSubmenuAgregarProducto()">
+    <div class="sc-caja sap-caja">
+        <div class="sc-header">
+            <h3>➕ Agregar producto</h3>
+            <button class="sc-cerrar" type="button" onclick="cerrarSubmenuAgregarProducto()">✕</button>
+        </div>
+
+        <div class="sap-cuerpo">
+            <div class="sap-seccion-titulo">Imagen del producto</div>
+            <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
+            <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
+            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">🖼️ Agregar imagen</button>
+
+            <div class="sap-seccion-titulo">Configuración</div>
+            <div class="sap-config">
+                <div class="sap-fila"><span>Cuenta</span><strong id="sapCuenta">—</strong></div>
+                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columna E</strong></div>
+                <div class="sap-fila"><span>Carpeta en Drive</span><strong>Productos Yesos Kukúmita</strong></div>
+                <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
+            </div>
+            <p class="sap-nota">Se guarda solo la imagen en una fila nueva. Nombre, precio y demás datos se completan desde Google Sheets.</p>
+
+            <div class="panel-nombre-acciones">
+                <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>
+                <button class="panel-nombre-btn guardar" id="btnGuardarProducto" type="button" disabled onclick="guardarProductoAdmin()">Guardar</button>
+            </div>
+        </div>
     </div>
 </div>
 

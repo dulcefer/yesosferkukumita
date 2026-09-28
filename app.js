@@ -2824,6 +2824,7 @@ window.addEventListener('popstate', function(e) {
     var pantallaPerfil = document.getElementById('pantallaPerfil');
     if (pantallaPerfil && pantallaPerfil.classList.contains('activo')) {
         pantallaPerfil.classList.remove('activo');
+        document.body.style.overflow = '';
         _modalActivo = null;
         return;
     }
@@ -3008,6 +3009,8 @@ async function copiarURL() {
 }
 function cerrarPantallaPerfil() {
     document.getElementById('pantallaPerfil').classList.remove('activo');
+    document.body.style.overflow = '';
+    _modalActivo = null;
     if (history.state && history.state.kukumitaModal === 'perfil') {
         history.replaceState(null, '');
     }
@@ -3380,17 +3383,34 @@ function actualizarBotonAgregarProducto() {
     if (!btn) return;
     var user = auth.currentUser;
     btn.style.display = esCorreoAdmin(user) ? 'flex' : 'none';
-    if (!esCorreoAdmin(user)) {
-        var panel = document.getElementById('panelAgregarProducto');
-        if (panel) panel.classList.remove('abierto');
-    }
+    if (!esCorreoAdmin(user)) cerrarSubmenuAgregarProducto();
 }
 
-function toggleFormularioAgregarProducto() {
-    if (!esCorreoAdmin(auth.currentUser)) return; // por si acaso
-    var panel = document.getElementById('panelAgregarProducto');
-    if (panel) panel.classList.toggle('abierto');
+function abrirSubmenuAgregarProducto() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) return; // por si acaso
+    var cuenta = document.getElementById('sapCuenta');
+    if (cuenta) cuenta.textContent = user.email;
+    var estado = document.getElementById('sapEstadoConexion');
+    if (estado) {
+        var ok = APPS_SCRIPT_URL_PRODUCTOS && APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') === -1;
+        estado.textContent = ok ? '✅ Apps Script configurado' : '⚠️ Falta la URL del Apps Script';
+    }
+    document.getElementById('submenuAgregarProducto').classList.add('abierto');
+    document.body.style.overflow = 'hidden';
 }
+
+function cerrarSubmenuAgregarProducto() {
+    var sub = document.getElementById('submenuAgregarProducto');
+    if (!sub || !sub.classList.contains('abierto')) return;
+    sub.classList.remove('abierto');
+    // La pantalla de perfil sigue abierta debajo: mantener el scroll de fondo bloqueado
+    var perfil = document.getElementById('pantallaPerfil');
+    if (!(perfil && perfil.classList.contains('activo'))) document.body.style.overflow = '';
+}
+
+// Compatibilidad con llamadas anteriores
+function toggleFormularioAgregarProducto() { cerrarSubmenuAgregarProducto(); }
 
 function elegirImagenProducto() {
     var input = document.getElementById('inputImagenProducto');
