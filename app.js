@@ -258,7 +258,9 @@ function parsearCSV(texto) {
 // Kukúmita usa la columna F (índice 5) para sus imágenes de imgbb, así que
 // las llamadas que leen esa hoja pasan colImagen = 5.
 function csvAProductos(filas, colImagen) {
-    if (typeof colImagen !== 'number') colImagen = 6;
+    // Sin colImagen → hoja de Yesos (layout nuevo A–K, imágenes en E).
+    // Con colImagen numérico → hoja de Velas/Etiquetas (layout anterior de 17 columnas).
+    if (typeof colImagen !== 'number') return csvAProductosYesos(filas);
     if (filas.length < 2) return [];
     // Omitir la fila de encabezados (fila 0)
     var productos = [];
@@ -353,6 +355,67 @@ function csvAProductos(filas, colImagen) {
                     ? rawSub.split(',').map(function(s){ return s.trim().replace(/^"+|"+$/g, ''); }).filter(Boolean)
                     : [];
             })()
+        });
+    }
+    return productos;
+}
+
+// ── Layout actual de la hoja de Yesos (A–K) ──
+//   A0 Producto | B1 Precio Original | C2 Precio Bazar | D3 Descripcion
+//   E4 Imagenes imgbb (URLs separadas por coma) | F5 Video | G6 Etiqueta Principal
+//   H7 Etiqueta de evento | I8 Medidas alto/ancho (ej. "12/8" o "12 x 8")
+//   J9 existencia | K10 En Oferta ("si")
+function csvAProductosYesos(filas) {
+    if (filas.length < 2) return [];
+    var limpiar = function(s) { return (s || '').replace(/^"+|"+$/g, '').trim(); };
+    var lista = function(s) {
+        s = limpiar(s);
+        return s ? s.split(',').map(limpiar).filter(Boolean) : [];
+    };
+    var productos = [];
+    for (var i = 1; i < filas.length; i++) {
+        var f = filas[i];
+        var get = function(idx) { return (f[idx] || '').trim(); };
+        if (!get(0)) continue;
+
+        var imagenes = lista(get(4));
+        var tiposArray = get(6)
+            ? get(6).split(/[|,]/).map(function(s) { return limpiar(s).toLowerCase(); }).filter(Boolean)
+            : ['arreglo'];
+        if (!tiposArray.length) tiposArray = ['arreglo'];
+
+        var medidas = limpiar(get(8)).split(/\s*[\/xX×]\s*/);
+        var alto  = medidas[0] || '';
+        var ancho = medidas[1] || '';
+
+        productos.push({
+            id:           i,
+            nombre:       get(0),
+            precioNormal: parseFloat(get(1).replace(/[^0-9.]/g, '')) || 0,
+            precioBazar:  parseFloat(get(2).replace(/[^0-9.]/g, '')) || 0,
+            descripcion:  get(3),
+            video:        limpiar(get(5)),
+            imagen:       imagenes[0] || '',
+            imagenes:     imagenes,
+            forma:        '',
+            tipo:         tiposArray[0],
+            tipos:        tiposArray,
+            subtags:      '',
+            eventos:      get(7)
+                            ? get(7).split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean).join(' ')
+                            : '',
+            etiquetas:    tiposArray,
+            aditivos:     [],
+            oferta:       get(10).toLowerCase() === 'si' ? 1 : 0,
+            masVendido:   0,
+            alto:         alto,
+            ancho:        ancho,
+            existencia:   parseInt(get(9).replace(/[^0-9]/g, '')) || 0,
+            redYoutube:   [],
+            redFacebook:  [],
+            redInstagram: [],
+            redTiktok:    [],
+            subImagenes:  []
         });
     }
     return productos;
