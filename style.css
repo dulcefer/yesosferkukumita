@@ -3569,3 +3569,11 @@ textarea.panel-nombre-input { resize: vertical; min-height: 70px; }
 #editorImagenProducto input[type="range"] { width: 100%; accent-color: #d8788a; }
 .sap-estado { font-size: 13px; color: #8c7565; min-height: 18px; }
 .sap-estado.error { color: #c0392b; }
+
+/* ══ Etiqueta principal (chips) ══ */
+.sap-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sap-chip { border: 1.5px solid #e0d5cc; background: #f8f4f0; color: #6b5548; border-radius: 999px;
+            padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.sap-chip.activo { background: #e8607a; border-color: #e8607a; color: #fff; }
+body.modo-oscuro .sap-chip { background: #2a2218; border-color: #4a3a2e; color: #e0d5cc; }
+body.modo-oscuro .sap-chip.activo { background: #e8607a; border-color: #e8607a; color: #fff; }

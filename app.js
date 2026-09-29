@@ -3357,6 +3357,7 @@ function actualizarPantallaPerfil() {
 // Lista de correos con permiso de administrador.
 var CORREOS_ADMIN = [
     'dulceprincesa086@gmail.com',
+    'dulcefernandaguzmanrodriguez@gmail.com',
     'celvaguzman72@gmail.com',
     'celvapreciosa27@gmail.com',
     'velaskuku@gmail.com',
@@ -3422,9 +3423,25 @@ function _campoProducto(id) {
     return el ? el.value.trim() : '';
 }
 
-// Habilita "Guardar" solo si hay nombre y precio original
+// Etiquetas principales elegidas (columna G). Opciones permitidas: las del HTML.
+function alternarEtiquetaPrincipal(btn) {
+    var activo = btn.classList.toggle('activo');
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    validarFormularioProducto();
+}
+
+function obtenerEtiquetasPrincipales() {
+    var lista = [];
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip.activo').forEach(function(b) {
+        lista.push(b.getAttribute('data-valor'));
+    });
+    return lista;
+}
+
+// Habilita "Guardar" solo si hay nombre, precio original y al menos una etiqueta principal
 function validarFormularioProducto() {
-    var ok = _campoProducto('inputNombreProducto') !== '' && _campoProducto('inputPrecioOriginal') !== '';
+    var ok = _campoProducto('inputNombreProducto') !== '' && _campoProducto('inputPrecioOriginal') !== ''
+             && obtenerEtiquetasPrincipales().length > 0;
     var btn = document.getElementById('btnGuardarProducto');
     if (btn) btn.disabled = !ok;
 }
@@ -3439,6 +3456,9 @@ function limpiarFormularioProducto() {
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
+        b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false');
+    });
     validarFormularioProducto();
 }
 
@@ -3490,6 +3510,11 @@ async function guardarProductoAdmin() {
         mostrarToast('Espera a que termine de quitar el fondo.');
         return;
     }
+    var etiquetas = obtenerEtiquetasPrincipales();
+    if (!etiquetas.length) {
+        mostrarToast('Elige al menos una etiqueta principal.');
+        return;
+    }
     var precioBazar = _campoProducto('inputPrecioBazar');
     if (precioBazar !== '' && isNaN(Number(precioBazar))) {
         mostrarToast('El precio bazar no es válido.');
@@ -3516,6 +3541,7 @@ async function guardarProductoAdmin() {
                 precioOriginal: precioOriginal,
                 precioBazar: precioBazar,
                 descripcion: _campoProducto('inputDescripcionProducto'),
+                etiquetas: etiquetas,
                 imagenUrl: _campoProducto('inputUrlImagenProducto'),
                 imagenBase64: _imagenProductoSeleccionada || '',
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
