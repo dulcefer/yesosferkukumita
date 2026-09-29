@@ -3438,6 +3438,7 @@ function limpiarFormularioProducto() {
     _imagenProductoSeleccionada = null;
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
+    if (window.editorImagenProducto) window.editorImagenProducto.reset();
     validarFormularioProducto();
 }
 
@@ -3457,9 +3458,15 @@ function previsualizarImagenProducto(event) {
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            _imagenProductoSeleccionada = canvas.toDataURL('image/jpeg', 0.85);
-            var preview = document.getElementById('previewImagenProducto');
-            if (preview) { preview.src = _imagenProductoSeleccionada; preview.style.display = 'block'; }
+            var foto = canvas.toDataURL('image/jpeg', 0.9);
+            if (window.editorImagenProducto) {
+                // editor-imagen.js quita el fondo y arma la imagen final con el fondo rosa
+                window.editorImagenProducto.cargarFoto(foto);
+            } else {
+                _imagenProductoSeleccionada = foto;
+                var preview = document.getElementById('previewImagenProducto');
+                if (preview) { preview.src = foto; preview.style.display = 'block'; }
+            }
         };
         img.onerror = function() { mostrarToast('No se pudo leer esa imagen.'); };
         img.src = e.target.result;
@@ -3477,6 +3484,10 @@ async function guardarProductoAdmin() {
     var precioOriginal = _campoProducto('inputPrecioOriginal');
     if (!nombre || precioOriginal === '' || isNaN(Number(precioOriginal))) {
         mostrarToast('Escribe el nombre y el precio original.');
+        return;
+    }
+    if (window.editorImagenProducto && window.editorImagenProducto.ocupado()) {
+        mostrarToast('Espera a que termine de quitar el fondo.');
         return;
     }
     var precioBazar = _campoProducto('inputPrecioBazar');

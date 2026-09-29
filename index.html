@@ -229,6 +229,7 @@
     }
     .modo-oscuro .selector-modo-mas-submenu { background: rgba(255,255,255,0.06); }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -2018,8 +2019,22 @@
             <div class="sap-seccion-titulo">Imagen (imgbb)</div>
             <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
-            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">🖼️ Subir imagen a imgbb</button>
-            <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb</label>
+            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">📷 Tomar / elegir foto del producto</button>
+            <div id="editorImagenProducto" style="display:none;">
+                <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
+                <div id="estadoEditorImagen" class="sap-estado"></div>
+                <label class="panel-nombre-label" for="inputTituloImagen">Título en la imagen</label>
+                <input id="inputTituloImagen" class="panel-nombre-input" type="text" maxlength="60" placeholder="¡ Porta Flores de Yeso !">
+                <label class="panel-nombre-label">Tamaño de la pieza</label>
+                <input type="range" id="rangoTamImagen" min="40" max="140" value="100">
+                <label class="panel-nombre-label">Mover izquierda / derecha</label>
+                <input type="range" id="rangoXImagen" min="-300" max="300" value="0">
+                <label class="panel-nombre-label">Mover arriba / abajo</label>
+                <input type="range" id="rangoYImagen" min="-300" max="300" value="0">
+                <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Volver a quitar el fondo</button>
+                <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
+            </div>
+            <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb (sin editor)</label>
             <input id="inputUrlImagenProducto" class="panel-nombre-input" type="url" placeholder="https://i.ibb.co/...">
 
             <div class="sap-seccion-titulo">Configuración</div>
@@ -2087,6 +2102,7 @@
 
     <!-- JavaScript externo -->
     <script src="app.js?v=1"></script>
+    <script src="editor-imagen.js?v=1"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

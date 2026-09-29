@@ -3561,3 +3561,11 @@ body.modo-oscuro .sap-fila strong { color: #e0d5cc; }
 .sap-dos-col .panel-nombre-label { display: block; margin-bottom: 6px; }
 .sap-cuerpo > .panel-nombre-label { margin-bottom: -6px; }
 textarea.panel-nombre-input { resize: vertical; min-height: 70px; }
+
+/* ══ Editor de imagen del producto ══ */
+#editorImagenProducto { display: flex; flex-direction: column; gap: 10px; }
+#editorImagenProducto[style*="none"] { display: none !important; }
+#canvasImagenProducto { width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 12px; background: #d8788a; }
+#editorImagenProducto input[type="range"] { width: 100%; accent-color: #d8788a; }
+.sap-estado { font-size: 13px; color: #8c7565; min-height: 18px; }
+.sap-estado.error { color: #c0392b; }
