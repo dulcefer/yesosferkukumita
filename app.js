@@ -527,6 +527,24 @@ function renderizarCatalogoEnGrid(gridId, productos) {
         badgeFila.style.cssText = 'position:absolute; top:6px; left:6px; z-index:2; font-size:10px; font-weight:800; color:#9a8878; background:rgba(245,240,235,0.92); border:1.5px solid #e0d5cc; border-radius:8px; padding:2px 7px; letter-spacing:0.3px; line-height:1.4; pointer-events:none; user-select:none;';
         imgContenedor.appendChild(badgeFila);
 
+        // ── Botón ⚙️ "Configurar producto" (esquina superior izquierda) ──
+        // Solo se crea para productos de la hoja principal de Yesos (no para los
+        // "prestados" de Velas/Etiquetas). Está oculto por CSS y solo se muestra
+        // cuando <body> tiene la clase "es-admin" (correo de administrador).
+        if (gridId === 'gridProductos' && !p._origenExterno) {
+            var btnConfig = document.createElement('button');
+            btnConfig.type = 'button';
+            btnConfig.className = 'btn-config-producto';
+            btnConfig.setAttribute('aria-label', 'Configurar ' + p.nombre);
+            btnConfig.title = 'Configurar producto (administrador)';
+            btnConfig.innerHTML = '⚙️';
+            btnConfig.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (typeof abrirEditorProducto === 'function') abrirEditorProducto(p);
+            });
+            imgContenedor.appendChild(btnConfig);
+        }
+
         // ── Título ──
         var infoDiv = document.createElement('div');
         infoDiv.style.cssText = 'margin-top:10px; flex-grow:1;';
@@ -591,6 +609,7 @@ function renderizarCatalogoEnGrid(gridId, productos) {
         card.addEventListener('click', function(e) {
             if (e.target.closest('.btn-like')) return;
             if (e.target.closest('.btn-carrito-card')) return;
+            if (e.target.closest('.btn-config-producto')) return;
             if (typeof abrirModalProducto === 'function') {
                 abrirModalProducto(card);
             }
@@ -3359,6 +3378,7 @@ auth.onAuthStateChanged(user => {
     }
     actualizarEstadoSesionDrawer();
     actualizarPantallaPerfil();
+    actualizarBotonAgregarProducto(); // también muestra/oculta los botones ⚙️ de cada producto
 });
 
 // ─── ACTUALIZAR PANTALLA PERFIL CON DATOS REALES ───
@@ -3429,11 +3449,13 @@ function esCorreoAdmin(user) {
 }
 
 function actualizarBotonAgregarProducto() {
-    var btn = document.getElementById('btnAgregarProducto');
-    if (!btn) return;
     var user = auth.currentUser;
-    btn.style.display = esCorreoAdmin(user) ? 'flex' : 'none';
-    if (!esCorreoAdmin(user)) cerrarSubmenuAgregarProducto();
+    var admin = esCorreoAdmin(user);
+    // Clase que hace visibles los botones ⚙️ "Configurar producto" de cada tarjeta
+    document.body.classList.toggle('es-admin', admin);
+    if (!admin) { cerrarSubmenuAgregarProducto(); if (typeof cerrarMoverProducto === 'function') cerrarMoverProducto(); }
+    var btn = document.getElementById('btnAgregarProducto');
+    if (btn) btn.style.display = admin ? 'flex' : 'none';
 }
 
 function abrirSubmenuAgregarProducto() {
@@ -3446,6 +3468,7 @@ function abrirSubmenuAgregarProducto() {
         var ok = APPS_SCRIPT_URL_PRODUCTOS && APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') === -1;
         estado.textContent = ok ? '✅ Apps Script configurado' : '⚠️ Falta la URL del Apps Script';
     }
+    _aplicarModoFormulario();
     document.getElementById('submenuAgregarProducto').classList.add('abierto');
     document.body.style.overflow = 'hidden';
 }
@@ -3457,6 +3480,227 @@ function cerrarSubmenuAgregarProducto() {
     // La pantalla de perfil sigue abierta debajo: mantener el scroll de fondo bloqueado
     var perfil = document.getElementById('pantallaPerfil');
     if (!(perfil && perfil.classList.contains('activo'))) document.body.style.overflow = '';
+    // Si se estaba configurando un producto, el formulario vuelve limpio al modo "Agregar"
+    if (_edicionProducto) {
+        _edicionProducto = null;
+        limpiarFormularioProducto();
+        _aplicarModoFormulario();
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// CONFIGURAR PRODUCTO (botón ⚙️ de cada tarjeta, solo administradores)
+// Reutiliza el mismo formulario de "Agregar producto", pero precargado con
+// los datos del producto; al guardar se ACTUALIZA su fila en la hoja.
+// ──────────────────────────────────────────────────────────────
+var _edicionProducto = null; // { fila, nombre, imagenes } mientras el formulario está en modo edición
+
+function _aplicarModoFormulario() {
+    var editando = !!_edicionProducto;
+    var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
+    set('sapTitulo', editando ? '⚙️ Configurar producto' : '➕ Agregar producto');
+    set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–L');
+    set('sapNotaFinal', editando
+        ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva, se conserva la imagen actual. Para cambiarlo de fila usa el número # del producto.'
+        : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
+    var bloqueFila = document.getElementById('sapFilaDestinoBloque');
+    if (bloqueFila) bloqueFila.style.display = editando ? 'none' : '';
+    var btn = document.getElementById('btnGuardarProducto');
+    if (btn && !btn.dataset.guardando) btn.textContent = editando ? 'Guardar cambios' : 'Guardar';
+    var bloque = document.getElementById('sapImagenActual');
+    if (bloque) {
+        bloque.style.display = editando ? 'flex' : 'none';
+        var img = document.getElementById('sapImagenActualImg');
+        if (img) img.src = (editando && _edicionProducto.imagenes[0]) || '';
+    }
+}
+
+function _marcarChipProducto(btn, activo) {
+    btn.classList.toggle('activo', !!activo);
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+}
+
+function _fijarToggleProducto(id, activo) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    _marcarChipProducto(b, activo);
+    var t = b.querySelector('.sap-toggle-estado');
+    if (t) t.textContent = activo ? 'Sí' : 'No';
+}
+
+function abrirEditorProducto(p) {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user) || !p) return; // por si acaso; el servidor vuelve a verificar
+    if (window.editorImagenProducto && window.editorImagenProducto.ocupado()) {
+        mostrarToast('Espera a que termine de quitar el fondo.');
+        return;
+    }
+
+    limpiarFormularioProducto();
+    _edicionProducto = { fila: p.id + 1, nombre: p.nombre, imagenes: (p.imagenes || []).slice() };
+
+    var poner = function(id, v) { var el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
+    poner('inputNombreProducto', p.nombre);
+    poner('inputPrecioOriginal', p.precioNormal || p.precioNormal === 0 ? p.precioNormal : '');
+    poner('inputPrecioBazar', p.precioBazar || '');
+    poner('inputDescripcionProducto', p.descripcion);
+    poner('inputAltoProducto', p.alto);
+    poner('inputAnchoProducto', p.ancho);
+    poner('inputVideoProducto', p.video);
+    poner('inputExistenciaProducto', p.existencia || '');
+
+    // Etiqueta principal (acepta también el singular, ej. "arreglo" → "arreglos")
+    var tipos = (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); });
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
+        var v = b.getAttribute('data-valor');
+        _marcarChipProducto(b, tipos.indexOf(v) !== -1 || tipos.indexOf(v.replace(/s$/, '')) !== -1);
+    });
+    // Etiquetas de evento (p.eventos viene como slugs separados por espacio)
+    var eventos = String(p.eventos || '').split(/\s+/).filter(Boolean);
+    document.querySelectorAll('#chipsEtiquetaEvento .sap-chip').forEach(function(b) {
+        _marcarChipProducto(b, eventos.indexOf(b.getAttribute('data-valor')) !== -1);
+    });
+    _fijarToggleProducto('btnEnOfertaProducto', !!p.oferta);
+    _fijarToggleProducto('btnMasVendidoProducto', !!p.masVendido);
+
+    abrirSubmenuAgregarProducto();
+    validarFormularioProducto();
+}
+window.abrirEditorProducto = abrirEditorProducto;
+
+// ──────────────────────────────────────────────────────────────
+// FILA EN LA HOJA (solo administradores)
+//  • Al agregar: campo opcional "Fila en la hoja".
+//  • En el modal del producto: el número "# N" abre el diálogo para mover el
+//    producto a otra fila; si esa fila está ocupada, ambos se intercambian.
+// La fila 1 son los encabezados, así que el destino mínimo es la 2.
+// ──────────────────────────────────────────────────────────────
+var FILA_MIN_DESTINO = 2;
+var FILA_MAX_DESTINO = 1000;      // igual que FILA_MAX en Code.gs
+var FILA_RESERVADA_INI = 26;      // filas 26-31: productos "prestados" de Etiquetas y Velas
+var FILA_RESERVADA_FIN_ = 31;     // igual que en Code.gs
+
+// Devuelve un texto de error si la fila no se puede usar, o '' si está bien.
+function _errorFilaDestino(n) {
+    if (!isFinite(n) || Math.floor(n) !== n) return 'Escribe un número de fila entero.';
+    if (n < FILA_MIN_DESTINO) return 'La fila 1 son los encabezados. Elige la fila 2 o una mayor.';
+    if (n > FILA_MAX_DESTINO) return 'La fila máxima permitida es la ' + FILA_MAX_DESTINO + '.';
+    if (n >= FILA_RESERVADA_INI && n <= FILA_RESERVADA_FIN_) {
+        return 'Las filas ' + FILA_RESERVADA_INI + ' a ' + FILA_RESERVADA_FIN_ + ' están reservadas (Etiquetas y Velas). Elige otra.';
+    }
+    return '';
+}
+
+// Botones − / + del campo de fila. Vacío = "última fila disponible".
+function _ajustarCampoFila(id, delta, alCambiar) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var actual = parseInt(el.value, 10);
+    if (isNaN(actual)) {
+        if (delta > 0) el.value = String(FILA_MIN_DESTINO);
+    } else {
+        var nuevo = actual + delta;
+        el.value = nuevo < FILA_MIN_DESTINO ? '' : String(Math.min(FILA_MAX_DESTINO, nuevo));
+    }
+    if (alCambiar) alCambiar();
+}
+function ajustarFilaDestinoProducto(delta) { _ajustarCampoFila('inputFilaDestinoProducto', delta); }
+function ajustarFilaMover(delta) { _ajustarCampoFila('inputMoverFila', delta, actualizarAvisoMover); }
+
+var _moverProducto = null; // { fila, nombre } del producto abierto en el modal
+
+function abrirMoverProducto(card) {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user) || !card) return; // por si acaso; el servidor vuelve a verificar
+    var fila = parseInt(card.getAttribute('data-sheet-row'), 10);
+    if (!fila) return;
+    _moverProducto = { fila: fila, nombre: card.getAttribute('data-nombre') || '' };
+    var info = document.getElementById('mmpProducto');
+    if (info) info.textContent = '«' + _moverProducto.nombre + '» está en la fila ' + fila + '.';
+    var input = document.getElementById('inputMoverFila');
+    if (input) input.value = '';
+    actualizarAvisoMover();
+    document.getElementById('modalMoverProducto').classList.add('abierto');
+    if (input) setTimeout(function() { input.focus(); }, 50);
+}
+
+function cerrarMoverProducto() {
+    var m = document.getElementById('modalMoverProducto');
+    if (m) m.classList.remove('abierto');
+    _moverProducto = null;
+}
+
+// Explica en vivo qué va a pasar con la fila escrita y habilita/deshabilita "Mover"
+function actualizarAvisoMover() {
+    var aviso = document.getElementById('mmpAviso');
+    var btn = document.getElementById('btnConfirmarMover');
+    if (!aviso || !_moverProducto) return;
+    var texto = _campoProducto('inputMoverFila');
+    var msg = '', error = false;
+    if (texto === '') {
+        msg = 'Sin fila elegida: el producto pasará a la última fila disponible de la hoja.';
+    } else {
+        var n = Number(texto);
+        var err = _errorFilaDestino(n);
+        if (err) { msg = err; error = true; }
+        else if (n === _moverProducto.fila) { msg = 'El producto ya está en esa fila.'; error = true; }
+        else {
+            var ocupante = (listaProductos || []).filter(function(p) { return !p._origenExterno && (p.id + 1) === n; })[0];
+            msg = ocupante
+                ? 'La fila ' + n + ' está ocupada por «' + ocupante.nombre + '»: se intercambiarán (ese producto pasará a la fila ' + _moverProducto.fila + ').'
+                : 'La fila ' + n + ' está libre: el producto se moverá ahí y la fila ' + _moverProducto.fila + ' quedará vacía.';
+        }
+    }
+    aviso.textContent = msg;
+    aviso.classList.toggle('error', error);
+    if (btn) btn.disabled = error;
+}
+
+async function confirmarMoverProducto() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
+    if (!_moverProducto) return;
+    var texto = _campoProducto('inputMoverFila');
+    if (texto !== '') {
+        var err = _errorFilaDestino(Number(texto));
+        if (err) { mostrarToast(err); return; }
+        if (Number(texto) === _moverProducto.fila) { mostrarToast('El producto ya está en esa fila.'); return; }
+    }
+    if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
+        mostrarToast('Falta configurar la URL del Apps Script.');
+        return;
+    }
+    var btn = document.getElementById('btnConfirmarMover');
+    if (btn) { btn.disabled = true; btn.textContent = 'Moviendo...'; }
+    try {
+        var idToken = await user.getIdToken();
+        var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                idToken: idToken,
+                accion: 'mover',
+                fila: _moverProducto.fila,
+                nombreOriginal: _moverProducto.nombre, // el servidor comprueba que la fila siga siendo este producto
+                filaDestino: texto
+            })
+        });
+        var r = await respuesta.json();
+        if (r.ok) {
+            mostrarToast(r.intercambio
+                ? '✅ Intercambiados: fila ' + r.filaOrigen + ' ↔ fila ' + r.filaDestino + '. Recarga la página en unos segundos.'
+                : '✅ Producto movido a la fila ' + r.filaDestino + '. Recarga la página en unos segundos.');
+            cerrarMoverProducto();
+            if (typeof cerrarModalProducto === 'function') cerrarModalProducto();
+        } else {
+            mostrarToast('❌ ' + (r.error || 'No se pudo mover el producto.'));
+        }
+    } catch (e) {
+        mostrarToast('❌ Error de conexión al mover el producto.');
+    } finally {
+        if (btn) { btn.textContent = 'Mover'; }
+        actualizarAvisoMover();
+    }
 }
 
 // Compatibilidad con llamadas anteriores
@@ -3545,7 +3789,7 @@ function validarFormularioProducto() {
 function limpiarFormularioProducto() {
     ['inputNombreProducto', 'inputPrecioOriginal', 'inputPrecioBazar',
      'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputImagenProducto',
-     'inputAltoProducto', 'inputAnchoProducto', 'inputExistenciaProducto', 'inputVideoProducto'].forEach(function(id) {
+     'inputAltoProducto', 'inputAnchoProducto', 'inputExistenciaProducto', 'inputVideoProducto', 'inputFilaDestinoProducto'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -3642,13 +3886,22 @@ async function guardarProductoAdmin() {
         mostrarToast('La existencia no es válida.');
         return;
     }
+    var filaDestino = '';
+    if (!_edicionProducto) {
+        filaDestino = _campoProducto('inputFilaDestinoProducto');
+        if (filaDestino !== '') {
+            var errFila = _errorFilaDestino(Number(filaDestino));
+            if (errFila) { mostrarToast(errFila); return; }
+        }
+    }
     if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
         mostrarToast('Falta configurar la URL del Apps Script.');
         return;
     }
 
     var btnGuardar = document.getElementById('btnGuardarProducto');
-    if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; }
+    var editando = !!_edicionProducto;
+    if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.dataset.guardando = '1'; btnGuardar.textContent = 'Guardando...'; }
 
     try {
         // El idToken prueba, del lado del servidor, quién es realmente el usuario
@@ -3659,6 +3912,10 @@ async function guardarProductoAdmin() {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
             body: JSON.stringify({
                 idToken: idToken,
+                accion: editando ? 'editar' : 'agregar',
+                fila: editando ? _edicionProducto.fila : undefined,
+                nombreOriginal: editando ? _edicionProducto.nombre : undefined, // el servidor comprueba que la fila siga siendo este producto
+                filaDestino: editando ? undefined : filaDestino,
                 nombre: nombre,
                 precioOriginal: precioOriginal,
                 precioBazar: precioBazar,
@@ -3679,16 +3936,22 @@ async function guardarProductoAdmin() {
         var resultado = await respuesta.json();
 
         if (resultado.ok) {
-            mostrarToast('✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.');
+            if (editando) {
+                mostrarToast('✅ Producto actualizado (fila ' + resultado.fila + '). Recarga la página en unos segundos para ver los cambios.');
+            } else {
+                mostrarToast(resultado.reubicado
+                    ? '✅ La fila ' + resultado.filaPedida + ' estaba ocupada; el producto se agregó en la fila ' + resultado.fila + '.'
+                    : '✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.');
+            }
             limpiarFormularioProducto();
-            cerrarSubmenuAgregarProducto();
+            cerrarSubmenuAgregarProducto(); // también sale del modo edición
         } else {
             mostrarToast('❌ ' + (resultado.error || 'No se pudo guardar el producto.'));
         }
     } catch (err) {
         mostrarToast('❌ Error de conexión al guardar el producto.');
     } finally {
-        if (btnGuardar) { btnGuardar.textContent = 'Guardar'; validarFormularioProducto(); }
+        if (btnGuardar) { delete btnGuardar.dataset.guardando; _aplicarModoFormulario(); validarFormularioProducto(); }
     }
 }
 
@@ -4285,9 +4548,16 @@ function inyectarEtiquetasModal(card) {
     var filaSheets = card.getAttribute('data-sheet-row') || '';
     var badge = document.getElementById('mpSheetRowBadge');
     if (badge) {
+        // Para administradores (y solo en productos de la hoja principal) el número es un
+        // botón que abre el diálogo de mover / intercambiar de fila.
+        var puedeMover = !!filaSheets && esCorreoAdmin(auth.currentUser)
+            && !card.getAttribute('data-origen-externo') && !!card.closest('#gridProductos');
+        badge.classList.toggle('badge-fila-admin', puedeMover);
+        badge.onclick = puedeMover ? function(e) { e.stopPropagation(); abrirMoverProducto(card); } : null;
+        badge.style.cursor = puedeMover ? 'pointer' : 'default';
         if (filaSheets) {
-            badge.textContent = '# ' + filaSheets;
-            badge.title = 'Fila ' + filaSheets + ' en Google Sheets';
+            badge.textContent = '# ' + filaSheets + (puedeMover ? ' ↕' : '');
+            badge.title = puedeMover ? 'Fila ' + filaSheets + ' — toca para moverla o intercambiarla' : 'Fila ' + filaSheets + ' en Google Sheets';
             badge.style.display = 'inline-block';
         } else {
             badge.style.display = 'none';

@@ -1992,15 +1992,38 @@
 <!-- ══════════════════════════════════════════════════════
      SUBMENU AGREGAR PRODUCTO (solo administradores)
      ══════════════════════════════════════════════════════ -->
+<!-- ══ Mover / intercambiar producto de fila (solo administradores) ══ -->
+<div id="modalMoverProducto" onclick="if(event.target===this) cerrarMoverProducto()">
+    <div class="mmp-caja">
+        <h3 class="mmp-titulo">↕️ Mover producto de fila</h3>
+        <p class="sap-nota" id="mmpProducto"></p>
+        <label class="panel-nombre-label" for="inputMoverFila">Nueva fila en la hoja (2 en adelante)</label>
+        <div class="sap-medida">
+            <button type="button" class="sap-medida-btn" aria-label="Fila anterior" onclick="ajustarFilaMover(-1)">−</button>
+            <input id="inputMoverFila" class="panel-nombre-input" type="number" inputmode="numeric" min="2" step="1" placeholder="Última fila" oninput="actualizarAvisoMover()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarMoverProducto();}">
+            <button type="button" class="sap-medida-btn" aria-label="Fila siguiente" onclick="ajustarFilaMover(1)">+</button>
+        </div>
+        <p class="sap-nota" id="mmpAviso"></p>
+        <div class="panel-nombre-acciones">
+            <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarMoverProducto()">Cancelar</button>
+            <button class="panel-nombre-btn guardar" id="btnConfirmarMover" type="button" onclick="confirmarMoverProducto()">Mover</button>
+        </div>
+    </div>
+</div>
+
 <div id="submenuAgregarProducto" onclick="if(event.target===this) cerrarSubmenuAgregarProducto()">
     <div class="sc-caja sap-caja">
         <div class="sc-header">
-            <h3>➕ Agregar producto</h3>
+            <h3 id="sapTitulo">➕ Agregar producto</h3>
             <button class="sc-cerrar" type="button" onclick="cerrarSubmenuAgregarProducto()">✕</button>
         </div>
 
         <div class="sap-cuerpo">
             <div class="sap-seccion-titulo">Imagen (imgbb)</div>
+            <div id="sapImagenActual" style="display:none;">
+                <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
+                <p class="sap-nota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
+            </div>
             <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
             <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">📷 Tomar / elegir foto del producto</button>
@@ -2126,14 +2149,24 @@
             </div>
             <p class="sap-nota">Existencia se guarda en la columna J. En Oferta en la K y Más Vendido en la L (se escribe "si" o "no").</p>
 
+            <div id="sapFilaDestinoBloque">
+                <div class="sap-seccion-titulo">Fila en la hoja</div>
+                <div class="sap-medida">
+                    <button type="button" class="sap-medida-btn" aria-label="Fila anterior" onclick="ajustarFilaDestinoProducto(-1)">−</button>
+                    <input id="inputFilaDestinoProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="2" step="1" placeholder="Última fila disponible">
+                    <button type="button" class="sap-medida-btn" aria-label="Fila siguiente" onclick="ajustarFilaDestinoProducto(1)">+</button>
+                </div>
+                <p class="sap-nota">Opcional. Elige en qué fila de la hoja se guarda (la fila 1 son los encabezados, así que empieza en la 2). Si la dejas vacía, o si la fila elegida ya está ocupada, el producto se agrega en la última fila disponible.</p>
+            </div>
+
             <div class="sap-seccion-titulo">Configuración</div>
             <div class="sap-config">
                 <div class="sap-fila"><span>Cuenta</span><strong id="sapCuenta">—</strong></div>
-                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columnas A–L</strong></div>
+                <div class="sap-fila"><span>Destino</span><strong id="sapDestino">Hoja 1 · columnas A–L</strong></div>
                 <div class="sap-fila"><span>Imágenes</span><strong>imgbb</strong></div>
                 <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
             </div>
-            <p class="sap-nota">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
+            <p class="sap-nota" id="sapNotaFinal">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
 
             <div class="panel-nombre-acciones">
                 <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>
