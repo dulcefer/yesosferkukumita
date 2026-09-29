@@ -1566,6 +1566,8 @@
 
         <!-- ── Botón cerrar flotante sobre la galería ── -->
         <button class="mp-cerrar-flotante" onclick="cerrarModalProducto()">✕</button>
+        <!-- Botón ⚙️ Configurar producto: solo se muestra a administradores (lo controla app.js) -->
+        <button class="mp-btn-config" id="mpBtnConfig" type="button" style="display:none" title="Configurar producto (administrador)" aria-label="Configurar producto">⚙️</button>
 
         <!-- ── GALERÍA (primero, sin scroll para verla) ── -->
         <div class="mp-galeria-superior">
@@ -2019,6 +2021,7 @@
         </div>
 
         <div class="sap-cuerpo">
+          <div class="sap-col-img">
             <div class="sap-seccion-titulo">Imagen (imgbb)</div>
             <div id="sapImagenActual" style="display:none;">
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
@@ -2048,6 +2051,8 @@
             <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb (sin editor)</label>
             <input id="inputUrlImagenProducto" class="panel-nombre-input" type="url" placeholder="https://i.ibb.co/...">
 
+          </div><!-- /sap-col-img -->
+          <div class="sap-col-datos">
             <div class="sap-seccion-titulo">Datos del producto</div>
             <label class="panel-nombre-label" for="inputNombreProducto">Nombre *</label>
             <input id="inputNombreProducto" class="panel-nombre-input" type="text" maxlength="80" placeholder="Ej. Maceta de Flor" oninput="validarFormularioProducto()">
@@ -2167,6 +2172,8 @@
                 <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
             </div>
             <p class="sap-nota" id="sapNotaFinal">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
+
+          </div><!-- /sap-col-datos -->
 
             <div class="panel-nombre-acciones">
                 <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>

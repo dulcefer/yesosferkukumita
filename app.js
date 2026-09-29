@@ -4528,6 +4528,26 @@ function inyectarEtiquetasModal(card) {
         }
     }
 
+    // ── Botón ⚙️ "Configurar producto" dentro del modal (solo administradores) ──
+    // Abre el mismo formulario que la tuerca de la tarjeta. Solo en productos de la
+    // hoja principal; el servidor vuelve a verificar el permiso al guardar.
+    var btnConfigModal = document.getElementById('mpBtnConfig');
+    if (btnConfigModal) {
+        var prodConfig = null;
+        if (filaSheets && esCorreoAdmin(auth.currentUser)
+            && !card.getAttribute('data-origen-externo') && !!card.closest('#gridProductos')) {
+            var idConfig = parseInt(filaSheets, 10) - 1;
+            prodConfig = listaProductos.find(function(x) { return x.id === idConfig && !x._origenExterno; }) || null;
+        }
+        btnConfigModal.style.display = prodConfig ? 'flex' : 'none';
+        btnConfigModal.onclick = prodConfig ? function(e) {
+            e.stopPropagation();
+            // Se cierra el modal primero para no dejar el scroll de fondo desbloqueado
+            if (typeof cerrarModalProducto === 'function') cerrarModalProducto();
+            abrirEditorProducto(prodConfig);
+        } : null;
+    }
+
     // 2. SUB-ETIQUETAS (Oferta / Más vendido) — se PREPENDEN al inicio de modalTagsInline
     var tagsInline = document.getElementById('modalTagsInline');
     if (!tagsInline) return;

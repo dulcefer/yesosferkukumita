@@ -3559,7 +3559,9 @@ body.modo-oscuro .sap-fila strong { color: #e0d5cc; }
 /* ══ Formulario agregar producto ══ */
 .sap-dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .sap-dos-col .panel-nombre-label { display: block; margin-bottom: 6px; }
-.sap-cuerpo > .panel-nombre-label { margin-bottom: -6px; }
+.sap-cuerpo > .panel-nombre-label,
+.sap-col-img > .panel-nombre-label,
+.sap-col-datos > .panel-nombre-label { margin-bottom: -6px; }
 textarea.panel-nombre-input { resize: vertical; min-height: 70px; }
 
 /* ══ Editor de imagen del producto ══ */
@@ -3653,6 +3655,53 @@ body.es-admin .card-badge-fila { left: 46px !important; }
     body.es-admin .card-badge-fila { left: 40px !important; }
 }
 body.modo-oscuro .btn-config-producto { background: rgba(40,32,26,0.94); border-color: #4a3a2e; }
+
+/* ══ Botón ⚙️ "Configurar producto" dentro del modal del producto (solo administradores) ══ */
+.mp-btn-config {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 20;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.48);
+    border: none; padding: 0;
+    font-size: 17px; line-height: 1; cursor: pointer;
+    align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.18s;
+}
+.mp-btn-config:hover { background: rgba(0,0,0,0.72); transform: rotate(30deg); }
+
+/* ══ Formulario Agregar / Configurar producto: columnas (en móvil se ve igual que antes) ══ */
+.sap-col-img, .sap-col-datos { display: contents; }
+
+/* Solo PC: caja más ancha y formulario en 2 columnas (imagen a la izquierda, datos a la derecha) */
+@media (min-width: 1024px) {
+    #submenuAgregarProducto .sap-caja {
+        max-width: 1080px;
+        width: 94vw;
+        max-height: 90vh;
+    }
+    .sap-cuerpo {
+        display: grid;
+        grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+        column-gap: 28px;
+        row-gap: 12px;
+        align-items: start;
+        padding: 10px 28px 26px;
+    }
+    .sap-col-img, .sap-col-datos {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+    }
+    .sap-cuerpo > .panel-nombre-acciones {
+        grid-column: 1 / -1;
+        justify-content: flex-end;
+    }
+    #previewImagenProducto,
+    #sapImagenActualImg { max-height: 300px; }
+}
 
 /* Imagen actual dentro del formulario en modo "Configurar producto" */
 #sapImagenActual { flex-direction: column; gap: 8px; }
