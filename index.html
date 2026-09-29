@@ -1575,6 +1575,8 @@
             <!-- Botón zoom sobre galería -->
             <button class="mp-btn-zoom" id="mpBtnZoom" onclick="abrirZoomGaleria()" title="Ver imagen ampliada">🔍</button>
         </div>
+        <!-- Barra "Ver video": solo se muestra si el producto tiene link de YouTube en la columna F -->
+        <button type="button" class="mp-btn-video" id="mpBtnVideo" style="display:none" onclick="abrirVideoProducto()">▶ Ver video</button>
         <div class="modal-dots" id="modalDots"></div>
         <div class="modal-contador" id="modalContador"></div>
 
@@ -2052,14 +2054,86 @@
             </div>
             <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja.</p>
 
+            <div class="sap-seccion-titulo">Etiqueta de evento</div>
+            <div class="sap-chips" id="chipsEtiquetaEvento">
+                <button type="button" class="sap-chip" data-valor="primera-comunion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🙏 Primera comunión</button>
+                <button type="button" class="sap-chip" data-valor="bautizo" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🕊️ Bautizo</button>
+                <button type="button" class="sap-chip" data-valor="boda" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💍 Boda</button>
+                <button type="button" class="sap-chip" data-valor="quince-anos" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">👑 Quince años</button>
+                <button type="button" class="sap-chip" data-valor="baby-shower" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🍼 Baby shower</button>
+                <button type="button" class="sap-chip" data-valor="graduacion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎓 Graduación</button>
+                <button type="button" class="sap-chip" data-valor="aniversario-luctuoso" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🕯️ Aniv. luctuoso</button>
+                <button type="button" class="sap-chip" data-valor="fin-novenario" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🌿 Fin de novenario</button>
+                <button type="button" class="sap-chip" data-valor="despedida-soltera" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🥂 Despedida de soltera</button>
+                <button type="button" class="sap-chip" data-valor="despedida-soltero" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🍻 Despedida de soltero</button>
+                <button type="button" class="sap-chip" data-valor="confirmacion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">✝️ Confirmación</button>
+                <button type="button" class="sap-chip" data-valor="compromiso" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💑 Compromiso</button>
+                <button type="button" class="sap-chip" data-valor="cumpleanos" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎂 Cumpleaños</button>
+                <button type="button" class="sap-chip" data-valor="aniversario-de-bodas" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💞 Aniversario de bodas</button>
+                <button type="button" class="sap-chip" data-valor="revelacion-de-genero" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💙 Revelación de género</button>
+                <button type="button" class="sap-chip" data-valor="religioso" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">⛪ Religioso</button>
+                <button type="button" class="sap-chip" data-valor="posada" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏮 Posada</button>
+                <button type="button" class="sap-chip" data-valor="navidad" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎄 Navidad</button>
+                <button type="button" class="sap-chip" data-valor="ano-nuevo" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎆 Año nuevo</button>
+                <button type="button" class="sap-chip" data-valor="dia-de-las-madres" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🌷 Día de las madres</button>
+                <button type="button" class="sap-chip" data-valor="dia-del-padre" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">👔 Día del padre</button>
+                <button type="button" class="sap-chip" data-valor="dia-de-san-valentin" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">❤️ Día de San Valentín</button>
+                <button type="button" class="sap-chip" data-valor="dia-del-nino" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🧸 Día del niño</button>
+                <button type="button" class="sap-chip" data-valor="dia-de-muertos" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💀 Día de muertos</button>
+                <button type="button" class="sap-chip" data-valor="ordenacion-sacerdotal" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">📿 Ordenación sacerdotal</button>
+                <button type="button" class="sap-chip" data-valor="jubilacion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏖️ Jubilación</button>
+                <button type="button" class="sap-chip" data-valor="apertura-de-negocio" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏪 Apertura de negocio</button>
+                <button type="button" class="sap-chip" data-valor="condolencias" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🤍 Condolencias</button>
+            </div>
+            <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja.</p>
+
+            <div class="sap-seccion-titulo">Medidas (Alto / Ancho)</div>
+            <div class="sap-dos-col">
+                <div>
+                    <label class="panel-nombre-label" for="inputAltoProducto">📏 Alto (cm)</label>
+                    <div class="sap-medida">
+                        <button type="button" class="sap-medida-btn" aria-label="Disminuir alto" onclick="ajustarMedidaProducto('inputAltoProducto', -1)">−</button>
+                        <input id="inputAltoProducto" class="panel-nombre-input" type="number" inputmode="decimal" min="0" max="1000" step="any" placeholder="0">
+                        <button type="button" class="sap-medida-btn" aria-label="Aumentar alto" onclick="ajustarMedidaProducto('inputAltoProducto', 1)">+</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="panel-nombre-label" for="inputAnchoProducto">📐 Ancho (cm)</label>
+                    <div class="sap-medida">
+                        <button type="button" class="sap-medida-btn" aria-label="Disminuir ancho" onclick="ajustarMedidaProducto('inputAnchoProducto', -1)">−</button>
+                        <input id="inputAnchoProducto" class="panel-nombre-input" type="number" inputmode="decimal" min="0" max="1000" step="any" placeholder="0">
+                        <button type="button" class="sap-medida-btn" aria-label="Aumentar ancho" onclick="ajustarMedidaProducto('inputAnchoProducto', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+            <p class="sap-nota">Opcional. Se guarda en la columna I como <strong>alto/ancho</strong> (ej. 12/8).</p>
+
+            <div class="sap-seccion-titulo">Video</div>
+            <label class="panel-nombre-label" for="inputVideoProducto">▶ Link de YouTube (opcional)</label>
+            <input id="inputVideoProducto" class="panel-nombre-input" type="text" inputmode="url" maxlength="400" placeholder="https://www.youtube.com/watch?v=… o código embed">
+            <p class="sap-nota">Puedes pegar el link normal, el link embed o el código &lt;iframe&gt; de YouTube. Se guarda en la columna F como link embed. Si lo dejas vacío, el producto no mostrará botón de video.</p>
+
+            <div class="sap-seccion-titulo">Existencia, oferta y más vendido</div>
+            <label class="panel-nombre-label" for="inputExistenciaProducto">📦 Existencia (piezas ya fabricadas)</label>
+            <div class="sap-medida">
+                <button type="button" class="sap-medida-btn" aria-label="Disminuir existencia" onclick="ajustarExistenciaProducto(-1)">−</button>
+                <input id="inputExistenciaProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="0">
+                <button type="button" class="sap-medida-btn" aria-label="Aumentar existencia" onclick="ajustarExistenciaProducto(1)">+</button>
+            </div>
+            <div class="sap-dos-col">
+                <button type="button" class="sap-chip sap-toggle" id="btnEnOfertaProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🔥 En Oferta: <span class="sap-toggle-estado">No</span></button>
+                <button type="button" class="sap-chip sap-toggle" id="btnMasVendidoProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🏆 Más Vendido: <span class="sap-toggle-estado">No</span></button>
+            </div>
+            <p class="sap-nota">Existencia se guarda en la columna J. En Oferta en la K y Más Vendido en la L (se escribe "si" o "no").</p>
+
             <div class="sap-seccion-titulo">Configuración</div>
             <div class="sap-config">
                 <div class="sap-fila"><span>Cuenta</span><strong id="sapCuenta">—</strong></div>
-                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columnas A–E</strong></div>
+                <div class="sap-fila"><span>Destino</span><strong>Hoja 1 · columnas A–L</strong></div>
                 <div class="sap-fila"><span>Imágenes</span><strong>imgbb</strong></div>
                 <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
             </div>
-            <p class="sap-nota">Se agrega una fila nueva al final de la hoja. Las demás columnas (video, etiquetas, medidas, existencia, oferta) se llenan desde Google Sheets.</p>
+            <p class="sap-nota">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
 
             <div class="panel-nombre-acciones">
                 <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>
@@ -2116,8 +2190,8 @@
 </div>
 
     <!-- JavaScript externo -->
-    <script src="app.js?v=1"></script>
-    <script src="editor-imagen.js?v=1"></script>
+    <script src="app.js?v=3"></script>
+    <script src="editor-imagen.js?v=2"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

@@ -360,11 +360,11 @@ function csvAProductos(filas, colImagen) {
     return productos;
 }
 
-// ── Layout actual de la hoja de Yesos (A–K) ──
+// ── Layout actual de la hoja de Yesos (A–L) ──
 //   A0 Producto | B1 Precio Original | C2 Precio Bazar | D3 Descripcion
 //   E4 Imagenes imgbb (URLs separadas por coma) | F5 Video | G6 Etiqueta Principal
 //   H7 Etiqueta de evento | I8 Medidas alto/ancho (ej. "12/8" o "12 x 8")
-//   J9 existencia | K10 En Oferta ("si")
+//   J9 existencia | K10 En Oferta ("si") | L11 Más Vendido ("si")
 function csvAProductosYesos(filas) {
     if (filas.length < 2) return [];
     var limpiar = function(s) { return (s || '').replace(/^"+|"+$/g, '').trim(); };
@@ -407,7 +407,7 @@ function csvAProductosYesos(filas) {
             etiquetas:    tiposArray,
             aditivos:     [],
             oferta:       get(10).toLowerCase() === 'si' ? 1 : 0,
-            masVendido:   0,
+            masVendido:   get(11).toLowerCase() === 'si' ? 1 : 0,
             alto:         alto,
             ancho:        ancho,
             existencia:   parseInt(get(9).replace(/[^0-9]/g, '')) || 0,
@@ -1437,6 +1437,48 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     let galeriaVideoPrincipal = '';   // URL/embed del video principal del producto
     let galeriaIndice = 0;
 
+    // ── Video del producto (columna F): botón tipo barra + reproductor ──
+    function extraerIdYoutube(texto) {
+        var m = String(texto || '').match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^"'\s]*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);
+        return m ? m[1] : '';
+    }
+
+    function actualizarBotonVideoProducto() {
+        var btn = document.getElementById('mpBtnVideo');
+        if (!btn) return;
+        // Sin link válido de YouTube → la barra no aparece en absoluto
+        btn.style.display = extraerIdYoutube(galeriaVideoPrincipal) ? 'block' : 'none';
+    }
+
+    function abrirVideoProducto() {
+        var id = extraerIdYoutube(galeriaVideoPrincipal);
+        if (!id) return;
+        cerrarVideoProducto();
+        var ov = document.createElement('div');
+        ov.id = 'mpVideoOverlay';
+        ov.onclick = function(e) { if (e.target === ov) cerrarVideoProducto(); };
+        var caja = document.createElement('div');
+        caja.className = 'mp-video-caja';
+        var x = document.createElement('button');
+        x.type = 'button'; x.className = 'mp-video-cerrar'; x.textContent = '✕';
+        x.setAttribute('aria-label', 'Cerrar video');
+        x.onclick = cerrarVideoProducto;
+        var ifr = document.createElement('iframe');
+        ifr.src = 'https://www.youtube.com/embed/' + id + '?rel=0&autoplay=1';
+        ifr.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+        ifr.setAttribute('allowfullscreen', '');
+        caja.appendChild(x); caja.appendChild(ifr); ov.appendChild(caja);
+        document.body.appendChild(ov);
+    }
+
+    function cerrarVideoProducto() {
+        var ov = document.getElementById('mpVideoOverlay');
+        if (ov) ov.remove(); // al quitar el iframe el video se detiene
+    }
+    window.abrirVideoProducto = abrirVideoProducto;
+    window.cerrarVideoProducto = cerrarVideoProducto;
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') cerrarVideoProducto(); });
+
     function abrirModalProducto(card) {
         // ── ¿Este producto pertenece al grupo "Velas" (traído de Velas Kukúmita)? ──
         const esGrupoVelas = (card.getAttribute('data-origen-externo') || '') === 'velas';
@@ -1461,6 +1503,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
         // ── Video principal (si existe, va PRIMERO en la galería) ──
         galeriaVideoPrincipal = (card.getAttribute('data-video') || '').trim();
+        actualizarBotonVideoProducto();
 
         try {
             galeriaImagenes = imagenesJSON ? JSON.parse(imagenesJSON) : [];
@@ -1550,6 +1593,35 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             'graduacion': 'Graduación',
             'primera-comunion': 'Primera Comunión', 'comunion': 'Primera Comunión',
             'fin-novenario': 'Fin de Novenario', 'novenario': 'Fin de Novenario',
+            // Eventos del formulario "Agregar producto"
+            'primera-comunion': 'Primera comunión',
+            'bautizo': 'Bautizo',
+            'boda': 'Boda',
+            'quince-anos': 'Quince años',
+            'baby-shower': 'Baby shower',
+            'graduacion': 'Graduación',
+            'aniversario-luctuoso': 'Aniv. luctuoso',
+            'fin-novenario': 'Fin de novenario',
+            'despedida-soltera': 'Despedida de soltera',
+            'despedida-soltero': 'Despedida de soltero',
+            'confirmacion': 'Confirmación',
+            'compromiso': 'Compromiso',
+            'cumpleanos': 'Cumpleaños',
+            'aniversario-de-bodas': 'Aniversario de bodas',
+            'revelacion-de-genero': 'Revelación de género',
+            'religioso': 'Religioso',
+            'posada': 'Posada',
+            'navidad': 'Navidad',
+            'ano-nuevo': 'Año nuevo',
+            'dia-de-las-madres': 'Día de las madres',
+            'dia-del-padre': 'Día del padre',
+            'dia-de-san-valentin': 'Día de San Valentín',
+            'dia-del-nino': 'Día del niño',
+            'dia-de-muertos': 'Día de muertos',
+            'ordenacion-sacerdotal': 'Ordenación sacerdotal',
+            'jubilacion': 'Jubilación',
+            'apertura-de-negocio': 'Apertura de negocio',
+            'condolencias': 'Condolencias',
             'sin evento': '', 'sin-evento': ''
         };
         // Normalizar: quitar acentos y convertir a minúsculas para comparar
@@ -1832,6 +1904,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     }
 
     function cerrarModalProducto() {
+        cerrarVideoProducto();
         const modalEl = document.getElementById('modalProducto');
         modalEl.classList.remove('abierto');
         // Limpiar el handler de scroll redirigido
@@ -1862,32 +1935,8 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
         // Limpiar listener anterior
         track._scrollHandler && track.removeEventListener('scroll', track._scrollHandler);
 
-        // ── Slide 0: Video de YouTube (solo si el link es de YouTube) ──
-        let slideOffset = 0;
-        if (galeriaVideoPrincipal) {
-            const ytMatch = galeriaVideoPrincipal.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
-            if (ytMatch) {
-                const videoSlide = document.createElement('div');
-                videoSlide.className = 'modal-galeria-slide';
-                videoSlide.style.cssText = 'display:flex;align-items:center;justify-content:center;background:#000;';
-
-                const iframe = document.createElement('iframe');
-                iframe.src = 'https://www.youtube.com/embed/' + ytMatch[1] + '?rel=0';
-                iframe.style.cssText = 'width:100%;height:100%;border:0;';
-                iframe.setAttribute('allowfullscreen', '');
-                iframe.setAttribute('allow', 'autoplay; encrypted-media');
-
-                videoSlide.appendChild(iframe);
-                track.appendChild(videoSlide);
-
-                const dotV = document.createElement('div');
-                dotV.className = 'modal-dot activo';
-                dotV.onclick = () => irASlide(0);
-                dotsContainer.appendChild(dotV);
-                slideOffset = 1;
-            }
-            // Si el link no es de YouTube, se ignora y solo se muestran las imágenes
-        }
+        // El video del producto ya no es un slide: se abre con la barra "Ver video" (mpBtnVideo)
+        const slideOffset = 0;
 
         galeriaImagenes.forEach((src, i) => {
             const slide = document.createElement('div');
@@ -1925,7 +1974,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
     function irASlide(indice) {
         const track = document.getElementById('modalGaleriaTrack');
-        const _totalSlides = galeriaImagenes.length + (galeriaVideoPrincipal ? 1 : 0);
+        const _totalSlides = galeriaImagenes.length;
         galeriaIndice = Math.max(0, Math.min(indice, _totalSlides - 1));
         track.scrollTo({ left: galeriaIndice * track.offsetWidth, behavior: 'smooth' });
         actualizarNavegacion();
@@ -1936,7 +1985,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     }
 
     function actualizarNavegacion() {
-        const total = galeriaImagenes.length + (galeriaVideoPrincipal ? 1 : 0);
+        const total = galeriaImagenes.length;
         document.getElementById('btnGalPrev').classList.toggle('oculto-nav', galeriaIndice === 0);
         document.getElementById('btnGalNext').classList.toggle('oculto-nav', galeriaIndice >= total - 1);
         document.getElementById('modalContador').textContent = total > 1 ? `${galeriaIndice + 1} / ${total}` : '';
@@ -3438,6 +3487,53 @@ function obtenerEtiquetasPrincipales() {
     return lista;
 }
 
+// Etiquetas de evento elegidas (columna H). Se guardan como slug: "baby-shower", "primera-comunion"…
+function alternarEtiquetaEvento(btn) {
+    var activo = btn.classList.toggle('activo');
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+}
+
+function obtenerEtiquetasEvento() {
+    var lista = [];
+    document.querySelectorAll('#chipsEtiquetaEvento .sap-chip.activo').forEach(function(b) {
+        lista.push(b.getAttribute('data-valor'));
+    });
+    return lista;
+}
+
+// Botón Sí/No de En Oferta (columna K) y Más Vendido (columna L)
+function alternarToggleProducto(btn) {
+    var activo = btn.classList.toggle('activo');
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    var t = btn.querySelector('.sap-toggle-estado');
+    if (t) t.textContent = activo ? 'Sí' : 'No';
+}
+
+function _toggleProductoActivo(id) {
+    var b = document.getElementById(id);
+    return !!(b && b.classList.contains('activo'));
+}
+
+// Botones − / + de la existencia (columna J)
+function ajustarExistenciaProducto(delta) {
+    var el = document.getElementById('inputExistenciaProducto');
+    if (!el) return;
+    var actual = parseInt(el.value, 10);
+    if (isNaN(actual)) actual = 0;
+    var nuevo = Math.min(100000, Math.max(0, actual + delta));
+    el.value = (nuevo === 0 && delta < 0) ? '' : String(nuevo);
+}
+
+// Botones − / + de las medidas (columna I: alto/ancho)
+function ajustarMedidaProducto(idInput, delta) {
+    var el = document.getElementById(idInput);
+    if (!el) return;
+    var actual = parseFloat(el.value);
+    if (isNaN(actual)) actual = 0;
+    var nuevo = Math.min(1000, Math.max(0, Math.round((actual + delta) * 100) / 100));
+    el.value = (nuevo === 0 && delta < 0) ? '' : String(nuevo);
+}
+
 // Habilita "Guardar" solo si hay nombre, precio original y al menos una etiqueta principal
 function validarFormularioProducto() {
     var ok = _campoProducto('inputNombreProducto') !== '' && _campoProducto('inputPrecioOriginal') !== ''
@@ -3448,7 +3544,8 @@ function validarFormularioProducto() {
 
 function limpiarFormularioProducto() {
     ['inputNombreProducto', 'inputPrecioOriginal', 'inputPrecioBazar',
-     'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputImagenProducto'].forEach(function(id) {
+     'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputImagenProducto',
+     'inputAltoProducto', 'inputAnchoProducto', 'inputExistenciaProducto', 'inputVideoProducto'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -3456,8 +3553,14 @@ function limpiarFormularioProducto() {
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
-    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip, #chipsEtiquetaEvento .sap-chip').forEach(function(b) {
         b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false');
+    });
+    ['btnEnOfertaProducto', 'btnMasVendidoProducto'].forEach(function(id) {
+        var b = document.getElementById(id);
+        if (!b) return;
+        b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false');
+        var t = b.querySelector('.sap-toggle-estado'); if (t) t.textContent = 'No';
     });
     validarFormularioProducto();
 }
@@ -3524,6 +3627,21 @@ async function guardarProductoAdmin() {
         mostrarToast('El precio bazar no es válido.');
         return;
     }
+    var alto = _campoProducto('inputAltoProducto'), ancho = _campoProducto('inputAnchoProducto');
+    if ((alto !== '' && (isNaN(Number(alto)) || Number(alto) < 0)) || (ancho !== '' && (isNaN(Number(ancho)) || Number(ancho) < 0))) {
+        mostrarToast('Las medidas no son válidas.');
+        return;
+    }
+    var video = _campoProducto('inputVideoProducto');
+    if (video !== '' && !/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^"'\s]*&)?v=|embed\/|shorts\/|live\/))[\w-]{11}/.test(video)) {
+        mostrarToast('El video debe ser un link de YouTube.');
+        return;
+    }
+    var existencia = _campoProducto('inputExistenciaProducto');
+    if (existencia !== '' && (isNaN(Number(existencia)) || Number(existencia) < 0)) {
+        mostrarToast('La existencia no es válida.');
+        return;
+    }
     if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
         mostrarToast('Falta configurar la URL del Apps Script.');
         return;
@@ -3546,6 +3664,13 @@ async function guardarProductoAdmin() {
                 precioBazar: precioBazar,
                 descripcion: _campoProducto('inputDescripcionProducto'),
                 etiquetas: etiquetas,
+                eventos: obtenerEtiquetasEvento(),
+                alto: alto,
+                ancho: ancho,
+                video: video,
+                existencia: existencia,
+                enOferta: _toggleProductoActivo('btnEnOfertaProducto'),
+                masVendido: _toggleProductoActivo('btnMasVendidoProducto'),
                 imagenUrl: _campoProducto('inputUrlImagenProducto'),
                 imagenBase64: _imagenProductoSeleccionada || '',
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
