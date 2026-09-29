@@ -2027,9 +2027,9 @@
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
                 <p class="sap-nota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
             </div>
-            <input type="file" id="inputImagenProducto" accept="image/*" style="display:none" onchange="previsualizarImagenProducto(event)">
+            <input type="file" id="inputImagenProducto" accept="image/*" multiple style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
-            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">📷 Tomar / elegir foto del producto</button>
+            <button class="panel-nombre-btn cancelar sap-btn-imagen" type="button" onclick="elegirImagenProducto()">📷 Tomar / elegir fotos del producto</button>
             <div id="editorImagenProducto" style="display:none;">
                 <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
                 <div id="estadoEditorImagen" class="sap-estado"></div>
@@ -2047,6 +2047,15 @@
                 <input type="range" id="rangoYImagen" min="-300" max="300" value="0">
                 <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Volver a quitar el fondo</button>
                 <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
+            </div>
+            <div id="sapExtrasBloque">
+                <div class="sap-seccion-titulo">Fotos adicionales (galería)</div>
+                <p class="sap-nota">Puedes elegir hasta 50 fotos por producto. Solo la primera se edita con el editor de arriba; las demás se suben tal cual y se ven en la galería del producto.</p>
+                <div id="sapExtrasEstado" class="sap-estado"></div>
+                <div id="sapExtrasLista" class="sap-extras-lista" style="display:none;"></div>
+                <input type="file" id="inputImagenesExtraProducto" accept="image/*" multiple style="display:none" onchange="agregarImagenesExtraProducto(event)">
+                <button class="panel-nombre-btn cancelar sap-btn-imagen" id="btnAgregarExtras" type="button" onclick="elegirImagenesExtraProducto()">➕ Agregar más fotos</button>
+                <div id="sapExtrasContador" class="sap-nota"></div>
             </div>
             <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb (sin editor)</label>
             <input id="inputUrlImagenProducto" class="panel-nombre-input" type="url" placeholder="https://i.ibb.co/...">
