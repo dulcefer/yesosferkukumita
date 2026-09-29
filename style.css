@@ -3542,7 +3542,6 @@ html:has(body[style*="overflow: hidden"]) { overflow: hidden !important; }
 .sap-seccion-titulo { font-size: 12px; font-weight: 700; color: #8c7565; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 10px; }
 #previewImagenProducto { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; }
 .sap-btn-imagen { align-self: flex-start; }
-.sap-config { background: #f8f4f0; border: 1.5px solid #e0d5cc; border-radius: 12px; padding: 4px 14px; }
 .sap-fila { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: 13px; color: #8c7565; border-bottom: 1px solid #ebe3db; }
 .sap-fila:last-child { border-bottom: none; }
 .sap-fila strong { color: #362a22; text-align: right; word-break: break-all; }
@@ -3552,7 +3551,6 @@ html:has(body[style*="overflow: hidden"]) { overflow: hidden !important; }
     .sap-caja { border-radius: 20px; }
 }
 body.modo-oscuro .sap-caja { background: #1e1812; }
-body.modo-oscuro .sap-config { background: #2a2218; border-color: #4a3a2e; }
 body.modo-oscuro .sap-fila { border-color: #3a3028; color: #a89080; }
 body.modo-oscuro .sap-fila strong { color: #e0d5cc; }
 
@@ -3655,6 +3653,14 @@ body.es-admin .card-badge-fila { left: 46px !important; }
     body.es-admin .card-badge-fila { left: 40px !important; }
 }
 body.modo-oscuro .btn-config-producto { background: rgba(40,32,26,0.94); border-color: #4a3a2e; }
+
+/* ══ Zonas de color en Agregar / Configurar producto ══ */
+.sap-zona { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid transparent; }
+.sap-zona .sap-seccion-titulo { margin-top: 0; }
+.sap-zona-principal { background: #e8f2fc; border-color: #c3dbf3; }  /* azul claro */
+.sap-zona-evento    { background: #fdeceb; border-color: #f4c8c5; }  /* rojo claro */
+body.modo-oscuro .sap-zona-principal { background: #1a2634; border-color: #2f4a68; }
+body.modo-oscuro .sap-zona-evento    { background: #341e1e; border-color: #5c3434; }
 
 /* ══ Botón ⚙️ "Configurar producto" dentro del modal del producto (solo administradores) ══ */
 .mp-btn-config {

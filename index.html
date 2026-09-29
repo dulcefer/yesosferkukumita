@@ -2071,6 +2071,7 @@
             <label class="panel-nombre-label" for="inputDescripcionProducto">Descripción</label>
             <textarea id="inputDescripcionProducto" class="panel-nombre-input" rows="3" maxlength="500" placeholder="Opcional"></textarea>
 
+            <div class="sap-zona sap-zona-principal">
             <div class="sap-seccion-titulo">Etiqueta principal *</div>
             <div class="sap-chips" id="chipsEtiquetaPrincipal">
                 <button type="button" class="sap-chip" data-valor="arreglos" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🕯️ Arreglos</button>
@@ -2081,7 +2082,9 @@
                 <button type="button" class="sap-chip" data-valor="centro de mesa" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🌸 Centros de mesa</button>
             </div>
             <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja.</p>
+            </div><!-- /sap-zona-principal -->
 
+            <div class="sap-zona sap-zona-evento">
             <div class="sap-seccion-titulo">Etiqueta de evento</div>
             <div class="sap-chips" id="chipsEtiquetaEvento">
                 <button type="button" class="sap-chip" data-valor="primera-comunion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🙏 Primera comunión</button>
@@ -2114,6 +2117,7 @@
                 <button type="button" class="sap-chip" data-valor="condolencias" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🤍 Condolencias</button>
             </div>
             <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja.</p>
+            </div><!-- /sap-zona-evento -->
 
             <div class="sap-seccion-titulo">Medidas (Alto / Ancho)</div>
             <div class="sap-dos-col">
@@ -2164,13 +2168,6 @@
                 <p class="sap-nota">Opcional. Elige en qué fila de la hoja se guarda (la fila 1 son los encabezados, así que empieza en la 2). Si la dejas vacía, o si la fila elegida ya está ocupada, el producto se agrega en la última fila disponible.</p>
             </div>
 
-            <div class="sap-seccion-titulo">Configuración</div>
-            <div class="sap-config">
-                <div class="sap-fila"><span>Cuenta</span><strong id="sapCuenta">—</strong></div>
-                <div class="sap-fila"><span>Destino</span><strong id="sapDestino">Hoja 1 · columnas A–L</strong></div>
-                <div class="sap-fila"><span>Imágenes</span><strong>imgbb</strong></div>
-                <div class="sap-fila"><span>Conexión</span><strong id="sapEstadoConexion">—</strong></div>
-            </div>
             <p class="sap-nota" id="sapNotaFinal">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
 
           </div><!-- /sap-col-datos -->
