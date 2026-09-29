@@ -16,7 +16,7 @@
     var F_ORI   = 'italic 700 #px "Playfair Display", serif';
 
     var S = { fondo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
-              tituloEditado: false, ocupado: false, timer: null };
+              tituloEditado: false, titulo: '', ocupado: false, timer: null };
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
@@ -81,7 +81,7 @@
         }
 
         // Título
-        var titulo = val('inputTituloImagen');
+        var titulo = S.titulo;
         if (titulo) texto(g, titulo, TAM / 2, 86, 72, F_TIT, '#fff', '#111', 12, 940);
 
         var po = numero(val('inputPrecioOriginal')), pb = numero(val('inputPrecioBazar'));
@@ -89,8 +89,8 @@
         // Precio original (izquierda)
         if (po !== null) {
             g.save(); g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 6;
-            texto(g, 'Precio Original:', 155, 285, 38, F_ORI, '#fff', null, 0, 280);
-            texto(g, dinero(po), 155, 330, 36, F_TIT, '#fff', null, 0, 280);
+            texto(g, 'Precio Original:', 156, 283, 42, F_ORI, '#fff', '#000', 3, 292);
+            texto(g, dinero(po), 156, 331, 40, F_TIT, '#fff', '#000', 3, 292);
             g.restore();
         }
 
@@ -138,6 +138,12 @@
         if (e) { e.textContent = t || ''; e.className = 'sap-estado' + (error ? ' error' : ''); }
     }
 
+    // El título de la imagen solo cambia cuando se presiona Enter o el botón "Aplicar"
+    function aplicarTitulo() {
+        S.titulo = val('inputTituloImagen');
+        redibujar();
+    }
+
     function sincronizarTitulo() {
         var t = $('inputTituloImagen'); if (!t || S.tituloEditado) return;
         var n = val('inputNombreProducto');
@@ -177,6 +183,7 @@
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'block';
         var pv = $('previewImagenProducto'); if (pv) pv.style.display = 'none';
         sincronizarTitulo();
+        S.titulo = val('inputTituloImagen');
         try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
         S.producto = await cargarImg(dataUrl);
         redibujar();
@@ -184,7 +191,7 @@
     }
 
     function reset() {
-        S.foto = null; S.producto = null; S.tituloEditado = false; S.tam = 100; S.x = 0; S.y = 0;
+        S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
@@ -196,9 +203,16 @@
         var e = $(id); if (e) e.addEventListener('input', redibujar);
     });
     var nom = $('inputNombreProducto');
-    if (nom) nom.addEventListener('input', function () { sincronizarTitulo(); redibujar(); });
+    if (nom) {
+        nom.addEventListener('input', sincronizarTitulo); // solo rellena el campo de título, no la imagen
+        nom.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aplicarTitulo(); } });
+    }
     var tit = $('inputTituloImagen');
-    if (tit) tit.addEventListener('input', function () { S.tituloEditado = tit.value.trim() !== ''; redibujar(); });
+    if (tit) {
+        tit.addEventListener('input', function () { S.tituloEditado = tit.value.trim() !== ''; });
+        tit.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aplicarTitulo(); } });
+    }
+    var ba = $('btnAplicarTitulo'); if (ba) ba.addEventListener('click', aplicarTitulo);
     [['rangoTamImagen', 'tam'], ['rangoXImagen', 'x'], ['rangoYImagen', 'y']].forEach(function (par) {
         var r = $(par[0]);
         if (r) r.addEventListener('input', function () { S[par[1]] = Number(r.value); redibujar(); });
@@ -208,6 +222,7 @@
     window.editorImagenProducto = {
         cargarFoto: cargarFoto,
         reset: reset,
-        ocupado: function () { return S.ocupado; }
+        ocupado: function () { return S.ocupado; },
+        tituloPendiente: function () { return !!S.foto && val('inputTituloImagen') !== S.titulo; }
     };
 })();

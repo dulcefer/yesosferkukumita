@@ -2006,7 +2006,11 @@
                 <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
                 <div id="estadoEditorImagen" class="sap-estado"></div>
                 <label class="panel-nombre-label" for="inputTituloImagen">Título en la imagen</label>
-                <input id="inputTituloImagen" class="panel-nombre-input" type="text" maxlength="60" placeholder="¡ Porta Flores de Yeso !">
+                <div class="sap-fila-titulo">
+                    <input id="inputTituloImagen" class="panel-nombre-input" type="text" maxlength="60" placeholder="¡ Porta Flores de Yeso !" enterkeyhint="done">
+                    <button class="panel-nombre-btn guardar" id="btnAplicarTitulo" type="button">✔ Aplicar</button>
+                </div>
+                <p class="sap-nota">Escribe el título y presiona Enter o "Aplicar" para verlo en la imagen.</p>
                 <label class="panel-nombre-label">Tamaño de la pieza</label>
                 <input type="range" id="rangoTamImagen" min="40" max="140" value="100">
                 <label class="panel-nombre-label">Mover izquierda / derecha</label>

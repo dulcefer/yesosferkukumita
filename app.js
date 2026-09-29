@@ -3510,6 +3510,10 @@ async function guardarProductoAdmin() {
         mostrarToast('Espera a que termine de quitar el fondo.');
         return;
     }
+    if (window.editorImagenProducto && window.editorImagenProducto.tituloPendiente()) {
+        mostrarToast('Presiona "Aplicar" para actualizar el título en la imagen.');
+        return;
+    }
     var etiquetas = obtenerEtiquetasPrincipales();
     if (!etiquetas.length) {
         mostrarToast('Elige al menos una etiqueta principal.');

@@ -3577,3 +3577,8 @@ textarea.panel-nombre-input { resize: vertical; min-height: 70px; }
 .sap-chip.activo { background: #e8607a; border-color: #e8607a; color: #fff; }
 body.modo-oscuro .sap-chip { background: #2a2218; border-color: #4a3a2e; color: #e0d5cc; }
 body.modo-oscuro .sap-chip.activo { background: #e8607a; border-color: #e8607a; color: #fff; }
+
+/* ══ Título de la imagen: campo + botón Aplicar ══ */
+.sap-fila-titulo { display: flex; gap: 8px; align-items: stretch; }
+.sap-fila-titulo input { flex: 1; min-width: 0; }
+.sap-fila-titulo button { white-space: nowrap; }
