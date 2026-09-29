@@ -2002,11 +2002,6 @@
         overflow-x: hidden;
     }
 
-    /* Catálogo principal: siempre 2 columnas (30 productos por hoja = 15 filas exactas) */
-    #gridProductos {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
     .card-dinamica {
         border: 1px solid #ddd;
         border-radius: 8px;
