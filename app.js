@@ -1122,45 +1122,9 @@ function insertarBarrasCategoriaProductos() {
         return;
     }
 
-    // Solo en la página 1 de la paginación
-    var hashMatch = (window.location.hash || '').match(/pagina=(\d+)/);
-    var paginaActualNum = hashMatch ? parseInt(hashMatch[1], 10) : 1;
-    if (paginaActualNum !== 1) return;
-
-    var cards = Array.from(grid.querySelectorAll('.card-dinamica')).filter(function(c) {
-        return !c.classList.contains('oculto') && !c.classList.contains('paginacion-oculto');
-    });
-
-    for (var fila = 0; fila < 10; fila++) {
-        var idx = fila * 3;
-        if (idx >= cards.length) break;
-        var cfg = CATEGORIAS_BARRAS[fila] || { texto: 'Mostrar Más Productos' };
-        var barra = document.createElement('button');
-        barra.type = 'button';
-        barra.className = 'barra-categoria-fila';
-        // Estilo forzado en línea, por si algún estilo externo llegara a
-        // afectar a estos botones: garantiza que siempre se vean como una
-        // barra delgada de ancho completo y no como una tarjeta de producto.
-        barra.style.cssText = 'grid-column:1/-1; width:100%; height:auto; min-height:0; aspect-ratio:auto; display:block; box-sizing:border-box;';
-        barra.textContent = cfg.texto;
-        (function(filaCerrada, cfgCerrada) {
-            // La barra "Mostrar Más Etiquetas" (fila 8, la 9ª) no filtra el grid
-            // principal: redirige al botón/modo "🏷️ Etiquetas", que muestra el
-            // catálogo completo de la Hoja 2 de la hoja de Google Sheets de Velas.
-            if (cfgCerrada.origenExterno === 'etiquetas-externas' && typeof irAModoEtiquetas === 'function') {
-                barra.addEventListener('click', function() { irAModoEtiquetas(); });
-            // La barra "Mostrar Más Velas" (fila 9, la 10ª) tampoco filtra el grid:
-            // abre el mini submenú con el logo de Velas Kukúmita y el botón para
-            // visitar velaskukumita.com (el mismo submenú del botón "🪨 También
-            // vendemos Velas").
-            } else if (cfgCerrada.origenExterno === 'velas' && typeof abrirMiniSubmenuVelas === 'function') {
-                barra.addEventListener('click', function(e) { e.stopPropagation(); abrirMiniSubmenuVelas(); });
-            } else {
-                barra.addEventListener('click', function() { filtrarPorBarraCategoria(filaCerrada); });
-            }
-        })(fila, cfg);
-        grid.insertBefore(barra, cards[idx]);
-    }
+    // Las 10 barras "Mostrar Más ..." de la página 1 fueron eliminadas.
+    // Esta función se conserva (solo limpia barras previas) para no romper
+    // las llamadas que se le hacen desde la paginación y los filtros.
 }
 window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 

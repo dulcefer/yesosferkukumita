@@ -2002,6 +2002,11 @@
         overflow-x: hidden;
     }
 
+    /* Catálogo principal: siempre 2 columnas (30 productos por hoja = 15 filas exactas) */
+    #gridProductos {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .card-dinamica {
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -3620,3 +3625,67 @@ body.modo-oscuro .sap-medida-btn { background: #2a2218; border-color: #4a3a2e; c
     width: 38px; height: 38px; border-radius: 50%; border: none;
     background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; cursor: pointer;
 }
+
+
+/* ══ Botón ⚙️ "Configurar producto" en cada tarjeta (solo administradores) ══ */
+.btn-config-producto {
+    display: none;
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1.5px solid #e0d5cc;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: transform 0.18s, background 0.18s;
+    z-index: 11;
+}
+.btn-config-producto:hover { transform: scale(1.12) rotate(30deg); background: #fff3f5; }
+body.es-admin .btn-config-producto { display: flex; }
+/* El badge "#fila" ocupaba esa esquina: para admins se corre a la derecha del botón */
+body.es-admin .card-badge-fila { left: 46px !important; }
+@media (max-width: 768px) {
+    .btn-config-producto { width: 28px; height: 28px; font-size: 14px; top: 6px; left: 6px; }
+    body.es-admin .card-badge-fila { left: 40px !important; }
+}
+body.modo-oscuro .btn-config-producto { background: rgba(40,32,26,0.94); border-color: #4a3a2e; }
+
+/* Imagen actual dentro del formulario en modo "Configurar producto" */
+#sapImagenActual { flex-direction: column; gap: 8px; }
+#sapImagenActualImg { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; }
+
+
+/* ══ Mover / intercambiar producto de fila (solo administradores) ══ */
+#modalMoverProducto {
+    display: none; position: fixed; inset: 0; z-index: 50000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 16px;
+}
+#modalMoverProducto.abierto { display: flex; }
+.mmp-caja {
+    background: #fff; border-radius: 20px; width: 100%; max-width: 400px;
+    padding: 20px; display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+.mmp-titulo { margin: 0; font-size: 17px; font-weight: 800; color: #362a22; }
+#mmpAviso { min-height: 2.6em; }
+#mmpAviso.error { color: #c0392b; font-weight: 600; }
+body.modo-oscuro .mmp-caja { background: #1e1812; }
+body.modo-oscuro .mmp-titulo { color: #f0e6dc; }
+body.modo-oscuro #mmpAviso.error { color: #ff8a7a; }
+
+/* El número de fila del modal, convertido en botón para administradores */
+#mpSheetRowBadge.badge-fila-admin {
+    cursor: pointer !important;
+    background: #362a22 !important; color: #fff !important; border-color: #362a22 !important;
+}
+#mpSheetRowBadge.badge-fila-admin:active { transform: scale(0.95); }
