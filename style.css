@@ -3745,6 +3745,19 @@ body.modo-oscuro .mmp-caja { background: #1e1812; }
 body.modo-oscuro .mmp-titulo { color: #f0e6dc; }
 body.modo-oscuro #mmpAviso.error { color: #ff8a7a; }
 
+/* ══ Eliminar producto (solo administradores) ══ */
+.panel-nombre-btn.eliminar { background: #c0392b; color: #fff; }
+.panel-nombre-btn.eliminar:hover { background: #a93226; }
+body.modo-oscuro .panel-nombre-btn.eliminar { background: #b03a2e; color: #fff; }
+#btnEliminarProducto { margin-right: auto; }
+.sap-cuerpo > .panel-nombre-acciones { flex-wrap: wrap; }
+#modalEliminarProducto {
+    display: none; position: fixed; inset: 0; z-index: 50000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 16px;
+}
+#modalEliminarProducto.abierto { display: flex; }
+
 /* El número de fila del modal, convertido en botón para administradores */
 #mpSheetRowBadge.badge-fila-admin {
     cursor: pointer !important;

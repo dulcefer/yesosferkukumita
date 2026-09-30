@@ -3419,7 +3419,7 @@ function actualizarBotonAgregarProducto() {
     var admin = esCorreoAdmin(user);
     // Clase que hace visibles los botones ⚙️ "Configurar producto" de cada tarjeta
     document.body.classList.toggle('es-admin', admin);
-    if (!admin) { cerrarSubmenuAgregarProducto(); if (typeof cerrarMoverProducto === 'function') cerrarMoverProducto(); }
+    if (!admin) { cerrarSubmenuAgregarProducto(); if (typeof cerrarMoverProducto === 'function') cerrarMoverProducto(); if (typeof cerrarEliminarProducto === 'function') cerrarEliminarProducto(); }
     var btn = document.getElementById('btnAgregarProducto');
     if (btn) btn.style.display = admin ? 'flex' : 'none';
 }
@@ -3471,6 +3471,9 @@ function _aplicarModoFormulario() {
         : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
     var bloqueFila = document.getElementById('sapFilaDestinoBloque');
     if (bloqueFila) bloqueFila.style.display = editando ? 'none' : '';
+    // El botón "Eliminar producto" solo existe al configurar un producto (no al agregar uno nuevo)
+    var btnEliminar = document.getElementById('btnEliminarProducto');
+    if (btnEliminar) btnEliminar.style.display = editando ? '' : 'none';
     var btn = document.getElementById('btnGuardarProducto');
     if (btn && !btn.dataset.guardando) btn.textContent = editando ? 'Guardar cambios' : 'Guardar';
     var bloque = document.getElementById('sapImagenActual');
@@ -3691,6 +3694,73 @@ async function confirmarMoverProducto() {
     } finally {
         if (btn) { btn.textContent = 'Mover'; }
         actualizarAvisoMover();
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ELIMINAR PRODUCTO (botón 🗑️ dentro de ⚙️ Configurar producto, solo administradores)
+// Borra la fila del producto en Google Sheets y los productos de abajo suben una
+// fila para llenar el hueco (las filas reservadas 26-31 no se mueven; lo resuelve Code.gs).
+// ──────────────────────────────────────────────────────────────
+var _eliminarProducto = null; // { fila, nombre } del producto que se está por eliminar
+
+function abrirEliminarProducto() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user) || !_edicionProducto) return; // por si acaso; el servidor vuelve a verificar
+    var fila = _edicionProducto.fila;
+    if (fila >= FILA_RESERVADA_INI && fila <= FILA_RESERVADA_FIN_) {
+        mostrarToast('Ese producto está en una fila reservada y no se puede eliminar desde aquí.');
+        return;
+    }
+    _eliminarProducto = { fila: fila, nombre: _edicionProducto.nombre };
+    var info = document.getElementById('mepProducto');
+    if (info) info.textContent = '¿Seguro que quieres eliminar «' + _eliminarProducto.nombre + '» (fila ' + fila + ')?';
+    var btn = document.getElementById('btnConfirmarEliminar');
+    if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+    document.getElementById('modalEliminarProducto').classList.add('abierto');
+}
+
+function cerrarEliminarProducto() {
+    var m = document.getElementById('modalEliminarProducto');
+    if (m) m.classList.remove('abierto');
+    _eliminarProducto = null;
+}
+
+async function confirmarEliminarProducto() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
+    if (!_eliminarProducto) return;
+    if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
+        mostrarToast('Falta configurar la URL del Apps Script.');
+        return;
+    }
+    var btn = document.getElementById('btnConfirmarEliminar');
+    if (btn) { btn.disabled = true; btn.textContent = 'Eliminando...'; }
+    try {
+        var idToken = await user.getIdToken();
+        var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                idToken: idToken,
+                accion: 'eliminar',
+                fila: _eliminarProducto.fila,
+                nombreOriginal: _eliminarProducto.nombre // el servidor comprueba que la fila siga siendo este producto
+            })
+        });
+        var r = await respuesta.json();
+        if (r.ok) {
+            mostrarToast('✅ «' + r.nombre + '» eliminado. Los productos de abajo subieron una fila. Recarga la página en unos segundos.');
+            cerrarEliminarProducto();
+            cerrarSubmenuAgregarProducto();
+            if (typeof cerrarModalProducto === 'function') cerrarModalProducto();
+        } else {
+            mostrarToast('❌ ' + (r.error || 'No se pudo eliminar el producto.'));
+            if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+        }
+    } catch (e) {
+        mostrarToast('❌ Error de conexión al eliminar el producto.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
     }
 }
 

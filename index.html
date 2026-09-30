@@ -2013,6 +2013,19 @@
     </div>
 </div>
 
+<!-- ══ Confirmar eliminación de producto (solo administradores) ══ -->
+<div id="modalEliminarProducto" onclick="if(event.target===this) cerrarEliminarProducto()">
+    <div class="mmp-caja">
+        <h3 class="mmp-titulo">🗑️ Eliminar producto</h3>
+        <p class="sap-nota" id="mepProducto"></p>
+        <p class="sap-nota">Se borrará su fila en Google Sheets y todos los productos de abajo subirán una fila para llenar el espacio. Esta acción no se puede deshacer.</p>
+        <div class="panel-nombre-acciones">
+            <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarEliminarProducto()">Cancelar</button>
+            <button class="panel-nombre-btn eliminar" id="btnConfirmarEliminar" type="button" onclick="confirmarEliminarProducto()">Eliminar</button>
+        </div>
+    </div>
+</div>
+
 <div id="submenuAgregarProducto" onclick="if(event.target===this) cerrarSubmenuAgregarProducto()">
     <div class="sc-caja sap-caja">
         <div class="sc-header">
@@ -2183,6 +2196,7 @@
           </div><!-- /sap-col-datos -->
 
             <div class="panel-nombre-acciones">
+                <button class="panel-nombre-btn eliminar" id="btnEliminarProducto" type="button" style="display:none" onclick="abrirEliminarProducto()">🗑️ Eliminar</button>
                 <button class="panel-nombre-btn cancelar" type="button" onclick="cerrarSubmenuAgregarProducto()">Cancelar</button>
                 <button class="panel-nombre-btn guardar" id="btnGuardarProducto" type="button" disabled onclick="guardarProductoAdmin()">Guardar</button>
             </div>
