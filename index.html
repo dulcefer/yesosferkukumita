@@ -2025,7 +2025,8 @@
             <div class="sap-seccion-titulo">Imagen (imgbb)</div>
             <div id="sapImagenActual" style="display:none;">
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
-                <p class="sap-nota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
+                <p class="sap-nota" id="sapImagenActualNota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
+                <button class="panel-nombre-btn cancelar" id="btnQuitarImagenActual" type="button" onclick="alternarQuitarImagenActual()">🗑️ Eliminar imagen actual</button>
             </div>
             <input type="file" id="inputImagenProducto" accept="image/*" multiple style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">

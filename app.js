@@ -3402,6 +3402,7 @@ var CORREOS_ADMIN = [
 var APPS_SCRIPT_URL_PRODUCTOS = 'https://script.google.com/macros/s/AKfycbzBl2UE4LJvSAL94KaUXDXMIXaG2R-m3-UHvALqzw2CH22hui-JkXAdj_G3vXeD2kkMlw/exec';
 
 var _imagenProductoSeleccionada = null; // dataURL en base64 de la imagen elegida
+var _quitarImagenPrincipal = false;     // el admin marcó "Eliminar imagen actual" (solo al configurar un producto)
 
 // Revisa si el usuario actual es administrador. Esta comprobación es solo
 // para MOSTRAR U OCULTAR el botón — la verificación real y obligatoria
@@ -3466,7 +3467,7 @@ function _aplicarModoFormulario() {
     set('sapTitulo', editando ? '⚙️ Configurar producto' : '➕ Agregar producto');
     set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–L');
     set('sapNotaFinal', editando
-        ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva, se conserva la imagen actual. Para cambiarlo de fila usa el número # del producto.'
+        ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva ni eliminas la imagen, se conserva la actual. Para cambiarlo de fila usa el número # del producto.'
         : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
     var bloqueFila = document.getElementById('sapFilaDestinoBloque');
     if (bloqueFila) bloqueFila.style.display = editando ? 'none' : '';
@@ -3477,8 +3478,32 @@ function _aplicarModoFormulario() {
         bloque.style.display = editando ? 'flex' : 'none';
         var img = document.getElementById('sapImagenActualImg');
         if (img) img.src = (editando && _edicionProducto.imagenes[0]) || '';
+        // Sin imagen principal no hay nada que eliminar: se oculta todo el bloque
+        if (editando && !_edicionProducto.imagenes[0]) bloque.style.display = 'none';
     }
+    _pintarQuitarImagenActual();
     if (typeof _renderExtrasProducto === 'function') _renderExtrasProducto();
+}
+
+// "🗑️ Eliminar imagen actual": marca (o desmarca) que la imagen principal se quite al guardar.
+// Las imágenes extra de la galería se conservan; la siguiente pasa a ser la principal.
+function alternarQuitarImagenActual() {
+    if (!_edicionProducto || !_edicionProducto.imagenes[0]) return;
+    _quitarImagenPrincipal = !_quitarImagenPrincipal;
+    _pintarQuitarImagenActual();
+    if (typeof _renderExtrasProducto === 'function') _renderExtrasProducto();
+}
+
+function _pintarQuitarImagenActual() {
+    var img = document.getElementById('sapImagenActualImg');
+    var btn = document.getElementById('btnQuitarImagenActual');
+    var nota = document.getElementById('sapImagenActualNota');
+    var marcada = !!(_quitarImagenPrincipal && _edicionProducto);
+    if (img) { img.style.opacity = marcada ? '0.35' : ''; img.style.filter = marcada ? 'grayscale(1)' : ''; }
+    if (btn) btn.textContent = marcada ? '↩️ Conservar imagen actual' : '🗑️ Eliminar imagen actual';
+    if (nota) nota.textContent = marcada
+        ? 'Esta imagen se eliminará del producto al presionar "Guardar cambios". Si eliges una foto nueva, esa la reemplaza. Las imágenes extra se conservan.'
+        : 'Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.';
 }
 
 function _marcarChipProducto(btn, activo) {
@@ -3760,6 +3785,7 @@ function limpiarFormularioProducto() {
         if (el) el.value = '';
     });
     _imagenProductoSeleccionada = null;
+    _quitarImagenPrincipal = false;
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
@@ -3792,6 +3818,8 @@ var _procesandoFotosProducto = false;
 // Imágenes que tendría el producto al guardar (las actuales si se está editando + las nuevas)
 function _totalImagenesProducto() {
     var base = _edicionProducto ? _edicionProducto.imagenes.length : 0;
+    // Si se marcó eliminar la principal (y no hay foto nueva que la reemplace), deja de contar
+    if (_quitarImagenPrincipal && base > 0 && !_principalElegida && _campoProducto('inputUrlImagenProducto') === '') base--;
     // Una foto principal nueva reemplaza a la actual; si no había ninguna, suma una
     if (base === 0 && (_principalElegida || _campoProducto('inputUrlImagenProducto') !== '')) base = 1;
     return base + _imagenesExtraProducto.length;
@@ -4100,6 +4128,7 @@ async function guardarProductoAdmin() {
                 masVendido: _toggleProductoActivo('btnMasVendidoProducto'),
                 imagenUrl: _campoProducto('inputUrlImagenProducto'),
                 imagenBase64: _imagenProductoSeleccionada || '',
+                quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
             })
