@@ -3464,7 +3464,7 @@ var _edicionProducto = null; // { fila, nombre, imagenes } mientras el formulari
 function _aplicarModoFormulario() {
     var editando = !!_edicionProducto;
     var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
-    set('sapTitulo', editando ? '⚙️ Configurar producto' : '➕ Agregar producto');
+    set('sapTitulo', editando ? 'Configurar producto' : 'Agregar producto');
     set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–L');
     set('sapNotaFinal', editando
         ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva ni eliminas la imagen, se conserva la actual. Para cambiarlo de fila usa el número # del producto.'
