@@ -11,12 +11,39 @@
     var FONDO_SRC = 'imagenes/fondo-rosa.webp';
     var LIB_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.6.0/+esm';
 
+    // ── Rendimiento ──
+    // El modelo se ejecuta en un Web Worker (hilo aparte) para que la página no se congele.
+    // La foto se reduce antes de procesarla: el modelo trabaja a 1024 px de todos modos y la pieza
+    // en la imagen final ocupa como máximo ~730 px, así que una foto de 12 MP solo hacía más lento todo.
+    var MAX_LADO_FOTO = 1280;
+    // 'isnet_fp16' (por defecto, mejor recorte) | 'isnet_quint8' (~40 MB, más ligero y rápido, algo menos fino en los bordes)
+    var MODELO = 'isnet_fp16';
+    var CIERRE_WORKER_MS = 120000; // el worker (y su memoria) se libera tras 2 min sin usarse
+
+    var CODIGO_WORKER = [
+        "self.onmessage = async function (ev) {",
+        "  var d = ev.data;",
+        "  try {",
+        "    var mod = await import(d.lib);",
+        "    var fn = mod.removeBackground || mod.default;",
+        "    var res = await fn(d.blob, {",
+        "      model: d.modelo,",
+        "      progress: function (k, cur, tot) { self.postMessage({ progreso: true, cur: cur, tot: tot }); }",
+        "    });",
+        "    self.postMessage({ ok: true, blob: res });",
+        "  } catch (e) {",
+        "    self.postMessage({ error: String((e && e.message) || e) });",
+        "  }",
+        "};"
+    ].join('\n');
+
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
     var F_SERIF = '800 #px "Playfair Display", serif';
     var F_ORI   = 'italic 700 #px "Playfair Display", serif';
 
     var S = { fondo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
-              tituloEditado: false, titulo: '', ocupado: false, timer: null };
+              tituloEditado: false, titulo: '', ocupado: false, timer: null,
+              worker: null, workerTimer: null };
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
@@ -150,18 +177,70 @@
         t.value = n ? '¡ ' + n + ' !' : '';
     }
 
+    // Reduce la foto (si es más grande que MAX_LADO_FOTO) y la devuelve como Blob JPEG
+    async function fotoLigera(dataUrl) {
+        var img = await cargarImg(dataUrl);
+        var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, MAX_LADO_FOTO / Math.max(w, h));
+        if (k >= 1) return (await fetch(dataUrl)).blob();
+        var c = document.createElement('canvas');
+        c.width = Math.round(w * k); c.height = Math.round(h * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        return new Promise(function (ok, err) {
+            c.toBlob(function (b) { b ? ok(b) : err(new Error('No se pudo reducir la foto')); }, 'image/jpeg', 0.92);
+        });
+    }
+
+    function cerrarWorker() {
+        clearTimeout(S.workerTimer);
+        if (S.worker) { S.worker.terminate(); S.worker = null; }
+    }
+
+    // Quita el fondo en un Web Worker: la página sigue fluida mientras trabaja el modelo
+    function quitarFondoEnWorker(blob) {
+        return new Promise(function (ok, err) {
+            var w;
+            try {
+                if (!S.worker) {
+                    var url = URL.createObjectURL(new Blob([CODIGO_WORKER], { type: 'text/javascript' }));
+                    S.worker = new Worker(url, { type: 'module' });
+                }
+                w = S.worker;
+            } catch (e) { return err(e); }
+            clearTimeout(S.workerTimer);
+            w.onmessage = function (ev) {
+                var d = ev.data || {};
+                if (d.progreso) { if (d.tot) estado('⏳ Procesando… ' + Math.round(d.cur / d.tot * 100) + '%'); return; }
+                S.workerTimer = setTimeout(cerrarWorker, CIERRE_WORKER_MS);
+                if (d.ok) ok(d.blob); else { cerrarWorker(); err(new Error(d.error || 'Error en el worker')); }
+            };
+            w.onerror = function (e) { cerrarWorker(); err(new Error((e && e.message) || 'Error en el worker')); };
+            w.postMessage({ lib: LIB_URL, blob: blob, modelo: MODELO });
+        });
+    }
+
+    // Plan B (navegadores sin soporte de module workers): en la página, pero con la foto ya reducida
+    async function quitarFondoEnPagina(blob) {
+        var mod = await import(LIB_URL);
+        var fn = mod.removeBackground || mod.default;
+        return fn(blob, { model: MODELO, progress: function (k, cur, tot) {
+            if (tot) estado('⏳ Procesando… ' + Math.round(cur / tot * 100) + '%');
+        } });
+    }
+
     async function quitarFondo() {
         if (!S.foto || S.ocupado) return;
         S.ocupado = true;
         var btn = $('btnQuitarFondo'); if (btn) btn.disabled = true;
         estado('⏳ Quitando el fondo… la primera vez descarga el modelo y puede tardar un poco.');
         try {
-            var mod = await import(LIB_URL);
-            var fn = mod.removeBackground || mod.default;
-            var blob = await (await fetch(S.foto)).blob();
-            var res = await fn(blob, { progress: function (k, cur, tot) {
-                if (tot) estado('⏳ Procesando… ' + Math.round(cur / tot * 100) + '%');
-            } });
+            var blob = await fotoLigera(S.foto);
+            var res;
+            try {
+                res = await quitarFondoEnWorker(blob);
+            } catch (e1) {
+                console.warn('[editor-imagen] el worker falló, se usa la página principal:', e1);
+                res = await quitarFondoEnPagina(blob);
+            }
             var img = await cargarImg(URL.createObjectURL(res));
             S.producto = recortar(img);
             estado('✅ Fondo quitado. Ajusta tamaño y posición si hace falta.');
