@@ -360,11 +360,44 @@ function csvAProductos(filas, colImagen) {
     return productos;
 }
 
-// ── Layout actual de la hoja de Yesos (A–L) ──
+// ── Etiquetas de forma (columna M) ──
+// La celda trae texto como "animales, porta velas". Se normaliza a claves sin acentos ni espacios
+// ("animales|portavelas") para compararlas con los botones de "Filtrar por Forma" (data-forma).
+var _FORMA_VARIANTES = {
+    animales:       ['animal', 'animales'],
+    personajes:     ['personaje', 'personajes'],
+    macetas:        ['maceta', 'macetas'],
+    bases:          ['base', 'bases'],
+    alhajeros:      ['alhajero', 'alhajeros', 'alajero', 'alajeros', 'joyero', 'joyeros'],
+    portavelas:     ['portavela', 'portavelas'],
+    portainciensos: ['portaincienso', 'portainciensos']
+};
+function _normalizarForma(s) {
+    return String(s || '').toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\s_\-]+/g, '');
+}
+function _formaCanonica(s) {
+    var n = _normalizarForma(s);
+    for (var k in _FORMA_VARIANTES) {
+        if (_FORMA_VARIANTES[k].indexOf(n) !== -1) return k;
+    }
+    return n;
+}
+function _formasDesdeCelda(raw) {
+    var lista = [];
+    String(raw || '').replace(/^"+|"+$/g, '').split(/[|,]/).forEach(function(s) {
+        var k = _formaCanonica(s.replace(/^"+|"+$/g, ''));
+        if (k && lista.indexOf(k) === -1) lista.push(k);
+    });
+    return lista.join('|');
+}
+
+// ── Layout actual de la hoja de Yesos (A–M) ──
 //   A0 Producto | B1 Precio Original | C2 Precio Bazar | D3 Descripcion
 //   E4 Imagenes imgbb (URLs separadas por coma) | F5 Video | G6 Etiqueta Principal
 //   H7 Etiqueta de evento | I8 Medidas alto/ancho (ej. "12/8" o "12 x 8")
-//   J9 existencia | K10 En Oferta ("si") | L11 Más Vendido ("si")
+//   J9 existencia | K10 En Oferta ("si") | L11 Más Vendido ("si") | M12 Etiquetas de forma
 function csvAProductosYesos(filas) {
     if (filas.length < 2) return [];
     var limpiar = function(s) { return (s || '').replace(/^"+|"+$/g, '').trim(); };
@@ -397,7 +430,7 @@ function csvAProductosYesos(filas) {
             video:        limpiar(get(5)),
             imagen:       imagenes[0] || '',
             imagenes:     imagenes,
-            forma:        '',
+            forma:        _formasDesdeCelda(get(12)),
             tipo:         tiposArray[0],
             tipos:        tiposArray,
             subtags:      '',
@@ -3545,14 +3578,22 @@ function abrirEditorProducto(p) {
 
     // Etiqueta principal (acepta también el singular, ej. "arreglo" → "arreglos")
     var tipos = (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); });
-    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
-        var v = b.getAttribute('data-valor');
-        _marcarChipProducto(b, tipos.indexOf(v) !== -1 || tipos.indexOf(v.replace(/s$/, '')) !== -1);
-    });
     // Etiquetas de evento (p.eventos viene como slugs separados por espacio)
     var eventos = String(p.eventos || '').split(/\s+/).filter(Boolean);
+    // "Religioso" ahora es etiqueta principal: si el producto lo traía como evento, se precarga ahí
+    // para que al guardar no se pierda.
+    var eraReligiosoEvento = eventos.indexOf('religioso') !== -1;
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
+        var v = b.getAttribute('data-valor');
+        _marcarChipProducto(b, tipos.indexOf(v) !== -1 || tipos.indexOf(v.replace(/s$/, '')) !== -1 || (v === 'religioso' && eraReligiosoEvento));
+    });
     document.querySelectorAll('#chipsEtiquetaEvento .sap-chip').forEach(function(b) {
         _marcarChipProducto(b, eventos.indexOf(b.getAttribute('data-valor')) !== -1);
+    });
+    // Etiquetas de forma (p.forma viene como claves separadas por |, ej. "animales|portavelas")
+    var formasProd = String(p.forma || '').split('|').filter(Boolean);
+    document.querySelectorAll('#chipsEtiquetaForma .sap-chip').forEach(function(b) {
+        _marcarChipProducto(b, formasProd.indexOf(_formaCanonica(b.getAttribute('data-valor'))) !== -1);
     });
     _fijarToggleProducto('btnEnOfertaProducto', !!p.oferta);
     _fijarToggleProducto('btnMasVendidoProducto', !!p.masVendido);
@@ -3806,6 +3847,20 @@ function obtenerEtiquetasEvento() {
     return lista;
 }
 
+// Etiquetas de forma elegidas (columna M). Se guardan como texto: "animales", "porta velas"…
+function alternarEtiquetaForma(btn) {
+    var activo = btn.classList.toggle('activo');
+    btn.setAttribute('aria-pressed', activo ? 'true' : 'false');
+}
+
+function obtenerEtiquetasForma() {
+    var lista = [];
+    document.querySelectorAll('#chipsEtiquetaForma .sap-chip.activo').forEach(function(b) {
+        lista.push(b.getAttribute('data-valor'));
+    });
+    return lista;
+}
+
 // Botón Sí/No de En Oferta (columna K) y Más Vendido (columna L)
 function alternarToggleProducto(btn) {
     var activo = btn.classList.toggle('activo');
@@ -3863,7 +3918,7 @@ function limpiarFormularioProducto() {
     _principalElegida = false;
     _estadoExtrasProducto('');
     _renderExtrasProducto();
-    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip, #chipsEtiquetaEvento .sap-chip').forEach(function(b) {
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip, #chipsEtiquetaEvento .sap-chip, #chipsEtiquetaForma .sap-chip').forEach(function(b) {
         b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false');
     });
     ['btnEnOfertaProducto', 'btnMasVendidoProducto'].forEach(function(id) {
@@ -4190,6 +4245,7 @@ async function guardarProductoAdmin() {
                 descripcion: _campoProducto('inputDescripcionProducto'),
                 etiquetas: etiquetas,
                 eventos: obtenerEtiquetasEvento(),
+                formas: obtenerEtiquetasForma(),
                 alto: alto,
                 ancho: ancho,
                 video: video,
@@ -4768,7 +4824,10 @@ var TIPO_INFO = {
     'centro_de_mesa':{ cls: 'centro-mesa',   label: '🌸 Centro de Mesa' },
     centrodemesa:    { cls: 'centro-mesa',   label: '🌸 Centro de Mesa' },
     paquete:         { cls: 'paquete',       label: '🎁 Paquete' },
-    paquetes:        { cls: 'paquete',       label: '🎁 Paquete' }
+    paquetes:        { cls: 'paquete',       label: '🎁 Paquete' },
+    figura:          { cls: 'figuras',       label: '🗿 Figuras' },
+    figuras:         { cls: 'figuras',       label: '🗿 Figuras' },
+    religioso:       { cls: 'religioso',     label: '⛪ Religioso' }
 };
 
 // ── Inyectar etiqueta principal (sobre el título) y sub-etiquetas (sobre evento) ──
@@ -6364,7 +6423,7 @@ window.togglePanelFormas = function() {
     if (icono) icono.textContent = visible ? '▼' : '▲';
 };
 
-// Filtro de forma global usando columna EtiquetaPrincipal (data-tipos, col G)
+// Filtro de forma global usando las Etiquetas de forma (data-forma, columna M)
 var formaCarruselActiva = 'todos';
 
 window.seleccionarFormaCarrusel = function(btn, forma) {
@@ -6391,8 +6450,8 @@ function aplicarFiltroFormaCarrusel() {
         if (formaCarruselActiva === 'todos') {
             card.classList.remove('oculto-forma-carrusel');
         } else {
-            // Usa tieneTipo() para aprovechar las variantes definidas (col G / data-tipos)
-            var coincide = tieneTipo(card, formaCarruselActiva);
+            // data-forma trae las formas del producto separadas por | (columna M)
+            var coincide = (card.getAttribute('data-forma') || '').split('|').indexOf(formaCarruselActiva) !== -1;
             card.classList.toggle('oculto-forma-carrusel', !coincide);
         }
     });

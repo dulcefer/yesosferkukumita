@@ -2771,6 +2771,8 @@ body.modo-oscuro .btn-google-auth:hover { background: #3a2e26; }
 .mp-etiqueta-principal.producto  { background: #e8e0d7; color: #705c4f; }
 .mp-etiqueta-principal.arreglo   { background: #e3edf7; color: #4b6b94; }
 .mp-etiqueta-principal.aditamento{ background: #f3e8ff; color: #6b3fa0; }
+.mp-etiqueta-principal.figuras   { background: #f7e3dc; color: #a04f38; }
+.mp-etiqueta-principal.religioso { background: #efe9f7; color: #5b4a86; }
 
 .mp-sub-etiqueta {
     display: inline-flex; align-items: center; gap: 5px;
@@ -3673,6 +3675,8 @@ body.modo-oscuro .sap-extra { border-color: #4a3a2e; background: #2a2218; }
 .sap-zona-evento    { background: #fdeceb; border-color: #f4c8c5; }  /* rojo claro */
 body.modo-oscuro .sap-zona-principal { background: #1a2634; border-color: #2f4a68; }
 body.modo-oscuro .sap-zona-evento    { background: #341e1e; border-color: #5c3434; }
+.sap-zona-forma     { background: #eaf6ee; border-color: #c5e3cf; }  /* verde claro */
+body.modo-oscuro .sap-zona-forma      { background: #1b2e22; border-color: #2f5a3f; }
 
 /* ══ Botón ⚙️ "Configurar producto" dentro del modal del producto (solo administradores) ══ */
 .mp-btn-config {

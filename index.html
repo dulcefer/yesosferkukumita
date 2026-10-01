@@ -201,6 +201,21 @@
     .btn-modo-alajero:hover { background: #b56f82; }
     .btn-modo-alajero.activo { background: #8a4a5c; color: #fff; box-shadow: 0 3px 10px rgba(138,74,92,0.35); }
 
+    /* ── Animales: igual que Figuras (terracota) ── */
+    .btn-modo-animales { background: #d4816a; color: #fff; }
+    .btn-modo-animales:hover { background: #bf6a52; }
+    .btn-modo-animales.activo { background: #a04f38; color: #fff; box-shadow: 0 3px 10px rgba(160,79,56,0.35); }
+
+    /* ── Personajes: turquesa ── */
+    .btn-modo-personajes { background: #5fb3b3; color: #fff; }
+    .btn-modo-personajes:hover { background: #479c9c; }
+    .btn-modo-personajes.activo { background: #2a7a7a; color: #fff; box-shadow: 0 3px 10px rgba(42,122,122,0.35); }
+
+    /* ── Alhajeros: igual que Alajero (rosa viejo) ── */
+    .btn-modo-alhajeros { background: #c9899a; color: #fff; }
+    .btn-modo-alhajeros:hover { background: #b56f82; }
+    .btn-modo-alhajeros.activo { background: #8a4a5c; color: #fff; box-shadow: 0 3px 10px rgba(138,74,92,0.35); }
+
     /* ── Más: gris oscuro ── */
     .btn-modo-mas { background: #6b6b6b; color: #fff; }
     .btn-modo-mas:hover { background: #555; }
@@ -1277,13 +1292,13 @@
             <div style="height:10px;"></div>
             <div style="display:flex; flex-wrap:wrap; gap:9px; justify-content:center; padding:4px 12px 10px;">
                 <button class="btn-evento-carrusel btn-forma-carrusel activo-evento" data-forma="todos" onclick="seleccionarFormaCarrusel(this,'todos')" style="background:#1a1a1a; color:#fff; border-color:#1a1a1a;">Ver Todo</button>
-                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-figuras" data-forma="figuras" onclick="seleccionarFormaCarrusel(this,'figuras')">🗿 Figuras</button>
-                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-bases" data-forma="bases" onclick="seleccionarFormaCarrusel(this,'bases')">🪨 Bases</button>
+                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-animales" data-forma="animales" onclick="seleccionarFormaCarrusel(this,'animales')">🐾 Animales</button>
+                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-personajes" data-forma="personajes" onclick="seleccionarFormaCarrusel(this,'personajes')">🎭 Personajes</button>
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-macetas" data-forma="macetas" onclick="seleccionarFormaCarrusel(this,'macetas')">🌱 Macetas</button>
-                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-tazones" data-forma="tazones" onclick="seleccionarFormaCarrusel(this,'tazones')">🥣 Tazones</button>
+                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-bases" data-forma="bases" onclick="seleccionarFormaCarrusel(this,'bases')">🪨 Bases</button>
+                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-alhajeros" data-forma="alhajeros" onclick="seleccionarFormaCarrusel(this,'alhajeros')">💍 Alhajeros</button>
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-portavelas" data-forma="portavelas" onclick="seleccionarFormaCarrusel(this,'portavelas')">🕯️ Porta Velas</button>
                 <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-portainciensos" data-forma="portainciensos" onclick="seleccionarFormaCarrusel(this,'portainciensos')">🪔 Porta Inciensos</button>
-                <button class="btn-evento-carrusel btn-forma-carrusel btn-modo-alajero" data-forma="alajero" onclick="seleccionarFormaCarrusel(this,'alajero')">💍 Alajero</button>
             </div>
             </div><!-- /panelFormaCarrusel -->
         </div>
@@ -2157,6 +2172,8 @@
                 <button type="button" class="sap-chip" data-valor="aditamentos" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">✨ Aditamentos</button>
                 <button type="button" class="sap-chip" data-valor="etiquetas" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🏷️ Etiquetas</button>
                 <button type="button" class="sap-chip" data-valor="centro de mesa" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🌸 Centros de mesa</button>
+                <button type="button" class="sap-chip" data-valor="figuras" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🗿 Figuras</button>
+                <button type="button" class="sap-chip" data-valor="religioso" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">⛪ Religioso</button>
             </div>
             <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja.</p>
             </div><!-- /sap-zona-principal -->
@@ -2179,7 +2196,6 @@
                 <button type="button" class="sap-chip" data-valor="cumpleanos" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎂 Cumpleaños</button>
                 <button type="button" class="sap-chip" data-valor="aniversario-de-bodas" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💞 Aniversario de bodas</button>
                 <button type="button" class="sap-chip" data-valor="revelacion-de-genero" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">💙 Revelación de género</button>
-                <button type="button" class="sap-chip" data-valor="religioso" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">⛪ Religioso</button>
                 <button type="button" class="sap-chip" data-valor="posada" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏮 Posada</button>
                 <button type="button" class="sap-chip" data-valor="navidad" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎄 Navidad</button>
                 <button type="button" class="sap-chip" data-valor="ano-nuevo" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🎆 Año nuevo</button>
@@ -2195,6 +2211,20 @@
             </div>
             <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja.</p>
             </div><!-- /sap-zona-evento -->
+
+            <div class="sap-zona sap-zona-forma">
+            <div class="sap-seccion-titulo">Etiquetas de forma</div>
+            <div class="sap-chips" id="chipsEtiquetaForma">
+                <button type="button" class="sap-chip" data-valor="animales" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🐾 Animales</button>
+                <button type="button" class="sap-chip" data-valor="personajes" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🎭 Personajes</button>
+                <button type="button" class="sap-chip" data-valor="macetas" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🌱 Macetas</button>
+                <button type="button" class="sap-chip" data-valor="bases" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🪨 Bases</button>
+                <button type="button" class="sap-chip" data-valor="alhajeros" aria-pressed="false" onclick="alternarEtiquetaForma(this)">💍 Alhajeros</button>
+                <button type="button" class="sap-chip" data-valor="porta velas" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🕯️ Porta Velas</button>
+                <button type="button" class="sap-chip" data-valor="porta inciensos" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🪔 Porta Inciensos</button>
+            </div>
+            <p class="sap-nota">Opcional. Puedes elegir varias. Se guarda en la columna M de la hoja y es la que usa el filtro "Filtrar por Forma".</p>
+            </div><!-- /sap-zona-forma -->
 
             
           </div><!-- /sap-col-datos -->
