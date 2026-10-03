@@ -43,7 +43,7 @@
 
     var S = { fondo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
-              worker: null, workerTimer: null };
+              worker: null, workerTimer: null, id: 0, repetir: false };
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
@@ -229,7 +229,8 @@
 
     async function quitarFondo() {
         if (!S.foto || S.ocupado) return;
-        S.ocupado = true;
+        S.ocupado = true; S.repetir = false;
+        var miId = S.id; // si mientras trabaja se elige otra foto, este resultado ya no sirve
         var btn = $('btnQuitarFondo'); if (btn) btn.disabled = true;
         estado('⏳ Quitando el fondo… la primera vez descarga el modelo y puede tardar un poco.');
         try {
@@ -242,20 +243,23 @@
                 res = await quitarFondoEnPagina(blob);
             }
             var img = await cargarImg(URL.createObjectURL(res));
+            if (miId !== S.id) return; // se eligió otra foto: se descarta; el finally lanza el proceso de la nueva
             S.producto = recortar(img);
             estado('✅ Fondo quitado. Ajusta tamaño y posición si hace falta.');
         } catch (e) {
             console.error('[editor-imagen]', e);
-            estado('⚠️ No se pudo quitar el fondo. Se usa la foto tal cual; puedes reintentar.', true);
+            if (miId === S.id) estado('⚠️ No se pudo quitar el fondo. Se usa la foto tal cual; puedes reintentar.', true);
         } finally {
             S.ocupado = false;
             if (btn) btn.disabled = false;
             redibujar();
+            if (S.repetir) { S.repetir = false; quitarFondo(); } // había una foto nueva esperando
         }
     }
 
     async function cargarFoto(dataUrl) {
         S.foto = dataUrl; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; if (S.ocupado) S.repetir = true; // si aún procesaba la foto anterior, la nueva espera su turno
         ['rangoTamImagen', 'rangoXImagen', 'rangoYImagen'].forEach(function (id, i) {
             var r = $(id); if (r) r.value = i === 0 ? 100 : 0;
         });
@@ -270,7 +274,7 @@
     }
 
     function reset() {
-        S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; S.repetir = false; S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');

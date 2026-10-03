@@ -3776,12 +3776,16 @@ async function confirmarEliminarProducto() {
         return;
     }
     var btn = document.getElementById('btnConfirmarEliminar');
+    var restaurarBtn = function() { if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; } };
     if (btn) { btn.disabled = true; btn.textContent = 'Eliminando...'; }
+
+    // 1) Petición al servidor (aquí sí puede haber un error de conexión real)
+    var r = null;
     try {
-        var idToken = await user.getIdToken();
+        var idToken = await user.getIdToken(true); // token recién renovado: evita "sesión expirada"
         var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
             method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
             body: JSON.stringify({
                 idToken: idToken,
                 accion: 'eliminar',
@@ -3789,19 +3793,37 @@ async function confirmarEliminarProducto() {
                 nombreOriginal: _eliminarProducto.nombre // el servidor comprueba que la fila siga siendo este producto
             })
         });
-        var r = await respuesta.json();
-        if (r.ok) {
-            mostrarToast('✅ «' + r.nombre + '» eliminado. Los productos de abajo subieron una fila. Recarga la página en unos segundos.');
-            cerrarEliminarProducto();
-            cerrarSubmenuAgregarProducto();
-            if (typeof cerrarModalProducto === 'function') cerrarModalProducto();
-        } else {
-            mostrarToast('❌ ' + (r.error || 'No se pudo eliminar el producto.'));
-            if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+        var textoResp = await respuesta.text();
+        try {
+            r = JSON.parse(textoResp);
+        } catch (eJson) {
+            console.error('[eliminar] La respuesta no es JSON (HTTP ' + respuesta.status + '):', textoResp.slice(0, 600));
+            mostrarToast('❌ El servidor respondió algo inesperado. Revisa que Apps Script tenga la última versión implementada.');
+            restaurarBtn();
+            return;
         }
     } catch (e) {
-        mostrarToast('❌ Error de conexión al eliminar el producto.');
-        if (btn) { btn.disabled = false; btn.textContent = 'Eliminar'; }
+        console.error('[eliminar] Falló la conexión o la sesión:', e);
+        mostrarToast('❌ Error de conexión al eliminar el producto' + (e && e.message ? ' (' + e.message + ')' : '.'));
+        restaurarBtn();
+        return;
+    }
+
+    // 2) Resultado
+    if (!r.ok) {
+        mostrarToast('❌ ' + (r.error || 'No se pudo eliminar el producto.'));
+        restaurarBtn();
+        return;
+    }
+    mostrarToast('✅ «' + r.nombre + '» eliminado. Los productos de abajo subieron una fila. Recarga la página en unos segundos.');
+
+    // 3) Limpieza de la pantalla: si algo falla aquí NO es un error de conexión (el producto ya se borró)
+    try {
+        cerrarEliminarProducto();
+        cerrarSubmenuAgregarProducto();
+        if (typeof cerrarModalProducto === 'function') cerrarModalProducto();
+    } catch (e2) {
+        console.error('[eliminar] El producto se eliminó, pero falló al cerrar la pantalla:', e2);
     }
 }
 
@@ -3810,7 +3832,28 @@ function toggleFormularioAgregarProducto() { cerrarSubmenuAgregarProducto(); }
 
 function elegirImagenProducto() {
     var input = document.getElementById('inputImagenProducto');
-    if (input) input.click();
+    if (!input) return;
+    // Sin principal: se pueden elegir varias (la 1ª es la principal). Con principal: solo UNA, la nueva principal.
+    input.multiple = !_hayImagenPrincipal();
+    input.click();
+}
+
+// ¿El producto ya tiene (o ya se eligió) una imagen principal?
+function _hayImagenPrincipal() {
+    if (_principalElegida) return true;
+    return !!(_edicionProducto && _edicionProducto.imagenes && _edicionProducto.imagenes[0] && !_quitarImagenPrincipal);
+}
+
+// Con imagen principal el primer botón pasa a "Elegir otra imagen principal"
+function _pintarBotonImagenPrincipal() {
+    var t = document.getElementById('sapBtnImagenTitulo');
+    var sub = document.getElementById('sapBtnImagenSub');
+    if (!t) return;
+    var hay = _hayImagenPrincipal();
+    t.textContent = hay ? 'Elegir otra imagen principal' : 'Agregar imagen';
+    if (sub) sub.textContent = hay
+        ? 'Reemplaza la principal; las fotos adicionales se conservan'
+        : 'Se convierte a WebP y se sube a ImgBB';
 }
 
 function _campoProducto(id) {
@@ -3951,6 +3994,7 @@ function _totalImagenesProducto() {
 }
 
 function _renderExtrasProducto() {
+    _pintarBotonImagenPrincipal();
     var lista = document.getElementById('sapExtrasLista');
     if (lista) {
         lista.innerHTML = '';
@@ -4042,13 +4086,16 @@ async function previsualizarImagenProducto(event) {
     if (!archivos.length) return;
     if (_procesandoFotosProducto) { mostrarToast('Espera a que termine de preparar las fotos.'); input.value = ''; return; }
 
-    // Una selección nueva reemplaza a la anterior (principal + adicionales)
-    _imagenesExtraProducto = [];
+    // Si ya había principal, este botón solo define OTRA principal: se usa 1 foto y las adicionales se conservan.
+    // Si no había, la selección nueva reemplaza a la anterior (principal + adicionales).
+    var reemplazando = _hayImagenPrincipal();
+    var principalAntes = _principalElegida;
+    if (!reemplazando) _imagenesExtraProducto = [];
     _principalElegida = true;
 
     var base = _edicionProducto ? _edicionProducto.imagenes.length : 0;
     var cupoExtras = Math.max(0, MAX_IMAGENES_PRODUCTO - Math.max(base, 1));
-    var extras = archivos.slice(1);
+    var extras = reemplazando ? [] : archivos.slice(1);
     if (extras.length > cupoExtras) {
         extras = extras.slice(0, cupoExtras);
         mostrarToast('Máximo ' + MAX_IMAGENES_PRODUCTO + ' imágenes por producto: solo se tomaron ' + (extras.length + 1) + '.');
@@ -4066,7 +4113,7 @@ async function previsualizarImagenProducto(event) {
             if (preview) { preview.src = principal.full; preview.style.display = 'block'; }
         }
     } catch (e) {
-        _principalElegida = false;
+        _principalElegida = principalAntes; // si falla, se queda la principal que ya había
         mostrarToast('No se pudo leer esa imagen.');
     }
     _renderExtrasProducto();
