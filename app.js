@@ -4322,7 +4322,8 @@ async function guardarProductoAdmin() {
             mostrarToast('❌ ' + (resultado.error || 'No se pudo guardar el producto.'));
         }
     } catch (err) {
-        mostrarToast('❌ Error de conexión al guardar el producto.');
+        console.error('[guardar producto]', err);
+        mostrarToast('❌ Error al guardar: ' + (err && err.message ? err.message : 'conexión'));
     } finally {
         if (btnGuardar) { delete btnGuardar.dataset.guardando; _aplicarModoFormulario(); validarFormularioProducto(); }
     }
