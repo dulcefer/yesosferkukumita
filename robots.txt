@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dulcefer.github.io/yesosferkukumita/sitemap.xml

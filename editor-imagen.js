@@ -302,6 +302,23 @@
     });
     var bq = $('btnQuitarFondo'); if (bq) bq.addEventListener('click', quitarFondo);
 
+    // Descarga la imagen ya editada (PNG 1024×1024) sin necesidad de guardar el producto
+    async function descargar() {
+        var c = $('canvasImagenProducto'); if (!c || !S.foto) return;
+        await fuentes(); dibujar(); // asegura que lo descargado sea lo que se ve
+        c.toBlob(function (b) {
+            if (!b) { estado('⚠️ No se pudo generar la imagen para descargar.', true); return; }
+            var nombre = val('inputNombreProducto').toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'producto';
+            var url = URL.createObjectURL(b), a = document.createElement('a');
+            a.href = url; a.download = nombre + '.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        }, 'image/png');
+    }
+    var bd = $('btnDescargarImagen'); if (bd) bd.addEventListener('click', descargar);
+
     window.editorImagenProducto = {
         cargarFoto: cargarFoto,
         reset: reset,
