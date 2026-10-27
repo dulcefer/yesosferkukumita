@@ -30,10 +30,13 @@
     <!-- Fuentes de Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Fredoka:wght@600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400;1,600;1,700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" rel="stylesheet">
 
     <!-- Estilos externos -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=2">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -241,6 +244,7 @@
     }
     .modo-oscuro .selector-modo-mas-submenu { background: rgba(255,255,255,0.06); }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -1717,10 +1721,10 @@
 <div class="toast-notif" id="toastNotif"></div>
 
 <!-- Firebase SDK (versión compat para uso directo en HTML) -->
-<script src="https://www.gstatic.com/firebasejs/13.1.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/13.1.0/firebase-analytics-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/13.1.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <!-- firebase-storage-compat.js retirado: el proyecto usa el plan Spark (sin Cloud Storage).
      La foto de perfil se guarda solo localmente en el dispositivo. -->
 
@@ -2176,7 +2180,16 @@
                 <button type="button" class="sap-chip" data-valor="figuras" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🗿 Figuras</button>
                 <button type="button" class="sap-chip" data-valor="religioso" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">⛪ Religioso</button>
             </div>
-            <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja.</p>
+            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaPrincipal()">➕ Crear etiqueta principal</button>
+            <div id="sapNuevaEtiquetaPanel" style="display:none;">
+                <label class="panel-nombre-label" for="inputNuevaEtiquetaPrincipal">Nombre de la nueva etiqueta</label>
+                <div class="sap-fila-titulo">
+                    <input id="inputNuevaEtiquetaPrincipal" class="panel-nombre-input" type="text" maxlength="30" autocomplete="off" placeholder="Ej. Tazones" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();crearEtiquetaPrincipal();}">
+                    <button class="panel-nombre-btn guardar" id="btnCrearEtiquetaPrincipal" type="button" onclick="crearEtiquetaPrincipal()">✔ Crear</button>
+                </div>
+                <div id="sapNuevaEtiquetaEstado" class="sap-estado"></div>
+            </div>
+            <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja. Las etiquetas nuevas quedan guardadas para los próximos productos.</p>
             </div><!-- /sap-zona-principal -->
 
             <div class="sap-zona sap-zona-evento">
@@ -2286,7 +2299,8 @@
 </div>
 
     <!-- JavaScript externo -->
-    <script src="app.js?v=3"></script>
+    <script src="config.js?v=1"></script>
+    <script src="app.js?v=4"></script>
     <script src="editor-imagen.js?v=2"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->

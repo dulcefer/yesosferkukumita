@@ -1,3 +1,6 @@
+// Requiere config.js cargado antes que este archivo (ver index.html).
+if (typeof CONFIG === 'undefined') { throw new Error('Falta config.js: debe cargarse antes que app.js.'); }
+
 // ============================================================
 // YESOS FER KUKÚMITA — app.js
 // JavaScript extraído y organizado desde index.html.
@@ -162,15 +165,15 @@ function _resetBotonesRed() {
 // Los productos se cargan automáticamente desde tu hoja de cálculo pública.
 // Para editar productos: abre el link de Google Sheets y modifica las filas.
 //
-// 🔧 CONFIGURACIÓN — cambia solo esta línea si mueves la hoja:
-var SHEET_ID = '1GbAmlu9nHVQipFDeOPK4EBrq-5dZrni9cs5tWJDPGvc';
+// 🔧 CONFIGURACIÓN — si mueves la hoja, cámbiala en config.js (SHEET_ID):
+var SHEET_ID = CONFIG.SHEET_ID;
 
 // 🔧 URL del Cloudflare Worker para compartir en redes sociales (Facebook, etc.)
 // Cuando instales el worker, reemplaza esta URL con la que te asigne Cloudflare.
 // Ejemplo: 'https://kukumita-og.TU-USUARIO.workers.dev'
-// Mientras no lo tengas configurado, deja el valor vacío ('') y funcionará
+// Mientras no lo tengas configurado, deja el valor vacío ('') en config.js y funcionará
 // como antes (sin imagen en Facebook).
-var OG_WORKER_URL = 'https://yesos-fer-kukumita-linker.dulceprincesa086.workers.dev';
+var OG_WORKER_URL = CONFIG.OG_WORKER_URL;
 
 // 🔧 Hoja de cálculo de Velas Kukúmita — se reutiliza en TRES lugares:
 //   1) Botón "Etiquetas" (grid propio)                → Hoja 2 completa
@@ -181,8 +184,9 @@ var OG_WORKER_URL = 'https://yesos-fer-kukumita-linker.dulceprincesa086.workers.
 // NOTA: por defecto Google Sheets nombra la segunda pestaña "Hoja 2". Si tu pestaña
 // tiene otro nombre, cámbialo aquí exactamente igual (respetando mayúsculas/espacios).
 // La Hoja 1 no necesita nombre: se lee automáticamente como pestaña por defecto.
-var SHEET_ID_ETIQUETAS   = '1jin2wMYingvbPD2csGxIbm5AhulfRvCRvIzAKJTUNMw';
-var SHEET_NOMBRE_ETIQUETAS = 'Hoja 2';
+// (Los valores se cambian en config.js)
+var SHEET_ID_ETIQUETAS   = CONFIG.SHEET_ID_ETIQUETAS;
+var SHEET_NOMBRE_ETIQUETAS = CONFIG.SHEET_NOMBRE_ETIQUETAS;
 // ──────────────────────────────────────────────────────────────────────────────
 // COLUMNAS ESPERADAS EN LA HOJA (fila 1 = encabezados, datos desde fila 2):
 //   A(0):  Nombre
@@ -3247,15 +3251,8 @@ function renderizarResultadosDrawer(lista, titulo) {
 // ═══════════════════════════════════════════
 //  FIREBASE CONFIGURACIÓN
 // ═══════════════════════════════════════════
-const firebaseConfig = {
-    apiKey: "AIzaSyBF09xyHMIy0nZH4nnSKEoYHycUmVCJBdQ",
-    authDomain: "yesosferkukumita-4a379.firebaseapp.com",
-    projectId: "yesosferkukumita-4a379",
-    storageBucket: "yesosferkukumita-4a379.firebasestorage.app",
-    messagingSenderId: "667938933315",
-    appId: "1:667938933315:web:ba47732f4a119c8b41e2f6",
-    measurementId: "G-EX63CLDFSB"
-};
+// Los datos del proyecto Firebase están en config.js (CONFIG.FIREBASE)
+const firebaseConfig = CONFIG.FIREBASE;
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -3422,17 +3419,11 @@ function actualizarPantallaPerfil() {
 // ══════════════════════════════════════════════════════════════
 
 // Lista de correos con permiso de administrador.
-var CORREOS_ADMIN = [
-    'dulceprincesa086@gmail.com',
-    'dulcefernandaguzmanrodriguez@gmail.com',
-    'celvaguzman72@gmail.com',
-    'celvapreciosa27@gmail.com',
-    'velaskuku@gmail.com',
-    'yesosferkukumita@gmail.com'
-];
+// (La lista está en config.js; recuerda mantenerla igual que CORREOS_ADMIN en Code.gs)
+var CORREOS_ADMIN = CONFIG.CORREOS_ADMIN;
 
-// Pega aquí la URL de despliegue de tu Apps Script (Implementar → Nueva implementación → Aplicación web).
-var APPS_SCRIPT_URL_PRODUCTOS = 'https://script.google.com/macros/s/AKfycbzBl2UE4LJvSAL94KaUXDXMIXaG2R-m3-UHvALqzw2CH22hui-JkXAdj_G3vXeD2kkMlw/exec';
+// URL de despliegue del Apps Script: se cambia en config.js (APPS_SCRIPT_URL).
+var APPS_SCRIPT_URL_PRODUCTOS = CONFIG.APPS_SCRIPT_URL;
 
 var _imagenProductoSeleccionada = null; // dataURL en base64 de la imagen elegida
 var _quitarImagenPrincipal = false;     // el admin marcó "Eliminar imagen actual" (solo al configurar un producto)
@@ -3469,6 +3460,7 @@ function abrirSubmenuAgregarProducto() {
     }
     _aplicarModoFormulario();
     document.getElementById('submenuAgregarProducto').classList.add('abierto');
+    cargarEtiquetasPrincipalesPersonalizadas();
     document.body.style.overflow = 'hidden';
 }
 
@@ -3564,7 +3556,8 @@ function abrirEditorProducto(p) {
     }
 
     limpiarFormularioProducto();
-    _edicionProducto = { fila: p.id + 1, nombre: p.nombre, imagenes: (p.imagenes || []).slice() };
+    _edicionProducto = { fila: p.id + 1, nombre: p.nombre, imagenes: (p.imagenes || []).slice(),
+                         tipos: (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); }) };
 
     var poner = function(id, v) { var el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
     poner('inputNombreProducto', p.nombre);
@@ -3583,6 +3576,7 @@ function abrirEditorProducto(p) {
     // "Religioso" ahora es etiqueta principal: si el producto lo traía como evento, se precarga ahí
     // para que al guardar no se pierda.
     var eraReligiosoEvento = eventos.indexOf('religioso') !== -1;
+    _pintarEtiquetasPersonalizadas(_leerCacheEtiquetasPersonalizadas());
     document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
         var v = b.getAttribute('data-valor');
         _marcarChipProducto(b, tipos.indexOf(v) !== -1 || tipos.indexOf(v.replace(/s$/, '')) !== -1 || (v === 'religioso' && eraReligiosoEvento));
@@ -3901,6 +3895,177 @@ function _limpiarUrlImagen() {
     var prev = document.getElementById('previewUrlImagenProducto');
     if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
     _estadoUrlImagen('');
+}
+
+// ──────────────────────────────────────────────────────────────
+// ETIQUETAS PRINCIPALES NUEVAS (botón "➕ Crear etiqueta principal")
+// Se guardan en la pestaña "EtiquetasPrincipales" de la hoja (vía Apps Script) y se
+// recuerdan en este dispositivo para que el formulario las muestre al instante.
+// ──────────────────────────────────────────────────────────────
+var _CLAVE_ETIQ_PERSONALIZADAS = 'yesos-etiquetas-principales';
+
+// Mismas reglas que el servidor: minúsculas, sin acentos ni símbolos, máx. 30
+function _normalizarEtiquetaPrincipal(txt) {
+    var t = String(txt == null ? '' : txt).toLowerCase();
+    try { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+    t = t.replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+    return t.substring(0, 30).trim();
+}
+
+function _leerCacheEtiquetasPersonalizadas() {
+    try {
+        var l = JSON.parse(localStorage.getItem(_CLAVE_ETIQ_PERSONALIZADAS) || '[]');
+        return Array.isArray(l) ? l.filter(function(s) { return typeof s === 'string' && s; }) : [];
+    } catch (e) { return []; }
+}
+
+function _guardarCacheEtiquetasPersonalizadas(lista) {
+    try { localStorage.setItem(_CLAVE_ETIQ_PERSONALIZADAS, JSON.stringify(lista)); } catch (e) {}
+}
+
+function _textoChipPrincipal(valor) {
+    return '🏷️ ' + valor.charAt(0).toUpperCase() + valor.slice(1);
+}
+
+function _buscarChipPrincipal(valor) {
+    var encontrado = null;
+    document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
+        if (b.getAttribute('data-valor') === valor) encontrado = b;
+    });
+    return encontrado;
+}
+
+// Crea el botón de la etiqueta si no existe. Devuelve { btn, nuevo }.
+function _asegurarChipPrincipal(valor) {
+    var cont = document.getElementById('chipsEtiquetaPrincipal');
+    if (!cont) return null;
+    var existente = _buscarChipPrincipal(valor);
+    if (existente) return { btn: existente, nuevo: false };
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sap-chip sap-chip-personalizada';
+    b.setAttribute('data-valor', valor);
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = _textoChipPrincipal(valor);
+    b.onclick = function() { alternarEtiquetaPrincipal(b); };
+    cont.appendChild(b);
+    return { btn: b, nuevo: true };
+}
+
+// Muestra en el formulario las etiquetas nuevas. Si se está configurando un producto que ya
+// la traía, la deja marcada.
+function _pintarEtiquetasPersonalizadas(lista) {
+    lista.forEach(function(v) {
+        var r = _asegurarChipPrincipal(v);
+        if (r && r.nuevo && _edicionProducto && (_edicionProducto.tipos || []).indexOf(v) !== -1) {
+            _marcarChipProducto(r.btn, true);
+        }
+    });
+    validarFormularioProducto();
+}
+
+// Al abrir el formulario: primero lo guardado en este dispositivo, luego se sincroniza con la hoja
+async function cargarEtiquetasPrincipalesPersonalizadas() {
+    _pintarEtiquetasPersonalizadas(_leerCacheEtiquetasPersonalizadas());
+    var user = auth.currentUser;
+    if (!user || !APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) return;
+    try {
+        var idToken = await user.getIdToken();
+        var resp = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ idToken: idToken, accion: 'listarEtiquetas' })
+        });
+        var r = await resp.json();
+        if (r && r.ok && Array.isArray(r.etiquetas)) {
+            // Si alguien borró una etiqueta en la hoja, se quita su botón (salvo que esté marcada)
+            document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip-personalizada').forEach(function(b) {
+                if (r.etiquetas.indexOf(b.getAttribute('data-valor')) === -1 && !b.classList.contains('activo')) b.remove();
+            });
+            _guardarCacheEtiquetasPersonalizadas(r.etiquetas);
+            _pintarEtiquetasPersonalizadas(r.etiquetas);
+        }
+    } catch (e) {
+        console.warn('[etiquetas principales] No se pudo sincronizar con la hoja:', e);
+    }
+}
+
+function _estadoNuevaEtiqueta(txt, error) {
+    var e = document.getElementById('sapNuevaEtiquetaEstado');
+    if (!e) return;
+    e.textContent = txt || '';
+    e.classList.toggle('error', !!error);
+}
+
+function abrirCrearEtiquetaPrincipal() {
+    var panel = document.getElementById('sapNuevaEtiquetaPanel');
+    var input = document.getElementById('inputNuevaEtiquetaPrincipal');
+    if (!panel) return;
+    var abrir = panel.style.display === 'none';
+    panel.style.display = abrir ? 'flex' : 'none';
+    _estadoNuevaEtiqueta('');
+    if (abrir && input) setTimeout(function() { input.focus(); }, 50);
+}
+
+async function crearEtiquetaPrincipal() {
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
+    var input = document.getElementById('inputNuevaEtiquetaPrincipal');
+    var btn = document.getElementById('btnCrearEtiquetaPrincipal');
+    var valor = _normalizarEtiquetaPrincipal(input ? input.value : '');
+    if (valor.length < 2) {
+        _estadoNuevaEtiqueta('Escribe un nombre de al menos 2 letras o números.', true);
+        return;
+    }
+
+    // Si ya existe un botón con ese nombre (o su singular/plural), solo se marca
+    var ya = _buscarChipPrincipal(valor) || _buscarChipPrincipal(valor + 's') || (/s$/.test(valor) ? _buscarChipPrincipal(valor.replace(/s$/, '')) : null);
+    if (ya) {
+        _marcarChipProducto(ya, true);
+        validarFormularioProducto();
+        if (input) input.value = '';
+        _estadoNuevaEtiqueta('Esa etiqueta ya existía: se marcó para este producto.');
+        return;
+    }
+
+    if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
+        _estadoNuevaEtiqueta('Falta configurar la URL del Apps Script.', true);
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+    _estadoNuevaEtiqueta('Guardando etiqueta…');
+    try {
+        var idToken = await user.getIdToken();
+        var resp = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ idToken: idToken, accion: 'crearEtiqueta', etiqueta: valor })
+        });
+        var r = await resp.json();
+        if (!r || !r.ok) {
+            var msg = (r && r.error) || 'No se pudo crear la etiqueta.';
+            // El Apps Script viejo no conoce esta acción y contesta como si faltara el nombre del producto
+            if (/falta el nombre del producto/i.test(msg)) msg = 'Falta actualizar el Apps Script (Code.gs) con la versión nueva.';
+            _estadoNuevaEtiqueta(msg, true);
+            return;
+        }
+        var creada = _asegurarChipPrincipal(r.valor || valor);
+        if (creada) _marcarChipProducto(creada.btn, true);
+        var cache = _leerCacheEtiquetasPersonalizadas();
+        if (cache.indexOf(r.valor || valor) === -1) { cache.push(r.valor || valor); _guardarCacheEtiquetasPersonalizadas(cache); }
+        validarFormularioProducto();
+        if (input) input.value = '';
+        _estadoNuevaEtiqueta('');
+        var panel = document.getElementById('sapNuevaEtiquetaPanel');
+        if (panel) panel.style.display = 'none';
+        mostrarToast('✅ Etiqueta "' + (r.valor || valor) + '" ' + (r.yaExistia ? 'ya existía; se marcó.' : 'creada y marcada.'));
+    } catch (err) {
+        console.error('[crear etiqueta principal]', err);
+        _estadoNuevaEtiqueta('Error de conexión. Intenta de nuevo.', true);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '✔ Crear'; }
+    }
 }
 
 function elegirImagenProducto() {
@@ -4989,7 +5154,8 @@ function inyectarEtiquetasModal(card) {
 
         var hayEtiqueta = false;
         tipos.forEach(function(tipo) {
-            var info = TIPO_INFO[tipo];
+            // Etiqueta principal creada desde el formulario: no está en TIPO_INFO, se muestra genérica
+            var info = TIPO_INFO[tipo] || { cls: 'personalizada', label: _textoChipPrincipal(tipo) };
             if (info) {
                 var ePrincipal = document.createElement('span');
                 ePrincipal.className = 'mp-etiqueta-principal ' + info.cls;
