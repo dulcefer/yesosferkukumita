@@ -39,7 +39,6 @@
 
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
     var F_SERIF = '800 #px "Playfair Display", serif';
-    var F_ORI   = 'italic 700 #px "Playfair Display", serif';
 
     var S = { fondo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
@@ -47,8 +46,6 @@
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
-    function numero(v) { return v !== '' && isFinite(Number(v)) ? Number(v) : null; }
-    function dinero(n) { return '$' + n.toFixed(2) + ' MXN'; }
 
     function cargarImg(src) {
         return new Promise(function (ok, err) {
@@ -111,28 +108,6 @@
         var titulo = S.titulo;
         if (titulo) texto(g, titulo, TAM / 2, 86, 72, F_TIT, '#fff', '#111', 12, 940);
 
-        var po = numero(val('inputPrecioOriginal')), pb = numero(val('inputPrecioBazar'));
-
-        // Precio original (izquierda)
-        if (po !== null) {
-            g.save(); g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 6;
-            texto(g, 'Precio Original:', 156, 283, 42, F_ORI, '#fff', '#000', 3, 292);
-            texto(g, dinero(po), 156, 331, 40, F_TIT, '#fff', '#000', 3, 292);
-            g.restore();
-        }
-
-        // Precio de bazar (derecha)
-        if (pb !== null) {
-            var gr = g.createRadialGradient(876, 430, 20, 876, 430, 230);
-            gr.addColorStop(0, 'rgba(15,140,135,.85)'); gr.addColorStop(1, 'rgba(15,140,135,0)');
-            g.fillStyle = gr; g.fillRect(590, 190, 434, 500);
-            texto(g, 'PRECIO DE', 876, 285, 54, F_TIT, '#fff36a', '#0b3a3a', 6, 262);
-            texto(g, 'BAZAR', 876, 343, 54, F_TIT, '#fff36a', '#0b3a3a', 6, 262);
-            texto(g, 'Solo', 876, 392, 44, F_SERIF, '#fff', '#000', 5, 262);
-            texto(g, '$' + pb.toFixed(2), 876, 458, 90, F_TIT, '#fff36a', '#0b3a3a', 8, 262);
-            texto(g, 'MXN', 876, 522, 42, F_SERIF, '#fff', '#000', 5, 262);
-        }
-
         // Marca
         texto(g, 'Yesos Fer', 862, 930, 54, F_SERIF, '#111', '#fff', 8, 290);
         texto(g, 'Kukúmita', 862, 988, 66, F_SERIF, '#111', '#fff', 8, 290);
@@ -149,8 +124,7 @@
         try {
             await Promise.all([
                 document.fonts.load('700 60px Fredoka'),
-                document.fonts.load('800 40px "Playfair Display"'),
-                document.fonts.load('italic 700 30px "Playfair Display"')
+                document.fonts.load('800 40px "Playfair Display"')
             ]);
         } catch (e) {}
     }
@@ -282,9 +256,6 @@
     }
 
     // ── Conexión con el formulario ──
-    ['inputPrecioOriginal', 'inputPrecioBazar'].forEach(function (id) {
-        var e = $(id); if (e) e.addEventListener('input', redibujar);
-    });
     var nom = $('inputNombreProducto');
     if (nom) {
         nom.addEventListener('input', sincronizarTitulo); // solo rellena el campo de título, no la imagen
