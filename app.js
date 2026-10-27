@@ -4391,6 +4391,34 @@ async function agregarImagenesExtraProducto(event) {
     input.value = '';
 }
 
+// Envía una petición POST al Apps Script y devuelve el JSON ya interpretado.
+// Distingue: (a) no hubo conexión con el servidor, (b) el servidor respondió algo que no es JSON
+// (p. ej. página de Google por implementación vieja / acceso mal configurado), (c) respuesta normal.
+async function _postAppsScript(cuerpo) {
+    var respuesta;
+    try {
+        respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+            body: JSON.stringify(cuerpo)
+        });
+    } catch (e) {
+        console.error('[apps script] No hubo respuesta (red, CORS o implementación sin acceso público):', e);
+        var errRed = new Error('No se pudo contactar al servidor. Revisa tu internet y que el Apps Script esté implementado con acceso "Cualquier usuario".');
+        errRed.reintentable = true;
+        throw errRed;
+    }
+    var texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch (eJson) {
+        console.error('[apps script] La respuesta no es JSON (HTTP ' + respuesta.status + '):', texto.slice(0, 600));
+        var errJson = new Error('El servidor respondió algo inesperado (HTTP ' + respuesta.status + '). Revisa que Apps Script tenga la última versión implementada.');
+        errJson.reintentable = respuesta.status >= 500;
+        throw errJson;
+    }
+}
+
 // Sube las fotos adicionales a imgbb (vía Apps Script), 3 a la vez, y devuelve sus links EN ORDEN
 async function _subirImagenesExtraProducto(idToken, progreso) {
     var items = _imagenesExtraProducto.slice();
@@ -4400,22 +4428,20 @@ async function _subirImagenesExtraProducto(idToken, progreso) {
     function subirUna(i) {
         var intento = 0;
         function probar() {
-            return fetch(APPS_SCRIPT_URL_PRODUCTOS, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({
-                    idToken: idToken,
-                    accion: 'subirImagen',
-                    imagenBase64: items[i].dataUrl,
-                    nombreArchivo: 'producto_' + Date.now() + '_' + (i + 2) + '.jpg'
-                })
-            }).then(function(r) { return r.json(); }).then(function(j) {
+            return _postAppsScript({
+                idToken: idToken,
+                accion: 'subirImagen',
+                imagenBase64: items[i].dataUrl,
+                nombreArchivo: 'producto_' + Date.now() + '_' + (i + 2) + '.jpg'
+            }).then(function(j) {
                 if (j && j.ok && j.url) return j.url;
-                throw new Error((j && j.error) || 'imgbb no aceptó la foto ' + (i + 2) + '.');
+                var e = new Error((j && j.error) || 'imgbb no aceptó la foto.');
+                e.reintentable = false; // el servidor respondió con un motivo claro: reintentar no ayuda
+                throw e;
             }).catch(function(e) {
                 intento++;
-                if (intento < 2) return probar(); // un reintento
-                throw new Error(e && e.message && e.message !== 'Failed to fetch' ? e.message : 'Error de conexión al subir la foto ' + (i + 2) + '.');
+                if (e && e.reintentable && intento < 2) return probar(); // un reintento solo si fue fallo de red / 5xx
+                throw new Error('Foto ' + (i + 2) + ': ' + (e && e.message ? e.message : 'error desconocido.'));
             });
         }
         return probar();
@@ -4528,10 +4554,7 @@ async function guardarProductoAdmin() {
             if (btnGuardar) btnGuardar.textContent = 'Guardando...';
         }
 
-        var respuesta = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
-            body: JSON.stringify({
+        var resultado = await _postAppsScript({
                 idToken: idToken,
                 accion: editando ? 'editar' : 'agregar',
                 fila: editando ? _edicionProducto.fila : undefined,
@@ -4555,9 +4578,7 @@ async function guardarProductoAdmin() {
                 quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
-            })
-        });
-        var resultado = await respuesta.json();
+            });
 
         if (resultado.ok) {
             if (editando) {
