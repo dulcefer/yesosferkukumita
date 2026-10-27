@@ -3557,7 +3557,9 @@ function abrirEditorProducto(p) {
 
     limpiarFormularioProducto();
     _edicionProducto = { fila: p.id + 1, nombre: p.nombre, imagenes: (p.imagenes || []).slice(),
-                         tipos: (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); }) };
+                         tipos: (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); }),
+                         eventos: String(p.eventos || '').split(/\s+/).filter(Boolean),
+                         formas: String(p.forma || '').split('|').filter(Boolean) };
 
     var poner = function(id, v) { var el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); };
     poner('inputNombreProducto', p.nombre);
@@ -3577,6 +3579,11 @@ function abrirEditorProducto(p) {
     // para que al guardar no se pierda.
     var eraReligiosoEvento = eventos.indexOf('religioso') !== -1;
     _pintarEtiquetasPersonalizadas(_leerCacheEtiquetasPersonalizadas());
+    _pintarExtrasDesdeCache();
+    // Si el producto trae un evento/forma que no tiene botón (p. ej. una etiqueta nueva que este
+    // dispositivo aún no conoce), se crea el botón para que guardar no la borre.
+    eventos.forEach(function(v) { if (v !== 'religioso' && !_buscarChipExtra('evento', v)) _asegurarChipExtra('evento', v, _nombreDesdeValor(v)); });
+    String(p.forma || '').split('|').filter(Boolean).forEach(function(k) { if (!_buscarChipExtra('forma', k)) _asegurarChipExtra('forma', k, _nombreDesdeValor(k)); });
     document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip').forEach(function(b) {
         var v = b.getAttribute('data-valor');
         _marcarChipProducto(b, tipos.indexOf(v) !== -1 || tipos.indexOf(v.replace(/s$/, '')) !== -1 || (v === 'religioso' && eraReligiosoEvento));
@@ -3971,12 +3978,8 @@ async function cargarEtiquetasPrincipalesPersonalizadas() {
     if (!user || !APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) return;
     try {
         var idToken = await user.getIdToken();
-        var resp = await fetch(APPS_SCRIPT_URL_PRODUCTOS, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ idToken: idToken, accion: 'listarEtiquetas' })
-        });
-        var r = await resp.json();
+        var r = await _postAppsScript({ idToken: idToken, accion: 'listarEtiquetas' });
+        if (r && r.ok) { _sincronizarExtras('evento', r.eventos); _sincronizarExtras('forma', r.formas); }
         if (r && r.ok && Array.isArray(r.etiquetas)) {
             // Si alguien borró una etiqueta en la hoja, se quita su botón (salvo que esté marcada)
             document.querySelectorAll('#chipsEtiquetaPrincipal .sap-chip-personalizada').forEach(function(b) {
@@ -4063,6 +4066,190 @@ async function crearEtiquetaPrincipal() {
     } catch (err) {
         console.error('[crear etiqueta principal]', err);
         _estadoNuevaEtiqueta('Error de conexión. Intenta de nuevo.', true);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '✔ Crear'; }
+    }
+}
+
+// ──────────────────────────────────────────────────────────────
+// ETIQUETAS NUEVAS DE EVENTO Y DE FORMA (botones "➕ Crear etiqueta de evento / de forma")
+// Se guardan en las pestañas "EventosPersonalizados" y "FormasPersonalizadas" de la hoja (vía
+// Apps Script) y se recuerdan en este dispositivo. Además, la página pública crea sola el botón
+// de filtro de cada evento/forma que algún producto use (ver _construirFiltrosDinamicos).
+// ──────────────────────────────────────────────────────────────
+var _TIPOS_ETIQUETA_EXTRA = {
+    evento: {
+        contenedor: 'chipsEtiquetaEvento', clave: 'yesos-eventos-personalizados', accion: 'crearEvento',
+        emoji: '🎉', propProducto: 'eventos',
+        panel: 'sapNuevoEventoPanel', input: 'inputNuevoEvento', btn: 'btnCrearEvento', estado: 'sapNuevoEventoEstado',
+        normalizar: function(t) { return _slugEvento(t); },
+        igual: function(a, b) { return _slugEvento(a) === _slugEvento(b); },
+        alternar: function(b) { alternarEtiquetaEvento(b); }
+    },
+    forma: {
+        contenedor: 'chipsEtiquetaForma', clave: 'yesos-formas-personalizadas', accion: 'crearForma',
+        emoji: '🧩', propProducto: 'formas',
+        panel: 'sapNuevaFormaPanel', input: 'inputNuevaForma', btn: 'btnCrearForma', estado: 'sapNuevaFormaEstado',
+        normalizar: function(t) { return _normalizarEtiquetaPrincipal(t); },
+        igual: function(a, b) { return _formaCanonica(a) === _formaCanonica(b); },
+        alternar: function(b) { alternarEtiquetaForma(b); }
+    }
+};
+
+// Evento → slug ("Día del Maestro" → "dia-del-maestro"); mismas reglas que el servidor
+function _slugEvento(txt) {
+    var t = String(txt == null ? '' : txt).toLowerCase();
+    try { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+    return t.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40).replace(/-+$/, '');
+}
+
+// Nombre para mostrar: letras (con acentos), números, espacios y guiones; máx. 30
+function _nombreVisibleEtiqueta(txt) {
+    var t = String(txt == null ? '' : txt).replace(/[^A-Za-z0-9\u00C0-\u00FF\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+    return t.replace(/^[-\s]+/, '').substring(0, 30).trim();
+}
+
+function _nombreDesdeValor(v) {
+    var t = String(v || '').replace(/-/g, ' ').trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function _leerCacheExtra(tipo) {
+    try {
+        var l = JSON.parse(localStorage.getItem(_TIPOS_ETIQUETA_EXTRA[tipo].clave) || '[]');
+        return Array.isArray(l) ? l.filter(function(x) { return x && typeof x.valor === 'string' && x.valor; }) : [];
+    } catch (e) { return []; }
+}
+
+function _guardarCacheExtra(tipo, lista) {
+    try { localStorage.setItem(_TIPOS_ETIQUETA_EXTRA[tipo].clave, JSON.stringify(lista)); } catch (e) {}
+}
+
+function _buscarChipExtra(tipo, valor) {
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo], encontrado = null;
+    document.querySelectorAll('#' + cfg.contenedor + ' .sap-chip').forEach(function(b) {
+        if (!encontrado && cfg.igual(b.getAttribute('data-valor'), valor)) encontrado = b;
+    });
+    return encontrado;
+}
+
+// Crea el botón si no existe. Devuelve { btn, nuevo }.
+function _asegurarChipExtra(tipo, valor, nombre) {
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo];
+    var cont = document.getElementById(cfg.contenedor);
+    if (!cont) return null;
+    var existente = _buscarChipExtra(tipo, valor);
+    if (existente) return { btn: existente, nuevo: false };
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sap-chip sap-chip-personalizada';
+    b.setAttribute('data-valor', valor);
+    b.setAttribute('aria-pressed', 'false');
+    b.textContent = cfg.emoji + ' ' + (nombre || _nombreDesdeValor(valor));
+    b.onclick = function() { cfg.alternar(b); };
+    cont.appendChild(b);
+    return { btn: b, nuevo: true };
+}
+
+// Pinta en el formulario las etiquetas nuevas; si se está configurando un producto que ya las traía, las marca.
+function _pintarExtras(tipo, lista) {
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo];
+    (lista || []).forEach(function(x) {
+        var r = _asegurarChipExtra(tipo, x.valor, x.nombre);
+        if (r && r.nuevo && _edicionProducto) {
+            var delProducto = (_edicionProducto[cfg.propProducto] || []);
+            if (delProducto.some(function(v) { return cfg.igual(v, x.valor); })) _marcarChipProducto(r.btn, true);
+        }
+    });
+}
+
+function _pintarExtrasDesdeCache() {
+    _pintarExtras('evento', _leerCacheExtra('evento'));
+    _pintarExtras('forma', _leerCacheExtra('forma'));
+}
+
+// Sincroniza con lo que dice la hoja: quita botones de etiquetas borradas (si no están marcadas)
+function _sincronizarExtras(tipo, listaServidor) {
+    if (!Array.isArray(listaServidor)) return;
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo];
+    document.querySelectorAll('#' + cfg.contenedor + ' .sap-chip-personalizada').forEach(function(b) {
+        var sigue = listaServidor.some(function(x) { return cfg.igual(x.valor, b.getAttribute('data-valor')); });
+        if (!sigue && !b.classList.contains('activo')) b.remove();
+    });
+    _guardarCacheExtra(tipo, listaServidor);
+    _pintarExtras(tipo, listaServidor);
+}
+
+function _estadoExtra(tipo, txt, error) {
+    var e = document.getElementById(_TIPOS_ETIQUETA_EXTRA[tipo].estado);
+    if (!e) return;
+    e.textContent = txt || '';
+    e.classList.toggle('error', !!error);
+}
+
+function abrirCrearEtiquetaExtra(tipo) {
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo];
+    var panel = document.getElementById(cfg.panel);
+    var input = document.getElementById(cfg.input);
+    if (!panel) return;
+    var abrir = panel.style.display === 'none';
+    panel.style.display = abrir ? 'flex' : 'none';
+    _estadoExtra(tipo, '');
+    if (abrir && input) setTimeout(function() { input.focus(); }, 50);
+}
+
+async function crearEtiquetaExtra(tipo) {
+    var cfg = _TIPOS_ETIQUETA_EXTRA[tipo];
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
+    var input = document.getElementById(cfg.input);
+    var btn = document.getElementById(cfg.btn);
+    var nombre = _nombreVisibleEtiqueta(input ? input.value : '');
+    if (cfg.normalizar(nombre).length < 2) {
+        _estadoExtra(tipo, 'Escribe un nombre de al menos 2 letras o números.', true);
+        return;
+    }
+
+    // Si ya hay un botón equivalente (mismo slug / misma forma sin importar espacios), solo se marca
+    var ya = _buscarChipExtra(tipo, cfg.normalizar(nombre)) || (tipo === 'forma' && /s$/.test(nombre.toLowerCase()) ? _buscarChipExtra(tipo, cfg.normalizar(nombre).replace(/s$/, '')) : null);
+    if (ya) {
+        _marcarChipProducto(ya, true);
+        if (input) input.value = '';
+        _estadoExtra(tipo, 'Esa etiqueta ya existía: se marcó para este producto.');
+        return;
+    }
+
+    if (!APPS_SCRIPT_URL_PRODUCTOS || APPS_SCRIPT_URL_PRODUCTOS.indexOf('PEGA_AQUI') !== -1) {
+        _estadoExtra(tipo, 'Falta configurar la URL del Apps Script.', true);
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+    _estadoExtra(tipo, 'Guardando etiqueta…');
+    try {
+        var idToken = await user.getIdToken();
+        var r = await _postAppsScript({ idToken: idToken, accion: cfg.accion, nombre: nombre });
+        if (!r || !r.ok) {
+            var msg = (r && r.error) || 'No se pudo crear la etiqueta.';
+            // El Apps Script viejo no conoce estas acciones y contesta como si faltara el nombre del producto
+            if (/falta el nombre del producto/i.test(msg)) msg = 'Falta actualizar el Apps Script (Code.gs) con la versión nueva.';
+            _estadoExtra(tipo, msg, true);
+            return;
+        }
+        var valor = r.valor || cfg.normalizar(nombre);
+        var visible = r.nombre || nombre;
+        var creada = _asegurarChipExtra(tipo, valor, visible);
+        if (creada) _marcarChipProducto(creada.btn, true);
+        var cache = _leerCacheExtra(tipo);
+        if (!cache.some(function(x) { return cfg.igual(x.valor, valor); })) { cache.push({ valor: valor, nombre: visible }); _guardarCacheExtra(tipo, cache); }
+        if (input) input.value = '';
+        _estadoExtra(tipo, '');
+        var panel = document.getElementById(cfg.panel);
+        if (panel) panel.style.display = 'none';
+        mostrarToast('✅ Etiqueta "' + visible + '" ' + (r.yaExistia ? 'ya existía; se marcó.' : 'creada y marcada.'));
+    } catch (err) {
+        console.error('[crear etiqueta ' + tipo + ']', err);
+        _estadoExtra(tipo, (err && err.message) || 'Error de conexión. Intenta de nuevo.', true);
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = '✔ Crear'; }
     }
@@ -6722,6 +6909,90 @@ function _cargarFavoritosFirestore(uid) {
         }
     });
 })();
+
+// ══════════════════════════════════════════════════════════════════
+// FILTROS DINÁMICOS: botones de "Busca por Evento" y "Filtrar por Forma" para las
+// etiquetas NUEVAS. Se crea un botón por cada evento/forma que algún producto use y que
+// no tenga ya botón fijo. El nombre bonito sale de las pestañas "EventosPersonalizados" y
+// "FormasPersonalizadas" (públicas por gviz); si no se pueden leer, se deduce del valor.
+// ══════════════════════════════════════════════════════════════════
+var _nombresExtraPromesa = null;
+
+function _leerNombresExtra() {
+    if (_nombresExtraPromesa) return _nombresExtraPromesa;
+    var leer = function(pestana) {
+        var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(pestana);
+        return fetch(url).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function(t) {
+                var filas = parsearCSV(t), mapa = {};
+                // Si la pestaña no existe, gviz devuelve la primera hoja: se ignora si no trae el encabezado esperado
+                if (!filas.length || String(filas[0][0] || '').trim().toLowerCase() !== 'valor') return mapa;
+                for (var i = 1; i < filas.length; i++) {
+                    var v = String(filas[i][0] || '').trim().toLowerCase(), n = String(filas[i][1] || '').trim();
+                    if (v && n) mapa[v] = n;
+                }
+                return mapa;
+            }).catch(function() { return {}; });
+    };
+    _nombresExtraPromesa = Promise.all([leer('EventosPersonalizados'), leer('FormasPersonalizadas')])
+        .then(function(m) { return { eventos: m[0], formas: m[1] }; });
+    return _nombresExtraPromesa;
+}
+
+function _construirFiltrosDinamicos() {
+    var contEvento = document.getElementById('eventoCarrusel');
+    var panelForma = document.getElementById('panelFormaCarrusel');
+    var contForma = panelForma ? panelForma.querySelector('.btn-forma-carrusel') : null;
+    contForma = contForma ? contForma.parentNode : null;
+    if (!contEvento && !contForma) return;
+
+    var eventosUsados = [], formasUsadas = [];
+    (listaProductos || []).forEach(function(p) {
+        String(p.eventos || '').split(/\s+/).forEach(function(v) {
+            v = _slugEvento(v);
+            if (v && v !== 'religioso' && eventosUsados.indexOf(v) === -1) eventosUsados.push(v);
+        });
+        String(p.forma || '').split('|').forEach(function(k) {
+            if (k && formasUsadas.indexOf(k) === -1) formasUsadas.push(k);
+        });
+    });
+
+    _leerNombresExtra().then(function(nombres) {
+        if (contEvento) {
+            contEvento.querySelectorAll('.btn-filtro-dinamico').forEach(function(b) { b.remove(); });
+            var fijosEv = [];
+            contEvento.querySelectorAll('[data-evento]').forEach(function(b) { fijosEv.push(_slugEvento(b.getAttribute('data-evento'))); });
+            eventosUsados.forEach(function(slug) {
+                if (fijosEv.indexOf(slug) !== -1) return;
+                var b = document.createElement('button');
+                b.className = 'btn-evento-carrusel btn-filtro-dinamico';
+                b.setAttribute('data-evento', slug);
+                b.textContent = '🎉 ' + (nombres.eventos[slug] || _nombreDesdeValor(slug));
+                b.onclick = function() { filtrarPorEventoCarrusel(b, slug); };
+                contEvento.appendChild(b);
+            });
+            if (typeof actualizarGradienteEvento === 'function') actualizarGradienteEvento(contEvento);
+        }
+        if (contForma) {
+            contForma.querySelectorAll('.btn-filtro-dinamico').forEach(function(b) { b.remove(); });
+            var fijasFo = [];
+            contForma.querySelectorAll('[data-forma]').forEach(function(b) { fijasFo.push(b.getAttribute('data-forma')); });
+            // nombres.formas viene indexado por el valor guardado ("porta jabones"); se busca por clave canónica
+            var nombrePorClave = {};
+            Object.keys(nombres.formas).forEach(function(v) { nombrePorClave[_formaCanonica(v)] = nombres.formas[v]; });
+            formasUsadas.forEach(function(clave) {
+                if (fijasFo.indexOf(clave) !== -1) return;
+                var b = document.createElement('button');
+                b.className = 'btn-evento-carrusel btn-forma-carrusel btn-filtro-dinamico';
+                b.setAttribute('data-forma', clave);
+                b.textContent = '🧩 ' + (nombrePorClave[clave] || _nombreDesdeValor(clave));
+                b.onclick = function() { seleccionarFormaCarrusel(b, clave); };
+                contForma.appendChild(b);
+            });
+        }
+    });
+}
+document.addEventListener('catalogoCargado', _construirFiltrosDinamicos);
 
 // ══════════════════════════════════════════════════════════════════
 // PANEL BUSCA POR EVENTO — colapsar / expandir

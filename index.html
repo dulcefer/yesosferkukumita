@@ -2223,7 +2223,16 @@
                 <button type="button" class="sap-chip" data-valor="apertura-de-negocio" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏪 Apertura de negocio</button>
                 <button type="button" class="sap-chip" data-valor="condolencias" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🤍 Condolencias</button>
             </div>
-            <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja.</p>
+            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaExtra('evento')">➕ Crear etiqueta de evento</button>
+            <div id="sapNuevoEventoPanel" style="display:none;">
+                <label class="panel-nombre-label" for="inputNuevoEvento">Nombre de la nueva etiqueta</label>
+                <div class="sap-fila-titulo">
+                    <input id="inputNuevoEvento" class="panel-nombre-input" type="text" maxlength="30" autocomplete="off" placeholder="Ej. Día del Maestro" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();crearEtiquetaExtra('evento');}">
+                    <button class="panel-nombre-btn guardar" id="btnCrearEvento" type="button" onclick="crearEtiquetaExtra('evento')">✔ Crear</button>
+                </div>
+                <div id="sapNuevoEventoEstado" class="sap-estado"></div>
+            </div>
+            <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja. Las etiquetas nuevas quedan guardadas y su botón de filtro aparece solo en "Busca por Evento".</p>
             </div><!-- /sap-zona-evento -->
 
             <div class="sap-zona sap-zona-forma">
@@ -2237,7 +2246,16 @@
                 <button type="button" class="sap-chip" data-valor="porta velas" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🕯️ Porta Velas</button>
                 <button type="button" class="sap-chip" data-valor="porta inciensos" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🪔 Porta Inciensos</button>
             </div>
-            <p class="sap-nota">Opcional. Puedes elegir varias. Se guarda en la columna M de la hoja y es la que usa el filtro "Filtrar por Forma".</p>
+            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaExtra('forma')">➕ Crear etiqueta de forma</button>
+            <div id="sapNuevaFormaPanel" style="display:none;">
+                <label class="panel-nombre-label" for="inputNuevaForma">Nombre de la nueva etiqueta</label>
+                <div class="sap-fila-titulo">
+                    <input id="inputNuevaForma" class="panel-nombre-input" type="text" maxlength="30" autocomplete="off" placeholder="Ej. Tazones" enterkeyhint="done" onkeydown="if(event.key==='Enter'){event.preventDefault();crearEtiquetaExtra('forma');}">
+                    <button class="panel-nombre-btn guardar" id="btnCrearForma" type="button" onclick="crearEtiquetaExtra('forma')">✔ Crear</button>
+                </div>
+                <div id="sapNuevaFormaEstado" class="sap-estado"></div>
+            </div>
+            <p class="sap-nota">Opcional. Puedes elegir varias. Se guarda en la columna M de la hoja y es la que usa el filtro "Filtrar por Forma". Las etiquetas nuevas quedan guardadas y su botón de filtro aparece solo.</p>
             </div><!-- /sap-zona-forma -->
 
             
@@ -2299,8 +2317,8 @@
 </div>
 
     <!-- JavaScript externo -->
-    <script src="config.js?v=1"></script>
-    <script src="app.js?v=5"></script>
+    <script src="config.js?v=2"></script>
+    <script src="app.js?v=6"></script>
     <script src="editor-imagen.js?v=2"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
