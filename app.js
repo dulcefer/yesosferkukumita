@@ -2316,65 +2316,10 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             .replace(/[\u0300-\u036f]/g, '');
     }
 
-    // Palabras pequeñas que no deben usarse como criterio de búsqueda
-    var STOPWORDS = new Set([
-        'de','del','la','las','el','los','un','una','unos','unas',
-        'y','e','o','u','a','en','con','por','para','que','se',
-        'es','son','su','sus','al','lo','le','les','no','si'
-    ]);
-
-    // Sinónimos y variantes ortográficas: cada grupo agrupa palabras equivalentes.
-    // Si el query contiene cualquiera de ellas, se buscan TODAS en el texto.
-    var SINONIMOS = [
-        ['tazon','tason','tazones','tasones','bowl','tazón','tasón'],
-        ['virgen','virjen','birgen','birjen','virgin'],
-        ['elefante','elefantes'],
-        ['arreglo','arreglos'],
-        ['vela','velas'],
-        ['figura','figuras'],
-        ['flores','flor'],
-    ];
-
-    // Dada una palabra normalizada, devuelve el grupo de variantes al que pertenece (o [la misma palabra])
-    function expandirVariantes(palabra) {
-        for (var i = 0; i < SINONIMOS.length; i++) {
-            if (SINONIMOS[i].indexOf(palabra) !== -1) {
-                return SINONIMOS[i];
-            }
-        }
-        return [palabra];
-    }
-
-    // Divide el query en palabras significativas (sin stopwords, mínimo 2 chars)
-    function palabrasBusqueda(query) {
-        return normalizarTexto(query)
-            .split(/\s+/)
-            .filter(function(p) { return p.length >= 2 && !STOPWORDS.has(p); });
-    }
-
-    // Devuelve true si TODAS las palabras significativas del query aparecen
-    // en alguna parte del texto (nombre + tipo + subtags del producto).
-    // Tolerancia: acepta variantes ortográficas y sinónimos definidos en SINONIMOS.
+    // La búsqueda por texto (plurales, sinónimos, errores de dedo) vive en _busquedaCoincide().
     function coincideNombre(nombreCard, query, card) {
         if (!query || !query.trim()) return true;
-
-        // Construir texto completo del producto para buscar
-        var textoCompleto = normalizarTexto(nombreCard);
-        if (card) {
-            var tipos    = normalizarTexto(card.getAttribute('data-tipos')   || '');
-            var subtags  = normalizarTexto(card.getAttribute('data-subtags') || '');
-            var tipo     = normalizarTexto(card.getAttribute('data-tipo')    || '');
-            textoCompleto += ' ' + tipos + ' ' + subtags + ' ' + tipo;
-        }
-
-        var palabras = palabrasBusqueda(query);
-        if (palabras.length === 0) return true; // solo stopwords → mostrar todo
-
-        return palabras.every(function(p) {
-            var variantes = expandirVariantes(p);
-            // Coincide si alguna variante aparece como substring en el texto completo
-            return variantes.some(function(v) { return textoCompleto.includes(v); });
-        });
+        return _busquedaCoincide(_datosBusquedaCard(nombreCard, card), query);
     }
     // ────────────────────────────────────────────────────────────────────────
 
@@ -3150,37 +3095,228 @@ function mostrarSugerenciasDrawer() {
     var prods = obtenerProductosDrawer().slice(0, 3);
     renderizarResultadosDrawer(prods, 'Productos destacados');
 }
+// ═══════════════════════════════════════════════════════════════════
+// BÚSQUEDA TOLERANTE (barra de búsqueda, paneles y menú lateral usan este mismo motor)
+// Entiende: plurales y singulares (tazones↔tazon, macetas↔maceta, bases↔base), tildes,
+// palabras juntas o separadas (portavelas↔porta velas), sinónimos y errores de dedo
+// leves (maseta, tason, alajero). Para agregar sinónimos edita _SINONIMOS_BUSQUEDA
+// (escribe cada palabra en singular y sin tildes; los plurales se entienden solos).
+// ═══════════════════════════════════════════════════════════════════
+var _SINONIMOS_BUSQUEDA = [
+    ['tazon', 'tason', 'bowl', 'cuenco'],
+    ['maceta', 'macetero', 'macetita'],
+    ['alhajero', 'alajero', 'joyero'],
+    ['portavela', 'candelero', 'candelabro'],
+    ['portaincienso', 'incensario', 'sahumerio'],
+    ['virgen', 'virjen', 'birgen', 'birjen', 'virgin'],
+    ['flor', 'flores']
+];
+
+var _STOPWORDS_BUSQUEDA = {};
+('de del la las el los un una unos unas y e o u a en con por para que se es son su sus al lo le les no si')
+    .split(' ').forEach(function(w) { _STOPWORDS_BUSQUEDA[w] = 1; });
+
+function _normBusqueda(str) {
+    return String(str == null ? '' : str).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Posibles formas singular/plural de una palabra (ya sin tildes), la original primero.
+function _raicesBusqueda(p) {
+    var r = [p];
+    var add = function(x) { if (x.length >= 3 && r.indexOf(x) === -1) r.push(x); };
+    if (p.length > 3) {
+        if (/ces$/.test(p)) add(p.slice(0, -3) + 'z');                      // luces → luz
+        if (p.length > 5 && /[^aeious]es$/.test(p)) add(p.slice(0, -2));    // tazones → tazon, flores → flor
+        if (/s$/.test(p)) add(p.slice(0, -1));                              // macetas → maceta, bases → base
+        if (/z$/.test(p)) add(p.slice(0, -1) + 'ces');                      // luz → luces
+    }
+    return r;
+}
+
+var _GRUPOS_BUSQUEDA_IDX = null;
+// La palabra, sus singulares/plurales y todo su grupo de sinónimos (con sus singulares/plurales).
+function _variantesBusqueda(p) {
+    if (!_GRUPOS_BUSQUEDA_IDX) {
+        _GRUPOS_BUSQUEDA_IDX = {};
+        _SINONIMOS_BUSQUEDA.forEach(function(grupo, i) {
+            grupo.forEach(function(m) {
+                _raicesBusqueda(_normBusqueda(m)).forEach(function(x) {
+                    if (_GRUPOS_BUSQUEDA_IDX[x] === undefined) _GRUPOS_BUSQUEDA_IDX[x] = i;
+                });
+            });
+        });
+    }
+    var raices = _raicesBusqueda(p), salida = raices.slice();
+    raices.forEach(function(r) {
+        var g = _GRUPOS_BUSQUEDA_IDX[r];
+        if (g === undefined) return;
+        _SINONIMOS_BUSQUEDA[g].forEach(function(m) {
+            _raicesBusqueda(_normBusqueda(m)).forEach(function(x) { if (salida.indexOf(x) === -1) salida.push(x); });
+        });
+    });
+    return salida;
+}
+
+// Distancia de edición (Levenshtein) con corte: devuelve max+1 si ya se pasó de max.
+function _distanciaCorta(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    var prev = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+        cur = [i];
+        var minFila = i;
+        for (j = 1; j <= b.length; j++) {
+            var costo = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + costo);
+            if (cur[j] < minFila) minFila = cur[j];
+        }
+        if (minFila > max) return max + 1;
+        prev = cur;
+    }
+    return prev[b.length];
+}
+
+// ── BÚSQUEDA GUIADA POR ETIQUETAS ──────────────────────────────────────────────
+// 1) Si la palabra buscada es una ETIQUETA del catálogo (bases, macetas, tazon, figuras, un evento…),
+//    solo salen los productos que la tienen como etiqueta (principal, sub-etiqueta, forma o evento)
+//    o cuyo nombre EMPIEZA con esa palabra. Así "Maceta con Base" sale en "macetas" y no en "bases".
+// 2) Si NO es una etiqueta (elefante, mandala, oso…), se busca por el NOMBRE (y también en las etiquetas).
+// Con varias palabras deben cumplirse todas ("maceta elefante" = etiqueta maceta + nombre elefante).
+// Las etiquetas válidas se leen de las propias tarjetas del catálogo, así que las nuevas funcionan solas.
+
+// Etiqueta → clave compacta sin tildes ni palabras de relleno ("porta inciensos" → "portainciensos")
+function _canonEtiqueta(t) {
+    return _normBusqueda(t).split(/[^a-z0-9]+/).filter(function(w) { return w && !_STOPWORDS_BUSQUEDA[w]; }).join('');
+}
+
+// Datos de una tarjeta para buscar: nombre + todas sus etiquetas (G, sub-etiquetas, forma M, evento H)
+function _datosBusquedaCard(nombre, card) {
+    var tags = [];
+    if (card) {
+        ['data-tipos', 'data-subtags', 'data-forma'].forEach(function(attr) {
+            String(card.getAttribute(attr) || '').split(/[|,]/).forEach(function(t) { tags.push(t); });
+        });
+        tags.push(card.getAttribute('data-tipo') || '');
+        String(card.getAttribute('data-evento') || '').split(/\s+/).forEach(function(t) { tags.push(t); });
+    }
+    return { nombre: nombre || '', etiquetas: tags.filter(function(t) { return String(t).trim(); }) };
+}
+
+var _vocabBusqueda = null, _vocabBusquedaN = -1, _terminosBusquedaCache = null;
+// Vocabulario de etiquetas del catálogo (con sus singulares/plurales), se actualiza si cambian las tarjetas
+function _vocabEtiquetas() {
+    var vivas = document.getElementsByClassName('card-dinamica');
+    if (_vocabBusqueda && _vocabBusquedaN === vivas.length) return _vocabBusqueda;
+    var v = {};
+    for (var i = 0; i < vivas.length; i++) {
+        _datosBusquedaCard('', vivas[i]).etiquetas.forEach(function(t) {
+            var c = _canonEtiqueta(t);
+            if (c.length >= 3) _raicesBusqueda(c).forEach(function(r) { v[r] = 1; });
+        });
+    }
+    _vocabBusqueda = v; _vocabBusquedaN = vivas.length; _terminosBusquedaCache = null;
+    return v;
+}
+document.addEventListener('catalogoCargado', function() { _vocabBusqueda = null; _terminosBusquedaCache = null; });
+
+// ¿La palabra (o palabras pegadas) es una etiqueta del catálogo? Devuelve sus variantes, o null.
+// Tolera sinónimos (joyero → alajeros) y errores de dedo (maseta → macetas).
+function _resolverTermino(term, vocab, permitirDedo) {
+    var vars = _variantesBusqueda(term);
+    if (vars.some(function(x) { return vocab[x]; })) return vars;
+    if (permitirDedo && term.length >= 5) {
+        var claves = Object.keys(vocab).filter(function(k) { return k.length >= 4; });
+        var cands = _raicesBusqueda(term).filter(function(c) { return c.length >= 5; });
+        for (var c = 0; c < cands.length; c++) {
+            var max = cands[c].length >= 8 ? 2 : 1;
+            for (var k = 0; k < claves.length; k++) {
+                if (_distanciaCorta(cands[c], claves[k], max) <= max) return _variantesBusqueda(claves[k]);
+            }
+        }
+    }
+    return null;
+}
+
+// Divide la búsqueda en términos: etiquetas (también de 2-3 palabras pegadas: "porta velas") y palabras de nombre
+function _terminosDeBusqueda(palabras) {
+    var vocab = _vocabEtiquetas(), clave = palabras.join(' ');
+    if (_terminosBusquedaCache && _terminosBusquedaCache.clave === clave && _terminosBusquedaCache.vocab === vocab) {
+        return _terminosBusquedaCache.terminos;
+    }
+    var terminos = [], i = 0;
+    while (i < palabras.length) {
+        var hecho = false;
+        for (var len = Math.min(3, palabras.length - i); len >= 1 && !hecho; len--) {
+            var term = palabras.slice(i, i + len).join('');
+            var vars = _resolverTermino(term, vocab, len === 1); // varias palabras pegadas: solo coincidencia exacta
+            if (vars) { terminos.push({ cat: true, vars: vars, multi: len > 1 }); i += len; hecho = true; }
+        }
+        if (!hecho) { terminos.push({ cat: false, palabra: palabras[i], vars: _variantesBusqueda(palabras[i]) }); i++; }
+    }
+    _terminosBusquedaCache = { clave: clave, vocab: vocab, terminos: terminos };
+    return terminos;
+}
+
+function _primeraPalabraNombre(nombre) {
+    var m = _normBusqueda(nombre).match(/[a-z0-9]+/);
+    return m ? m[0] : '';
+}
+
+// Término-etiqueta: ¿el producto lo tiene como etiqueta, o su nombre EMPIEZA con esa palabra?
+function _cardTieneCategoria(datos, t) {
+    var i;
+    for (i = 0; i < datos.etiquetas.length; i++) {
+        var rs = _raicesBusqueda(_canonEtiqueta(datos.etiquetas[i]));
+        if (rs.some(function(r) { return t.vars.indexOf(r) !== -1; })) return true;
+    }
+    var pw = _primeraPalabraNombre(datos.nombre);
+    if (pw && _raicesBusqueda(pw).some(function(r) { return t.vars.indexOf(r) !== -1; })) return true;
+    // Frase o palabra compuesta ("porta velas" / "portavelas"): vale si el nombre la contiene completa
+    var comp = _normBusqueda(datos.nombre).replace(/[^a-z0-9]/g, '');
+    return t.vars.some(function(v) { return v.length >= (t.multi ? 6 : 8) && comp.indexOf(v) !== -1; });
+}
+
+// ¿Cumple el producto con TODOS los términos de la búsqueda?
+function _busquedaCoincide(datos, query) {
+    var palabras = _normBusqueda(query).split(/\s+/).filter(function(p) { return p.length >= 2 && !_STOPWORDS_BUSQUEDA[p]; });
+    if (!palabras.length) return true; // vacío o solo palabras de relleno → mostrar todo
+    var terminos = _terminosDeBusqueda(palabras);
+    var texto = null, compacto = '', tokens = null;
+    return terminos.every(function(t) {
+        if (t.cat) return _cardTieneCategoria(datos, t);
+        if (texto === null) {
+            texto = _normBusqueda(datos.nombre + ' ' + datos.etiquetas.join(' '));
+            compacto = texto.replace(/[^a-z0-9]/g, '');   // "porta velas" → "portavelas"
+        }
+        if (tokens === null) tokens = texto.split(/[^a-z0-9]+/).filter(Boolean);
+        for (var i = 0; i < t.vars.length; i++) {
+            // La palabra buscada debe ser el INICIO de alguna palabra del producto: "oso" no coincide con "religioso"
+            for (var w = 0; w < tokens.length; w++) { if (tokens[w].indexOf(t.vars[i]) === 0) return true; }
+            if (t.vars[i].length >= 8 && compacto.indexOf(t.vars[i]) !== -1) return true; // palabras compuestas
+        }
+        if (t.palabra.length < 5) return false; // palabras cortas: solo coincidencia exacta
+        // Errores de dedo: 1 letra de diferencia (2 si la palabra es larga)
+        var candidatas = _raicesBusqueda(t.palabra).filter(function(c) { return c.length >= 5; });
+        for (var c = 0; c < candidatas.length; c++) {
+            var max = candidatas[c].length >= 8 ? 2 : 1;
+            for (var k = 0; k < tokens.length; k++) {
+                if (tokens[k].length < 4) continue;
+                var rt = _raicesBusqueda(tokens[k]);
+                for (var r = 0; r < rt.length; r++) {
+                    if (_distanciaCorta(candidatas[c], rt[r], max) <= max) return true;
+                }
+            }
+        }
+        return false;
+    });
+}
+
 function _normDrawer(str) {
     return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
-// Sinónimos para la búsqueda del drawer (misma tabla que coincideNombre)
-var _SINONIMOS_DRAWER = [
-    ['tazon','tason','tazones','tasones','bowl','tazón','tasón'],
-    ['virgen','virjen','birgen','birjen','virgin'],
-    ['elefante','elefantes'],
-    ['arreglo','arreglos'],
-    ['vela','velas'],
-    ['figura','figuras'],
-    ['flores','flor'],
-];
-function _expandirDrawer(palabra) {
-    for (var i = 0; i < _SINONIMOS_DRAWER.length; i++) {
-        if (_SINONIMOS_DRAWER[i].indexOf(palabra) !== -1) return _SINONIMOS_DRAWER[i];
-    }
-    return [palabra];
-}
 function _coincideDrawer(nombre, query, card) {
-    var texto = _normDrawer(nombre);
-    if (card) {
-        texto += ' ' + _normDrawer(card.getAttribute('data-tipos') || '');
-        texto += ' ' + _normDrawer(card.getAttribute('data-subtags') || '');
-    }
-    var palabras = _normDrawer(query).split(/\s+/).filter(function(p){ return p.length >= 2; });
-    if (!palabras.length) return true;
-    return palabras.every(function(p) {
-        return _expandirDrawer(p).some(function(v){ return texto.includes(v); });
-    });
+    return _busquedaCoincide(_datosBusquedaCard(nombre, card), query);
 }
 
 function ejecutarBusquedaDrawer() {
