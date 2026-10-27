@@ -2055,6 +2055,13 @@
                 <span class="sap-agregar-imagen-icono">🖼️</span>
                 <span class="sap-agregar-imagen-textos"><strong id="sapBtnImagenTitulo">Agregar imagen</strong><small id="sapBtnImagenSub">Se convierte a WebP y se sube a ImgBB</small></span>
             </button>
+            <div class="sap-link-imagen">
+                <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb que ya tengas</label>
+                <input id="inputUrlImagenProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagen()">
+                <div id="sapUrlImagenEstado" class="sap-estado"></div>
+                <img id="previewUrlImagenProducto" src="" alt="Vista previa del link" style="display:none;">
+                <p class="sap-nota">Usa el <strong>enlace directo</strong> de imgbb (empieza con https://i.ibb.co/). Con un link no se usa el editor: la imagen se guarda tal cual está.</p>
+            </div>
             <div id="sapImagenActual" style="display:none;">
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
                 <p class="sap-nota" id="sapImagenActualNota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
@@ -2127,9 +2134,6 @@
 
             <label class="panel-nombre-label" for="inputDescripcionProducto">Descripción</label>
             <textarea id="inputDescripcionProducto" class="panel-nombre-input" rows="3" maxlength="500" placeholder="Opcional"></textarea>
-
-            <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb (sin editor)</label>
-            <input id="inputUrlImagenProducto" class="panel-nombre-input" type="url" placeholder="https://i.ibb.co/...">
 
           <div class="sap-seccion-titulo">Video</div>
             <label class="panel-nombre-label" for="inputVideoProducto">▶ Link de YouTube (opcional)</label>

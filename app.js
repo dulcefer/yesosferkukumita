@@ -3830,6 +3830,79 @@ async function confirmarEliminarProducto() {
 // Compatibilidad con llamadas anteriores
 function toggleFormularioAgregarProducto() { cerrarSubmenuAgregarProducto(); }
 
+// ── Link directo de imgbb como imagen principal (alternativa a elegir un archivo) ──
+// Acepta el link directo, o el código HTML/BBCode/Markdown de imgbb: de ahí saca solo el link.
+var _RE_IMGBB_DIRECTO = /https:\/\/i\.ibb\.co\/[^\s,"'<>\[\]()]+/i;
+
+function _extraerUrlImgbb(texto) {
+    var m = String(texto || '').match(_RE_IMGBB_DIRECTO);
+    return m ? m[0] : '';
+}
+
+function _estadoUrlImagen(txt, error) {
+    var e = document.getElementById('sapUrlImagenEstado');
+    if (!e) return;
+    e.textContent = txt || '';
+    e.classList.toggle('error', !!error);
+}
+
+function alCambiarUrlImagen() {
+    var input = document.getElementById('inputUrlImagenProducto');
+    var prev = document.getElementById('previewUrlImagenProducto');
+    if (!input) return;
+    var crudo = input.value.trim();
+
+    if (crudo === '') {
+        _estadoUrlImagen('');
+        if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+        _renderExtrasProducto();
+        validarFormularioProducto();
+        return;
+    }
+
+    var url = _extraerUrlImgbb(crudo);
+    if (!url) {
+        if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+        var esPagina = /^https?:\/\/(www\.)?ibb\.co\//i.test(crudo);
+        _estadoUrlImagen(esPagina
+            ? 'Ese es el link de la página. En imgbb copia el "Enlace directo" (https://i.ibb.co/...).'
+            : 'El link debe ser de imgbb y empezar con https://i.ibb.co/', true);
+        _renderExtrasProducto();
+        return;
+    }
+
+    // Si pegó código embed, se deja solo el link limpio
+    if (url !== crudo) input.value = url;
+
+    // El link reemplaza cualquier foto elegida del dispositivo (para que no se suban las dos)
+    if (_principalElegida || _imagenProductoSeleccionada) {
+        if (window.editorImagenProducto) window.editorImagenProducto.reset();
+        _imagenProductoSeleccionada = null;
+        _principalElegida = false;
+        var pf = document.getElementById('previewImagenProducto');
+        if (pf) { pf.style.display = 'none'; pf.src = ''; }
+    }
+
+    _estadoUrlImagen('Cargando vista previa…');
+    if (prev) {
+        prev.onload = function() { _estadoUrlImagen('✔ Imagen lista. Se usará este link como imagen principal.'); };
+        prev.onerror = function() { prev.style.display = 'none'; _estadoUrlImagen('No se pudo cargar la imagen. Revisa que el link sea correcto.', true); };
+        prev.src = url;
+        prev.style.display = 'block';
+    }
+    _renderExtrasProducto();
+    validarFormularioProducto();
+}
+
+// Limpia el campo de link (al elegir un archivo, o al reiniciar el formulario)
+function _limpiarUrlImagen() {
+    var input = document.getElementById('inputUrlImagenProducto');
+    if (input) input.value = '';
+    var prev = document.getElementById('previewUrlImagenProducto');
+    if (prev) { prev.style.display = 'none'; prev.removeAttribute('src'); }
+    _estadoUrlImagen('');
+}
+
 function elegirImagenProducto() {
     var input = document.getElementById('inputImagenProducto');
     if (!input) return;
@@ -3841,6 +3914,7 @@ function elegirImagenProducto() {
 // ¿El producto ya tiene (o ya se eligió) una imagen principal?
 function _hayImagenPrincipal() {
     if (_principalElegida) return true;
+    if (_extraerUrlImgbb(_campoProducto('inputUrlImagenProducto'))) return true;
     return !!(_edicionProducto && _edicionProducto.imagenes && _edicionProducto.imagenes[0] && !_quitarImagenPrincipal);
 }
 
@@ -3954,6 +4028,7 @@ function limpiarFormularioProducto() {
     });
     _imagenProductoSeleccionada = null;
     _quitarImagenPrincipal = false;
+    _limpiarUrlImagen();
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
@@ -4090,6 +4165,8 @@ async function previsualizarImagenProducto(event) {
     // Si no había, la selección nueva reemplaza a la anterior (principal + adicionales).
     var reemplazando = _hayImagenPrincipal();
     var principalAntes = _principalElegida;
+    var urlAntes = _campoProducto('inputUrlImagenProducto');
+    _limpiarUrlImagen(); // el archivo elegido sustituye al link pegado
     if (!reemplazando) _imagenesExtraProducto = [];
     _principalElegida = true;
 
@@ -4114,6 +4191,7 @@ async function previsualizarImagenProducto(event) {
         }
     } catch (e) {
         _principalElegida = principalAntes; // si falla, se queda la principal que ya había
+        if (urlAntes) { var iu = document.getElementById('inputUrlImagenProducto'); if (iu) { iu.value = urlAntes; alCambiarUrlImagen(); } }
         mostrarToast('No se pudo leer esa imagen.');
     }
     _renderExtrasProducto();
@@ -4232,6 +4310,14 @@ async function guardarProductoAdmin() {
         mostrarToast('Las medidas no son válidas.');
         return;
     }
+    var urlImagen = _campoProducto('inputUrlImagenProducto');
+    if (urlImagen !== '') {
+        urlImagen = _extraerUrlImgbb(urlImagen);
+        if (!urlImagen) {
+            mostrarToast('El link de la imagen debe ser de imgbb (https://i.ibb.co/...).');
+            return;
+        }
+    }
     var video = _campoProducto('inputVideoProducto');
     if (video !== '' && !/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:[^"'\s]*&)?v=|embed\/|shorts\/|live\/))[\w-]{11}/.test(video)) {
         mostrarToast('El video debe ser un link de YouTube.');
@@ -4299,7 +4385,7 @@ async function guardarProductoAdmin() {
                 existencia: existencia,
                 enOferta: _toggleProductoActivo('btnEnOfertaProducto'),
                 masVendido: _toggleProductoActivo('btnMasVendidoProducto'),
-                imagenUrl: _campoProducto('inputUrlImagenProducto'),
+                imagenUrl: urlImagen,
                 imagenBase64: _imagenProductoSeleccionada || '',
                 quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,

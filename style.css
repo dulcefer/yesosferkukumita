@@ -3864,3 +3864,8 @@ body.modo-oscuro .sap-agregar-imagen:active { background: #33291f; }
 body.modo-oscuro .sap-zona .sap-chips { background: #2a2218; border-color: #4a3a2e; }
 body.modo-oscuro .sap-zona .sap-chip { border-color: #3a3028; }
 body.modo-oscuro .sap-zona .sap-chip.activo { background: #e8607a; color: #fff; }
+
+/* Link de imgbb como alternativa al archivo */
+.sap-link-imagen { display: flex; flex-direction: column; gap: 6px; }
+#previewUrlImagenProducto { width: 100%; max-height: 220px; object-fit: cover; border-radius: 10px; }
+@media (min-width: 700px) { #previewUrlImagenProducto { max-height: 300px; } }
