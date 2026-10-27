@@ -56,19 +56,53 @@
         });
     }
 
-    // Recorta los bordes transparentes para poder centrar y escalar bien la pieza
+    // Si una zona suelta mide menos de este % de la pieza principal, se considera "resto" (letras, marcas) y se borra.
+    // Súbelo (ej. 0.08) si siguen quedando restos grandes; bájalo (ej. 0.01) si se borran partes reales de la pieza.
+    var MIN_ZONA_PIEZA = 0.04;
+    var UMBRAL_ALFA = 40;
+
+    // Quita las motas sueltas (texto, marcas de agua) que el modelo dejó fuera de la pieza principal
+    // y recorta los bordes transparentes para poder centrar y escalar bien la pieza.
     function recortar(img) {
-        var w = img.naturalWidth, h = img.naturalHeight;
+        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
         var c = document.createElement('canvas'); c.width = w; c.height = h;
         var g = c.getContext('2d'); g.drawImage(img, 0, 0);
-        var d = g.getImageData(0, 0, w, h).data, x0 = w, y0 = h, x1 = 0, y1 = 0;
-        for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
-            if (d[(y * w + x) * 4 + 3] > 20) {
-                if (x < x0) x0 = x; if (x > x1) x1 = x;
-                if (y < y0) y0 = y; if (y > y1) y1 = y;
+        var im = g.getImageData(0, 0, w, h), d = im.data, n = w * h;
+
+        // Etiquetado de zonas conectadas (8 vecinos) sobre los píxeles visibles
+        var lab = new Int32Array(n), pila = new Int32Array(n), tam = [0], cur = 0;
+        for (var i = 0; i < n; i++) {
+            if (lab[i] || d[i * 4 + 3] <= UMBRAL_ALFA) continue;
+            cur++; var sp = 0, cnt = 0; pila[sp++] = i; lab[i] = cur;
+            while (sp) {
+                var k = pila[--sp]; cnt++;
+                var kx = k % w, ky = (k - kx) / w;
+                for (var dy = -1; dy <= 1; dy++) {
+                    var yy = ky + dy; if (yy < 0 || yy >= h) continue;
+                    for (var dx = -1; dx <= 1; dx++) {
+                        var xx = kx + dx; if (xx < 0 || xx >= w) continue;
+                        var q = yy * w + xx;
+                        if (!lab[q] && d[q * 4 + 3] > UMBRAL_ALFA) { lab[q] = cur; pila[sp++] = q; }
+                    }
+                }
             }
+            tam[cur] = cnt;
+        }
+        if (!cur) return img;
+        var max = 0; for (var z = 1; z <= cur; z++) if (tam[z] > max) max = tam[z];
+        var minPx = max * MIN_ZONA_PIEZA;
+
+        // Borra las zonas pequeñas y mide el recuadro de lo que se queda
+        var x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+            var j = y * w + x, l = lab[j];
+            if (!l) continue;
+            if (tam[l] < minPx) { d[j * 4 + 3] = 0; continue; }
+            if (x < x0) x0 = x; if (x > x1) x1 = x;
+            if (y < y0) y0 = y; if (y > y1) y1 = y;
         }
         if (x1 <= x0 || y1 <= y0) return img;
+        g.putImageData(im, 0, 0);
         var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
         o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
         return o;
