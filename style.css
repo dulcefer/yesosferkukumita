@@ -2169,14 +2169,14 @@
            móvil para que no se desborde, pero sigue notablemente más
            grande que el botón original. */
         #btnYesosKukumita {
-            font-size: 1.15rem !important;
-            padding: 14px 26px !important;
-            gap: 10px !important;
+            font-size: 0.58rem !important;
+            padding: 7px 13px !important;
+            gap: 5px !important;
         }
         #btnYesosKukumita img,
         #btnYesosKukumita span {
-            width: 34px !important;
-            height: 34px !important;
+            width: 17px !important;
+            height: 17px !important;
         }
     }
     @media (max-width: 400px) {
