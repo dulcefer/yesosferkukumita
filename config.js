@@ -9,7 +9,7 @@
 const CONFIG = {
   // URL de despliegue del Apps Script (Code.gs): agregar / configurar / mover / eliminar productos.
   // Termina en /exec.
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzFPjDEsnNOOGeKJOoE7Zpo9_n_MHQvKuJIa0V4Jl9F0SncH06KKGl1WAwD-NGDJFx_1A/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxNS0KPWoAUxpB3017i1rptr-OpaPgwSvB4RB1knPQOhEEEvTfbBNKqm3yJROXjBJMPQw/exec",
 
   // Hoja de cálculo del catálogo de Yesos (pública, se lee como CSV vía gviz).
   SHEET_ID: "1GbAmlu9nHVQipFDeOPK4EBrq-5dZrni9cs5tWJDPGvc",
@@ -19,41 +19,16 @@ const CONFIG = {
   SHEET_ID_ETIQUETAS: "1jin2wMYingvbPD2csGxIbm5AhulfRvCRvIzAKJTUNMw",
   SHEET_NOMBRE_ETIQUETAS: "Hoja 2",
 
-  // ── Pestañas del catálogo de Yesos (misma hoja de cálculo, SHEET_ID) ──
-  // Cada pestaña "Hoja N" = una PÁGINA del catálogo (Hoja 2 → página 2, etc.).
-  // La "Hoja 1" ya no aporta productos propios: la página 1 se arma sola con los
-  // primeros 3 productos de las Hojas 2 a 10 (una fila de 3 por hoja) y, en la fila 10,
-  // los primeros 3 productos de Velas Kukúmita.
-  // Si renombras una pestaña, cambia aquí el prefijo/nombre; si reordenas, cambia el orden.
-  HOJA_PREFIJO: "Hoja ",
-  HOJAS_YESOS: [
-    { num: 2,  titulo: "Figuras de $5" },
-    { num: 3,  titulo: "Bases" },
-    { num: 4,  titulo: "Figuras de $10" },
-    { num: 5,  titulo: "Macetas" },
-    { num: 6,  titulo: "Figuras de $15" },
-    { num: 7,  titulo: "Figuras Religiosas" },
-    { num: 8,  titulo: "Figuras de $20" },
-    { num: 9,  titulo: "Alajeros" },
-    { num: 10, titulo: "Figuras de $25" },
-    { num: 11, titulo: "Figuras de $5 (pág. 2)" },
-    { num: 12, titulo: "Figuras de $30" },
-    { num: 13, titulo: "Figuras de $10 (pág. 2)" },
-    { num: 14, titulo: "Figuras de $15 (pág. 2)" },
-    { num: 15, titulo: "Bases (pág. 2)" },
-    { num: 16, titulo: "Figuras de $20 (pág. 2)" },
-    { num: 17, titulo: "Figuras de $25 (pág. 2)" },
-  ],
-  // Cuántas hojas (empezando por la 2) aportan sus primeros 3 productos a la página 1.
-  // 9 → Hojas 2 a 10 (filas 1 a 9 de la página 1). La fila 10 es siempre Velas Kukúmita.
-  // Máximo de productos que muestra cada hoja (una página).
-  PRODUCTOS_POR_HOJA: 30,
-
-  PORTADA_HOJAS: 9,
+  // ── Paginación del catálogo de Yesos ──
+  // Todos los productos están en UNA sola pestaña (la primera de SHEET_ID), desde la fila 2.
+  // El sitio los reparte en páginas de PRODUCTOS_POR_PAGINA, empezando en la página 2:
+  //   página 2 = productos 1-30, página 3 = productos 31-60, y así sucesivamente.
+  // La página 1 se arma sola: cada fila de 3 muestra los primeros 3 productos de la
+  // página 2, 3, 4… (hasta PORTADA_FILAS filas; si una página no existe, esa fila no aparece)
+  // y la última fila muestra los primeros 3 productos de Velas Kukúmita.
+  PRODUCTOS_POR_PAGINA: 30,
+  PORTADA_FILAS: 9,
   PORTADA_PRODUCTOS_POR_FILA: 3,
-
-  // Botón al final de una página que lleva a su continuación: { página origen: página destino }.
-  PAGINAS_VER_MAS: { 2: 11, 3: 15, 4: 13, 6: 14, 8: 16, 10: 17 },
 
   // Cloudflare Worker para compartir en redes sociales (imagen en Facebook, etc.).
   // Déjalo vacío ("") para desactivarlo.

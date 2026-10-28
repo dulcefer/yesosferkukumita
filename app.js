@@ -806,21 +806,13 @@ function _abrirProductoDesdeURL() {
 
 // CARGA DESDE GOOGLE SHEETS (CSV público)
 // ──────────────────────────────────────────────────────────────────────────────
-// Catálogo de Yesos = pestañas "Hoja 2" … "Hoja 17" de la misma hoja de cálculo
-// (ver HOJAS_YESOS en config.js). Cada pestaña es una página del catálogo.
-// La página 1 se arma con los primeros 3 productos de las Hojas 2-10 + 3 de Velas.
+// Catálogo de Yesos = una sola pestaña, repartida en páginas de 30 desde la página 2
+// (ver PRODUCTOS_POR_PAGINA en config.js).
+// La página 1 se arma con los primeros 3 productos de cada página (2, 3, 4…) + 3 de Velas.
 // ══════════════════════════════════════════════════════════════════════════════
-var HOJAS_YESOS = CONFIG.HOJAS_YESOS || [];
-var HOJA_PREFIJO = CONFIG.HOJA_PREFIJO || 'Hoja ';
-var PORTADA_HOJAS = (typeof CONFIG.PORTADA_HOJAS === 'number') ? CONFIG.PORTADA_HOJAS : 9;
+var PRODUCTOS_POR_PAGINA = CONFIG.PRODUCTOS_POR_PAGINA || 30;
+var PORTADA_FILAS = (typeof CONFIG.PORTADA_FILAS === 'number') ? CONFIG.PORTADA_FILAS : 9;
 var PORTADA_POR_FILA = CONFIG.PORTADA_PRODUCTOS_POR_FILA || 3;
-var PAGINAS_VER_MAS = CONFIG.PAGINAS_VER_MAS || {};
-var PRODUCTOS_POR_HOJA = CONFIG.PRODUCTOS_POR_HOJA || 30;
-
-function _urlHojaYesos(num) {
-    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(HOJA_PREFIJO + num);
-}
 
 // Primeros 3 productos de la Hoja 1 de Velas Kukúmita (fila 10 de la página 1).
 // Si falla, la página 1 simplemente queda sin esa fila (no rompe el resto del catálogo).
@@ -846,82 +838,49 @@ function _cargarVelasPortada() {
 }
 
 function cargarDesdeGoogleSheets() {
+    var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv';
+
     mostrarEstadoCarga('Cargando catálogo desde Google Sheets…', false);
 
-    // Google Sheets NO da error cuando se pide una pestaña que no existe: devuelve la
-    // primera pestaña del archivo. Para reconocer ese caso se descarga también la pestaña
-    // por defecto: si el contenido de "Hoja N" es idéntico, esa pestaña no existe todavía.
-    var peticionDefecto = fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv')
-        .then(function(res) { return res.ok ? res.text() : null; })
-        .catch(function() { return null; });
-
-    var peticionesHojas = HOJAS_YESOS.map(function(h) {
-        return fetch(_urlHojaYesos(h.num))
-            .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
-            .then(function(texto) { return { num: h.num, texto: texto, error: false }; })
-            .catch(function(err) {
-                console.error('Error cargando "' + HOJA_PREFIJO + h.num + '":', err);
-                return { num: h.num, texto: '', error: true };
-            });
+    var peticionYesos = fetch(csvUrl).then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
     });
 
-    Promise.all([Promise.all(peticionesHojas), _cargarVelasPortada(), peticionDefecto])
+    Promise.all([peticionYesos, _cargarVelasPortada()])
         .then(function(resultado) {
-            var crudas = resultado[0];
+            var filas = parsearCSV(resultado[0]);
             var velas = resultado[1];
-            var textoDefecto = resultado[2];
+            var productos = csvAProductosYesos(filas);
 
-            var hojas = crudas.map(function(r) {
-                var productos = [];
-                var noExiste = false;
-                if (!r.error && r.texto) {
-                    if (textoDefecto && r.texto.trim() === textoDefecto.trim()) {
-                        noExiste = true;   // devolvió la pestaña por defecto → la pestaña no existe
-                    } else {
-                        // Cada hoja muestra como máximo PRODUCTOS_POR_HOJA productos (los primeros, en orden)
-                        productos = csvAProductosYesos(parsearCSV(r.texto), r.num).slice(0, PRODUCTOS_POR_HOJA);
-                        productos.forEach(function(p) { p._pagina = r.num; });
-                    }
-                }
-                return { num: r.num, productos: productos, error: r.error, noExiste: noExiste };
-            });
-
-            // Una hoja de continuación ("pág. 2") solo se crea cuando su hoja de origen ya
-            // está llena (30 productos). Mientras tanto no existe esa página.
-            Object.keys(PAGINAS_VER_MAS).forEach(function(origen) {
-                var hOrigen = hojas.filter(function(h) { return h.num === Number(origen); })[0];
-                var hDestino = hojas.filter(function(h) { return h.num === PAGINAS_VER_MAS[origen]; })[0];
-                if (hDestino && (!hOrigen || hOrigen.productos.length < PRODUCTOS_POR_HOJA)) {
-                    if (hDestino.productos.length) console.warn('Hoja ' + hDestino.num + ' no se muestra: la Hoja ' + origen + ' aún no tiene ' + PRODUCTOS_POR_HOJA + ' productos.');
-                    hDestino.productos = [];
-                    hDestino.oculta = true;
-                }
-            });
-
-            // ── PÁGINA 1: primeros 3 productos de las Hojas 2..10 (una fila de 3 por hoja) ──
-            // Son COPIAS de los productos reales (que siguen en su propia página).
-            var portada = [];
-            hojas.slice(0, PORTADA_HOJAS).forEach(function(h) {
-                h.productos.slice(0, PORTADA_POR_FILA).forEach(function(p) {
-                    var copia = Object.assign({}, p);
-                    copia._pagina = 1;
-                    copia._portada = true;
-                    portada.push(copia);
-                });
-            });
-
-            // ── PÁGINAS 2..17: todos los productos de cada hoja, en el orden de la hoja ──
-            var resto = [];
-            hojas.forEach(function(h) { resto = resto.concat(h.productos); });
-
-            var productos = portada.concat(velas, resto);
-
-            if (resto.length === 0) {
-                mostrarEstadoCarga('Todavía no hay productos en las pestañas "Hoja 2" a "Hoja 17" (o no se pudieron leer). Revisa que existan con esos nombres y que la hoja sea pública.', true);
+            if (productos.length === 0) {
+                mostrarEstadoCarga('La hoja está vacía o no tiene el formato correcto.', true);
                 return;
             }
 
-            listaProductos = productos;
+            // ── Reparto en páginas: de PRODUCTOS_POR_PAGINA en PRODUCTOS_POR_PAGINA, desde la página 2 ──
+            // (la página 1 es la portada). Una página nueva solo existe si hay productos para ella.
+            productos.forEach(function(p, idx) {
+                p._pagina = 2 + Math.floor(idx / PRODUCTOS_POR_PAGINA);
+            });
+            var totalPaginasProductos = 1 + Math.ceil(productos.length / PRODUCTOS_POR_PAGINA); // incluye la portada
+
+            // ── PÁGINA 1: una fila de 3 por cada página 2, 3, 4… (máx. PORTADA_FILAS filas) ──
+            // Son COPIAS: cada producto sigue completo en su propia página.
+            var portada = [];
+            for (var pag = 2; pag <= totalPaginasProductos && (pag - 1) <= PORTADA_FILAS; pag++) {
+                productos.filter(function(p) { return p._pagina === pag; })
+                    .slice(0, PORTADA_POR_FILA)
+                    .forEach(function(p) {
+                        var copia = Object.assign({}, p);
+                        copia._pagina = 1;
+                        copia._portada = true;
+                        portada.push(copia);
+                    });
+            }
+
+            // Orden en el grid: portada (filas de Yesos + fila de Velas) y luego las páginas 2, 3, 4…
+            listaProductos = portada.concat(velas, productos);
             renderizarCatalogoCompleto();
 
             if (typeof syncBotonesLike === 'function') syncBotonesLike();
@@ -933,12 +892,11 @@ function cargarDesdeGoogleSheets() {
                 setTimeout(function() { window.refrescarCarruseles(); }, 50);
             }
 
+            // ── Leer ?producto= de la URL y abrir ese modal automáticamente ──
             _abrirProductoDesdeURL();
 
-            console.group('[Kukumita] Catalogo cargado — ' + listaProductos.length + ' productos');
-            hojas.forEach(function(h) {
-                console.log('Hoja ' + h.num + ': ' + h.productos.length + ' productos' + (h.error ? ' (ERROR al leer la pestaña)' : '') + (h.noExiste ? ' (la pestaña no existe todavía)' : '') + (h.oculta ? ' (oculta hasta que su hoja de origen tenga ' + PRODUCTOS_POR_HOJA + ')' : ''));
-            });
+            console.group('[Kukumita] Catalogo cargado — ' + productos.length + ' productos de Yesos');
+            console.log('Páginas de productos: 2 a ' + totalPaginasProductos + ' (' + PRODUCTOS_POR_PAGINA + ' por página)');
             console.log('Página 1: ' + (portada.length + velas.length) + ' tarjetas (' + portada.length + ' de Yesos + ' + velas.length + ' de Velas)');
             console.groupEnd();
         })
@@ -1200,8 +1158,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
     function tituloPagina(num) {
         if (num === 1) return 'Lo mejor de cada categoría';
-        var h = (typeof HOJAS_YESOS !== 'undefined' ? HOJAS_YESOS : []).filter(function(x) { return x.num === num; })[0];
-        return h ? h.titulo : '';
+        return '';
     }
 
     function calcularTotalPaginas() {
@@ -1241,7 +1198,6 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             });
         }
         renderControles();
-        actualizarBotonVerMas();
         insertarBarrasCategoriaProductos();
         if (_scrollAlCambiarPagina) {
             var grid = document.getElementById('gridProductos');
@@ -1255,29 +1211,6 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
     function irAPagina(n) {
         _scrollAlCambiarPagina = true; mostrarPagina(n); _scrollAlCambiarPagina = false;
-    }
-
-    // Botón "Ver más …" al final de las páginas que tienen continuación (ver PAGINAS_VER_MAS en config.js)
-    function actualizarBotonVerMas() {
-        var wrap = document.getElementById('pagControlesAbajo');
-        if (!wrap || !wrap.parentNode) return;
-        var btn = document.getElementById('btnVerMasPagina');
-        var destino = (modoEstructurado && typeof PAGINAS_VER_MAS !== 'undefined') ? PAGINAS_VER_MAS[paginaActual] : null;
-        if (!destino || listaPaginas.indexOf(destino) === -1) {
-            if (btn) btn.style.display = 'none';
-            return;
-        }
-        if (!btn) {
-            btn = document.createElement('button');
-            btn.id = 'btnVerMasPagina';
-            btn.type = 'button';
-            btn.style.cssText = 'display:block; margin:18px auto 6px; padding:12px 26px; border:2px solid #8c7565; border-radius:999px; background:#8c7565; color:#fff; font-size:1rem; font-weight:700; font-family:inherit; cursor:pointer; max-width:92%;';
-            wrap.parentNode.insertBefore(btn, wrap);
-        }
-        var nombreDestino = tituloPagina(destino);
-        btn.textContent = 'Ver más ' + (nombreDestino || ('página ' + destino)) + ' →';
-        btn.onclick = function() { irAPagina(destino); };
-        btn.style.display = 'block';
     }
 
     function renderControles() {
@@ -3725,7 +3658,7 @@ function _aplicarModoFormulario() {
     var editando = !!_edicionProducto;
     var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
     set('sapTitulo', editando ? 'Configurar producto' : 'Agregar producto');
-    set('sapDestino', editando ? 'Hoja ' + (_edicionProducto && _edicionProducto.hoja ? _edicionProducto.hoja : '?') + ' · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Elige la hoja · columnas A–M');
+    set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–M');
     set('sapNotaFinal', editando
         ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva ni eliminas la imagen, se conserva la actual. Para cambiarlo de fila usa el número # del producto.'
         : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
@@ -5136,7 +5069,6 @@ async function guardarProductoAdmin() {
         var resultado = await _postAppsScript({
                 idToken: idToken,
                 accion: editando ? 'editar' : 'agregar',
-                hoja: editando ? _edicionProducto.hoja : (parseInt(_campoProducto('inputHojaProducto'), 10) || undefined),
                 fila: editando ? _edicionProducto.fila : undefined,
                 nombreOriginal: editando ? _edicionProducto.nombre : undefined, // el servidor comprueba que la fila siga siendo este producto
                 filaDestino: editando ? undefined : filaDestino,
