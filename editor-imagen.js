@@ -243,6 +243,166 @@
         if (e) { e.textContent = t || ''; e.className = 'sap-estado' + (error ? ' error' : ''); }
     }
 
+
+    // ══════════════════════════════════════════════════════════════
+    // REFINADO DEL RECORTE (piezas blancas sostenidas con la mano)
+    // El modelo recorta bien la forma, pero suele dejar dedos, hilos de colores y manchas.
+    // Aquí se limpia usando el color: la pieza (yeso) es casi gris/blanca (saturación ~0.02-0.05)
+    // y la piel, el hilo o los objetos de colores tienen mucha más saturación.
+    // ══════════════════════════════════════════════════════════════
+    var REFINAR_RECORTE = true;   // false = usar el recorte del modelo tal cual
+    var SAT_MARGEN = 0.07;        // cuánto más saturado que la pieza debe ser un píxel para considerarlo "mano/color"
+    var SAT_MIN = 0.10, SAT_MAX = 0.16; // límites del umbral de saturación
+    var CROMA_MIN = 21;           // diferencia mínima (0-255) entre canales para contarlo como color (evita confundir sombras grises)
+    var PIEZA_MAX_SAT = 0.10;     // si la pieza misma es más colorida que esto, NO se quita nada por color (piezas pintadas)
+    var MIN_CONSERVAR = 0.40;     // si el refinado deja menos de este % del recorte original, se descarta (seguridad)
+
+    // Ventana deslizante (cuadrada, separable): dilata o erosiona una máscara binaria con radio r
+    function morfo(m, w, h, r, dilatar) {
+        if (r < 1) return m;
+        var tmp = new Uint8Array(w * h), out = new Uint8Array(w * h);
+        var win = 2 * r + 1, fuera = dilatar ? 0 : 1; // al erosionar, fuera de la imagen cuenta como "lleno" (no se come los bordes)
+        function pasada(src, dst, len, n, paso, salto) {
+            var pre = new Int32Array(len + 1);
+            for (var l = 0; l < n; l++) {
+                var base = l * salto;
+                for (var i = 0; i < len; i++) pre[i + 1] = pre[i] + src[base + i * paso];
+                for (var j = 0; j < len; j++) {
+                    var lo = Math.max(j - r, 0), hi = Math.min(j + r, len - 1);
+                    var suma = pre[hi + 1] - pre[lo] + (win - (hi - lo + 1)) * fuera;
+                    dst[base + j * paso] = dilatar ? (suma > 0 ? 1 : 0) : (suma === win ? 1 : 0);
+                }
+            }
+        }
+        pasada(m, tmp, w, h, 1, w);   // filas
+        pasada(tmp, out, h, w, w, 1); // columnas
+        return out;
+    }
+
+    // Etiqueta zonas conectadas (valor===v) con 8 vecinos (4 si ocho=false). Devuelve {lab, tam, n}
+    function zonas(m, w, h, v, ocho) {
+        var n = w * h, lab = new Int32Array(n), pila = new Int32Array(n), tam = [0], cur = 0;
+        for (var i = 0; i < n; i++) {
+            if (lab[i] || m[i] !== v) continue;
+            cur++; var sp = 0, cnt = 0; pila[sp++] = i; lab[i] = cur;
+            while (sp) {
+                var k = pila[--sp]; cnt++;
+                var kx = k % w, ky = (k - kx) / w;
+                for (var dy = -1; dy <= 1; dy++) {
+                    var yy = ky + dy; if (yy < 0 || yy >= h) continue;
+                    for (var dx = -1; dx <= 1; dx++) {
+                        if (!dx && !dy) continue;
+                        if (!ocho && dx && dy) continue;
+                        var xx = kx + dx; if (xx < 0 || xx >= w) continue;
+                        var q = yy * w + xx;
+                        if (!lab[q] && m[q] === v) { lab[q] = cur; pila[sp++] = q; }
+                    }
+                }
+            }
+            tam[cur] = cnt;
+        }
+        return { lab: lab, tam: tam, n: cur };
+    }
+
+    // Desenfoque de caja separable (2 pasadas ≈ gaussiano) sobre Float32Array
+    function difuminar(a, w, h, r) {
+        if (r < 1) return a;
+        var tmp = new Float32Array(w * h), win = 2 * r + 1;
+        function pasada(src, dst, len, n, paso, salto) {
+            for (var l = 0; l < n; l++) {
+                var base = l * salto, suma = 0, i;
+                for (i = -r; i <= r; i++) suma += src[base + Math.min(Math.max(i, 0), len - 1) * paso];
+                for (i = 0; i < len; i++) {
+                    dst[base + i * paso] = suma / win;
+                    suma += src[base + Math.min(i + r + 1, len - 1) * paso] - src[base + Math.max(i - r, 0) * paso];
+                }
+            }
+        }
+        for (var k = 0; k < 2; k++) {
+            pasada(a, tmp, w, h, 1, w);
+            pasada(tmp, a, h, w, w, 1);
+        }
+        return a;
+    }
+
+    // d = datos RGBA (Uint8ClampedArray) del recorte del modelo. Modifica SOLO el canal alfa.
+    function refinarAlfa(d, w, h) {
+        var n = w * h, side = Math.max(w, h), i;
+        var bin0 = new Uint8Array(n), sat = new Float32Array(n), croma = new Uint8Array(n);
+        var area0 = 0;
+        for (i = 0; i < n; i++) {
+            var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+            var mx = r > g ? (r > b ? r : b) : (g > b ? g : b), mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
+            sat[i] = mx ? (mx - mn) / mx : 0; croma[i] = mx - mn;
+            if (d[i * 4 + 3] > 128) { bin0[i] = 1; area0++; }
+        }
+        if (area0 < 500) return false;
+
+        // Saturación típica de la pieza: mediana en su zona central
+        var nucleo = morfo(bin0, w, h, Math.round(side * 0.02), false), cnt = 0, hist = new Int32Array(1001);
+        for (i = 0; i < n; i++) if (nucleo[i]) { hist[Math.min(1000, Math.round(sat[i] * 1000))]++; cnt++; }
+        if (cnt < 500) { nucleo = bin0; cnt = area0; hist.fill(0); for (i = 0; i < n; i++) if (bin0[i]) hist[Math.min(1000, Math.round(sat[i] * 1000))]++; }
+        var acum = 0, med = 0;
+        for (var q = 0; q <= 1000; q++) { acum += hist[q]; if (acum >= cnt / 2) { med = q / 1000; break; } }
+
+        var keep = bin0;
+        if (med <= PIEZA_MAX_SAT) {
+            // 1) fuera lo que tenga color marcado (mano, hilos…) + un margen para los píxeles mezclados del borde
+            var T = Math.min(SAT_MAX, Math.max(SAT_MIN, med + SAT_MARGEN));
+            var piel = new Uint8Array(n);
+            for (i = 0; i < n; i++) if (bin0[i] && sat[i] > T && croma[i] >= CROMA_MIN) piel[i] = 1;
+            piel = morfo(piel, w, h, Math.max(1, Math.round(side * 0.003)), true);
+            var k1 = new Uint8Array(n), area1 = 0;
+            for (i = 0; i < n; i++) if (bin0[i] && !piel[i]) { k1[i] = 1; area1++; }
+            if (area1 >= area0 * MIN_CONSERVAR) keep = k1;
+        }
+
+        // 2) abrir: quita rebabas finas que quedaron pegadas (restos de dedos, sombras)
+        var ro = Math.max(2, Math.round(side * 0.005));
+        keep = morfo(morfo(keep, w, h, ro, false), w, h, ro, true);
+
+        // 3) quedarse con la pieza principal (y zonas grandes)
+        var z = zonas(keep, w, h, 1, true), max = 0, c;
+        for (c = 1; c <= z.n; c++) if (z.tam[c] > max) max = z.tam[c];
+        if (!max) return false;
+        var minPx = max * MIN_ZONA_PIEZA, out = new Uint8Array(n), area = 0;
+        for (i = 0; i < n; i++) if (keep[i] && z.tam[z.lab[i]] >= minPx) { out[i] = 1; area++; }
+
+        // 4) rellenar huecos pequeños interiores (puntitos, poros)
+        var hz = zonas(out, w, h, 0, false), toca = new Uint8Array(hz.n + 1);
+        for (var x = 0; x < w; x++) { toca[hz.lab[x]] = 1; toca[hz.lab[(h - 1) * w + x]] = 1; }
+        for (var y = 0; y < h; y++) { toca[hz.lab[y * w]] = 1; toca[hz.lab[y * w + w - 1]] = 1; }
+        for (i = 0; i < n; i++) { var hl = hz.lab[i]; if (!out[i] && hl && !toca[hl] && hz.tam[hl] < area * 0.01) out[i] = 1; }
+
+        // 5) borde limpio: 1 px menos (quita el halo del fondo) y suavizado
+        out = morfo(out, w, h, 1, false);
+        var al = new Float32Array(n);
+        for (i = 0; i < n; i++) al[i] = out[i];
+        al = difuminar(al, w, h, Math.max(1, Math.round(side * 0.0012)));
+        for (i = 0; i < n; i++) {
+            var v = (al[i] - 0.2) / 0.6; v = v < 0 ? 0 : (v > 1 ? 1 : v);
+            d[i * 4 + 3] = Math.round(v * 255);
+        }
+        return true;
+    }
+
+    // Recibe la imagen que devolvió el modelo y devuelve un canvas con el recorte ya limpio
+    function refinarRecorte(img) {
+        if (!REFINAR_RECORTE) return img;
+        try {
+            var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+            var c = document.createElement('canvas'); c.width = w; c.height = h;
+            var g = c.getContext('2d'); g.drawImage(img, 0, 0);
+            var im = g.getImageData(0, 0, w, h);
+            if (!refinarAlfa(im.data, w, h)) return img;
+            g.putImageData(im, 0, 0);
+            return c;
+        } catch (e) {
+            console.warn('[editor-imagen] no se pudo refinar el recorte, se usa el del modelo:', e);
+            return img;
+        }
+    }
+
     // El título de la imagen solo cambia al presionar el botón "Aplicar" (o Ctrl+Enter)
     // Siempre envuelve el texto con "¡ ... !" (quita los signos que ya tenga para no duplicarlos).
     // Solo afecta al texto dentro de la imagen; el nombre del archivo en imgbb sale del nombre
@@ -336,7 +496,7 @@
             }
             var img = await cargarImg(URL.createObjectURL(res));
             if (miId !== S.id) return; // se eligió otra foto: se descarta; el finally lanza el proceso de la nueva
-            S.producto = recortar(img);
+            S.producto = recortar(refinarRecorte(img));
             estado('✅ Fondo quitado. Ajusta tamaño y posición si hace falta.');
         } catch (e) {
             console.error('[editor-imagen]', e);
