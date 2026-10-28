@@ -3944,3 +3944,39 @@ body.modo-oscuro .sap-publicar-img .panel-nombre-input[readonly] { background: #
     .grid-productos-inteligente .btn-like { left: 30px !important; }
     .grid-productos-inteligente .card-badge-fila { font-size: 8px !important; padding: 1px 4px !important; top: 3px !important; left: 3px !important; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   TEXTO SOBRE LA BARRA DE PÍLDORAS (Biografía / Catálogo / Ofertas / Más Vendidos)
+   El grupo mide exactamente lo que miden los 4 botones (4 × 135px + 3 huecos de 10px
+   = 570px; en celular 2 × 135px + 10px = 280px), así el texto empieza en el borde
+   izquierdo del primer botón y termina en el borde derecho del último.
+   ══════════════════════════════════════════════════════════════════ */
+.pill-nav-grupo {
+    width: 570px;
+    max-width: 100%;
+    margin: 8px auto 0;
+    box-sizing: border-box;
+}
+.pill-nav-grupo .pill-nav-barra {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100%;
+}
+.pill-nav-titulo {
+    margin: 0 0 10px;
+    width: 100%;
+    text-align: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #5c4d43;
+}
+body.modo-oscuro .pill-nav-titulo { color: #d9cbbf; }
+@media (max-width: 620px) {
+    .pill-nav-grupo { width: 280px; }
+    .pill-nav-titulo { font-size: 1rem; }
+}
