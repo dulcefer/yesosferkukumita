@@ -4743,9 +4743,11 @@ async function _postAppsScript(cuerpo) {
 }
 
 // Sube las fotos adicionales a imgbb (vía Apps Script), 3 a la vez, y devuelve sus links EN ORDEN
-async function _subirImagenesExtraProducto(idToken, progreso) {
+async function _subirImagenesExtraProducto(idToken, progreso, tambienPolo) {
     var items = _imagenesExtraProducto.slice();
     var urls = new Array(items.length);
+    var urlsPolo = new Array(items.length).fill(''); // copias en el imgbb de Polo (independientes de las de Fer)
+    var errorPolo = '';
     var siguiente = 0, hechas = 0, abortado = false;
 
     function subirUna(i) {
@@ -4754,10 +4756,14 @@ async function _subirImagenesExtraProducto(idToken, progreso) {
             return _postAppsScript({
                 idToken: idToken,
                 accion: 'subirImagen',
+                tambienPolo: !!tambienPolo,
                 imagenBase64: items[i].dataUrl,
                 nombreArchivo: 'producto_' + Date.now() + '_' + (i + 2) + '.jpg'
             }).then(function(j) {
-                if (j && j.ok && j.url) return j.url;
+                if (j && j.ok && j.url) {
+                    if (tambienPolo) { urlsPolo[i] = j.urlPolo || ''; if (j.errorPolo) errorPolo = j.errorPolo; }
+                    return j.url;
+                }
                 var e = new Error((j && j.error) || 'imgbb no aceptó la foto.');
                 e.reintentable = false; // el servidor respondió con un motivo claro: reintentar no ayuda
                 throw e;
@@ -4782,6 +4788,7 @@ async function _subirImagenesExtraProducto(idToken, progreso) {
     }
 
     await Promise.all([trabajador(), trabajador(), trabajador()]);
+    urls.polo = urlsPolo; urls.errorPolo = errorPolo;
     return urls;
 }
 
@@ -4816,7 +4823,7 @@ async function guardarProductoAdmin() {
     }
     var precioBazar = _campoProducto('inputPrecioBazar');
     if (precioBazar !== '' && isNaN(Number(precioBazar))) {
-        mostrarToast('El precio bazar no es válido.');
+        mostrarToast('El precio de mayoreo no es válido.');
         return;
     }
     var alto = _campoProducto('inputAltoProducto'), ancho = _campoProducto('inputAnchoProducto');
@@ -4863,13 +4870,21 @@ async function guardarProductoAdmin() {
         // El idToken prueba, del lado del servidor, quién es realmente el usuario
         var idToken = await user.getIdToken();
 
+        // Producto NUEVO: también se crea en Yesos Polo, con la misma pieza sobre el fondo azul.
+        // (Solo si la imagen salió del editor; un link de imgbb pegado a mano no se copia a Polo.)
+        var imagenPolo = '';
+        if (!editando && _imagenProductoSeleccionada && window.editorImagenProducto && window.editorImagenProducto.imagenPolo) {
+            imagenPolo = await window.editorImagenProducto.imagenPolo();
+        }
+        var enviarAPolo = !editando && !!imagenPolo;
+
         // Fotos adicionales: primero se suben a imgbb (una petición por foto); el guardado solo recibe los links
         var imagenesExtraUrls = [];
         if (_imagenesExtraProducto.length) {
             try {
                 imagenesExtraUrls = await _subirImagenesExtraProducto(idToken, function(n, total) {
                     if (btnGuardar) btnGuardar.textContent = 'Subiendo fotos ' + n + '/' + total + '…';
-                });
+                }, enviarAPolo);
             } catch (errSub) {
                 mostrarToast('❌ ' + (errSub && errSub.message ? errSub.message : 'No se pudieron subir las fotos adicionales.') + ' No se guardó el producto.');
                 return;
@@ -4900,6 +4915,7 @@ async function guardarProductoAdmin() {
                 imagenBase64: _imagenProductoSeleccionada || '',
                 quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,
+                polo: enviarAPolo ? { imagenBase64: imagenPolo, imagenesExtra: (imagenesExtraUrls.polo || []).filter(Boolean) } : undefined,
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
             });
 
@@ -4907,9 +4923,18 @@ async function guardarProductoAdmin() {
             if (editando) {
                 mostrarToast('✅ Producto actualizado (fila ' + resultado.fila + '). Recarga la página en unos segundos para ver los cambios.');
             } else {
-                mostrarToast(resultado.reubicado
+                var notaPolo;
+                if (resultado.polo && resultado.polo.ok) {
+                    notaPolo = ' También se agregó en Polo (fila ' + resultado.polo.fila + ').' +
+                        (imagenesExtraUrls.errorPolo ? ' ⚠️ Alguna foto extra no se copió a Polo.' : '');
+                } else if (resultado.polo) {
+                    notaPolo = ' ⚠️ En Polo NO se pudo agregar: ' + (resultado.polo.error || 'error desconocido') + ' (en Fer sí quedó guardado).';
+                } else {
+                    notaPolo = ' (No se agregó en Polo: necesita la imagen hecha con el editor de fondo.)';
+                }
+                mostrarToast((resultado.reubicado
                     ? '✅ La fila ' + resultado.filaPedida + ' estaba ocupada; el producto se agregó en la fila ' + resultado.fila + '.'
-                    : '✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.');
+                    : '✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.') + notaPolo);
             }
             limpiarFormularioProducto();
             cerrarSubmenuAgregarProducto(); // también sale del modo edición

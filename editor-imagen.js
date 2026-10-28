@@ -9,6 +9,7 @@
 
     var TAM = 1024;
     var FONDO_SRC = 'imagenes/fondo-rosa.webp';
+    var FONDO_POLO_SRC = 'imagenes/fondo-azul.webp'; // misma pieza, fondo de Yesos Polo
     var LIB_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.6.0/+esm';
 
     // ── Rendimiento ──
@@ -40,7 +41,7 @@
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
     var F_SERIF = '800 #px "Playfair Display", serif';
 
-    var S = { fondo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
+    var S = { fondo: null, fondoPolo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
               worker: null, workerTimer: null, id: 0, repetir: false };
 
@@ -120,12 +121,11 @@
         g.fillStyle = relleno; g.fillText(txt, x, y);
     }
 
-    function dibujar() {
-        var c = $('canvasImagenProducto'); if (!c) return;
-        var g = c.getContext('2d');
+    // Pinta la imagen completa (fondo + pieza + título + marca) en el contexto g, con el fondo indicado
+    function pintar(g, fondo, colorRespaldo) {
         g.clearRect(0, 0, TAM, TAM);
-        if (S.fondo) g.drawImage(S.fondo, 0, 0, TAM, TAM);
-        else { g.fillStyle = '#d8788a'; g.fillRect(0, 0, TAM, TAM); }
+        if (fondo) g.drawImage(fondo, 0, 0, TAM, TAM);
+        else { g.fillStyle = colorRespaldo; g.fillRect(0, 0, TAM, TAM); }
 
         // Pieza
         var p = S.producto;
@@ -145,6 +145,25 @@
         // Marca
         texto(g, 'Yesos Fer', 862, 930, 54, F_SERIF, '#111', '#fff', 8, 290);
         texto(g, 'Kukúmita', 862, 988, 66, F_SERIF, '#111', '#fff', 8, 290);
+    }
+
+    // Lo que se ve en pantalla (fondo rosa de Yesos Fer)
+    function dibujar() {
+        var c = $('canvasImagenProducto'); if (!c) return;
+        pintar(c.getContext('2d'), S.fondo, '#d8788a');
+    }
+
+    // Misma imagen con el fondo azul de Yesos Polo (se genera solo al guardar, fuera de pantalla)
+    async function imagenPolo() {
+        if (!S.foto || !S.producto) return '';
+        try { S.fondoPolo = S.fondoPolo || await cargarImg(FONDO_POLO_SRC); }
+        catch (e) { return ''; } // sin el archivo del fondo azul no se puede generar la versión de Polo
+        await fuentes();
+        var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
+        pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a');
+        var u = c.toDataURL('image/webp', 0.9);
+        if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
+        return u;
     }
 
     function exportar() {
@@ -327,6 +346,7 @@
     window.editorImagenProducto = {
         cargarFoto: cargarFoto,
         reset: reset,
+        imagenPolo: imagenPolo,
         ocupado: function () { return S.ocupado; },
         tituloPendiente: function () { return !!S.foto && val('inputTituloImagen') !== S.titulo; }
     };
