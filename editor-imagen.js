@@ -9,7 +9,7 @@
 
     var TAM = 1024;
     var FONDO_SRC = 'imagenes/fondo-rosa.webp';
-    var FONDO_POLO_SRC = 'imagenes/fondo-azul.webp'; // misma pieza, fondo de Yesos Polo
+    var FONDO_POLO_SRC = (typeof CONFIG !== 'undefined' && CONFIG.FONDO_AZUL_URL) || 'imagenes/fondo-azul.webp'; // misma pieza, fondo de Yesos Polo (vive en el repo de Polo)
     var LIB_URL = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.6.0/+esm';
 
     // ── Rendimiento ──
@@ -53,6 +53,8 @@
             var i = new Image();
             i.onload = function () { ok(i); };
             i.onerror = function () { err(new Error('No se pudo cargar la imagen')); };
+            // Imágenes de otro dominio (fondo azul en el repo de Polo): sin esto el canvas queda "contaminado" y no se puede exportar
+            if (/^https?:/i.test(src)) i.crossOrigin = 'anonymous';
             i.src = src;
         });
     }

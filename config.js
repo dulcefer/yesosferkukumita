@@ -30,6 +30,11 @@ const CONFIG = {
   PORTADA_FILAS: 9,
   PORTADA_PRODUCTOS_POR_FILA: 3,
 
+  // Fondo azul de Yesos Polo (para la imagen que se publica en el sitio de Polo).
+  // Vive en el repo de Polo (elpologr/yesospolokukumita, carpeta imagenes), no en este sitio.
+  // Si algún día lo cambias de lugar, solo edita este link.
+  FONDO_AZUL_URL: "https://raw.githubusercontent.com/elpologr/yesospolokukumita/main/imagenes/fondo-azul.webp",
+
   // Cloudflare Worker para compartir en redes sociales (imagen en Facebook, etc.).
   // Déjalo vacío ("") para desactivarlo.
   OG_WORKER_URL: "https://yesos-fer-kukumita-linker.dulceprincesa086.workers.dev",
