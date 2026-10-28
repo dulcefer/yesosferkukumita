@@ -3404,11 +3404,18 @@ try {
 }
 
 // ─── TOAST ───
-function mostrarToast(msg) {
+var _toastTimer = null;
+function mostrarToast(msg, duracionMs) {
     const t = document.getElementById('toastNotif');
     t.textContent = msg;
     t.classList.add('visible');
-    setTimeout(() => t.classList.remove('visible'), 2800);
+    clearTimeout(_toastTimer); // un aviso nuevo no debe ser cerrado por el temporizador del anterior
+    // Avisos normales: 2.8 s. Errores/advertencias o mensajes largos: de 10 a 25 s según el largo.
+    var largo = String(msg || '').length;
+    var esLargo = /[❌⚠]/.test(String(msg)) || largo > 90;
+    var ms = duracionMs || (esLargo ? Math.min(25000, Math.max(10000, largo * 100)) : 2800);
+    t.onclick = function () { clearTimeout(_toastTimer); t.classList.remove('visible'); };
+    _toastTimer = setTimeout(() => t.classList.remove('visible'), ms);
 }
 
 // ─── MODAL GOOGLE ───

@@ -2727,9 +2727,11 @@ body.modo-oscuro .btn-google-auth:hover { background: #3a2e26; }
     background: #362a22; color: white; padding: 12px 24px;
     border-radius: 24px; font-size: 14px; font-weight: 600;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3); z-index: 99999;
-    opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    white-space: normal; text-align: center; line-height: 1.4;
+    width: max-content; max-width: min(92vw, 520px);
 }
-.toast-notif.visible { opacity: 1; }
+.toast-notif.visible { opacity: 1; pointer-events: auto; cursor: pointer; } /* toca el aviso para cerrarlo */
 
 
 
