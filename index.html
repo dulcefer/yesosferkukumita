@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -2095,10 +2095,10 @@
                 <div id="estadoEditorImagen" class="sap-estado"></div>
                 <label class="panel-nombre-label" for="inputTituloImagen">Título en la imagen</label>
                 <div class="sap-fila-titulo">
-                    <input id="inputTituloImagen" class="panel-nombre-input" type="text" maxlength="60" placeholder="¡ Porta Flores de Yeso !" enterkeyhint="done">
+                    <textarea id="inputTituloImagen" class="panel-nombre-input" rows="3" maxlength="100" style="min-height:0;resize:none;" placeholder="Porta Flores de Yeso" enterkeyhint="enter"></textarea>
                     <button class="panel-nombre-btn guardar" id="btnAplicarTitulo" type="button">✔ Aplicar</button>
                 </div>
-                <p class="sap-nota">Escribe el título y presiona Enter o "Aplicar" para verlo en la imagen.</p>
+                <p class="sap-nota">Escribe el título (sin los signos ¡ !, se agregan solos). Enter agrega un renglón nuevo (hasta 3); presiona "Aplicar" para verlo en la imagen.</p>
                 <label class="panel-nombre-label">Tamaño de la pieza</label>
                 <input type="range" id="rangoTamImagen" min="40" max="140" value="100">
                 <label class="panel-nombre-label">Mover izquierda / derecha</label>
@@ -2348,7 +2348,7 @@
     <!-- JavaScript externo -->
     <script src="config.js?v=11"></script>
     <script src="app.js?v=15"></script>
-    <script src="editor-imagen.js?v=5"></script>
+    <script src="editor-imagen.js?v=6"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

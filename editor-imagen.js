@@ -140,7 +140,18 @@
 
         // Título
         var titulo = S.titulo;
-        if (titulo) texto(g, titulo, TAM / 2, 86, 72, F_TIT, '#fff', '#111', 12, 940);
+        if (titulo) {
+            var lineas = titulo.split('\n');
+            if (lineas.length === 1) {
+                texto(g, titulo, TAM / 2, 86, 72, F_TIT, '#fff', '#111', 12, 940);
+            } else {
+                // 2 o 3 renglones: letra un poco más chica para que no choquen con la pieza
+                var tamL = lineas.length === 2 ? 64 : 54, sepL = tamL * 1.08, y0 = 50 + tamL / 2;
+                lineas.forEach(function (ln, i) {
+                    texto(g, ln, TAM / 2, y0 + i * sepL, tamL, F_TIT, '#fff', '#111', 12, 940);
+                });
+            }
+        }
 
         // Marca
         texto(g, 'Yesos Fer', 862, 930, 54, F_SERIF, '#111', '#fff', 8, 290);
@@ -208,13 +219,18 @@
         if (e) { e.textContent = t || ''; e.className = 'sap-estado' + (error ? ' error' : ''); }
     }
 
-    // El título de la imagen solo cambia cuando se presiona Enter o el botón "Aplicar"
+    // El título de la imagen solo cambia al presionar el botón "Aplicar" (o Ctrl+Enter)
     // Siempre envuelve el texto con "¡ ... !" (quita los signos que ya tenga para no duplicarlos).
     // Solo afecta al texto dentro de la imagen; el nombre del archivo en imgbb sale del nombre
     // del producto, sin estos signos.
     function envolverTitulo(t) {
-        t = String(t || '').replace(/[¡!]/g, ' ').replace(/\s+/g, ' ').trim();
-        return t ? '¡ ' + t + ' !' : '';
+        var lineas = String(t || '').split(/\r?\n/).map(function (l) {
+            return l.replace(/[¡!]/g, ' ').replace(/\s+/g, ' ').trim();
+        }).filter(Boolean).slice(0, 3); // máximo 3 renglones
+        if (!lineas.length) return '';
+        lineas[0] = '¡ ' + lineas[0];
+        lineas[lineas.length - 1] += ' !';
+        return lineas.join('\n');
     }
 
     function aplicarTitulo() {
@@ -345,7 +361,12 @@
     var tit = $('inputTituloImagen');
     if (tit) {
         tit.addEventListener('input', function () { S.tituloEditado = tit.value.trim() !== ''; });
-        tit.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aplicarTitulo(); } });
+        tit.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            if (e.ctrlKey || e.metaKey) { e.preventDefault(); aplicarTitulo(); return; }
+            // Enter agrega un renglón nuevo, hasta 3 renglones
+            if (tit.value.split('\n').length >= 3) e.preventDefault();
+        });
     }
     var ba = $('btnAplicarTitulo'); if (ba) ba.addEventListener('click', aplicarTitulo);
     [['rangoTamImagen', 'tam'], ['rangoXImagen', 'x'], ['rangoYImagen', 'y']].forEach(function (par) {
