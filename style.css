@@ -3896,3 +3896,51 @@ body.modo-oscuro .sap-previa-img figcaption { color: #a89080; }
 body.modo-oscuro .sap-publicar-img { background: #2a2218; border-color: #4a3a2e; }
 body.modo-oscuro .sap-publicar-img strong { color: #e0d2c6; }
 body.modo-oscuro .sap-publicar-img .panel-nombre-input[readonly] { background: #1f1913; color: #e0d2c6; }
+
+/* ══════════════════════════════════════════════════════════════════
+   MÓVIL: CATÁLOGO EN 3 COLUMNAS
+   Va al final del archivo y usa !important para ganarle a las reglas
+   anteriores de 2 columnas. Para volver a 2 columnas, cambia el 3 por 2.
+   ══════════════════════════════════════════════════════════════════ */
+@media screen and (max-width: 768px) {
+    .grid-productos-inteligente {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 4px !important;
+        padding: 4px 3px !important;
+    }
+    /* Imagen cuadrada que se adapta al ancho de la columna */
+    .grid-productos-inteligente .img-contenedor-dinamico {
+        height: auto !important;
+        aspect-ratio: 1 / 1;
+    }
+    .grid-productos-inteligente .card-dinamica h3 {
+        font-size: 10.5px !important;
+        line-height: 1.2 !important;
+        margin: 3px 0 !important;
+        padding: 0 3px;
+        overflow-wrap: anywhere;
+    }
+    /* Precios apilados para que quepan en columnas angostas */
+    .grid-productos-inteligente .card-precios-bloque {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 3px !important;
+        padding: 5px 5px 5px 5px !important;
+    }
+    .grid-productos-inteligente .card-precio-etiqueta { font-size: 8px !important; margin-bottom: 1px !important; }
+    .grid-productos-inteligente .card-precio-valor { font-size: 11px !important; }
+    .grid-productos-inteligente .card-precio-mayoreo-bloque { align-items: flex-start !important; }
+    .grid-productos-inteligente .card-precio-mayoreo-etiqueta { font-size: 7.5px !important; text-align: left !important; margin-bottom: 1px !important; }
+    .grid-productos-inteligente .card-precio-mayoreo-badge { font-size: 10px !important; padding: 1px 5px !important; }
+    /* Botones de corazón y carrito más pequeños */
+    .grid-productos-inteligente .btn-like,
+    .grid-productos-inteligente .btn-carrito-card {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 10px !important;
+        bottom: 4px !important;
+    }
+    .grid-productos-inteligente .btn-carrito-card { left: 4px !important; }
+    .grid-productos-inteligente .btn-like { left: 30px !important; }
+    .grid-productos-inteligente .card-badge-fila { font-size: 8px !important; padding: 1px 4px !important; top: 3px !important; left: 3px !important; }
+}
