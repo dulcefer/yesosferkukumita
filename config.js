@@ -9,7 +9,7 @@
 const CONFIG = {
   // URL de despliegue del Apps Script (Code.gs): agregar / configurar / mover / eliminar productos.
   // Termina en /exec.
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwggNObIMy3SabpLmIYQEOj9E28RBEWZMehkKRZ70QMCWR-1uWTBWNi3jEEtmSNvssOXg/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxgPhOZ_Prg47JeKZkwvRG0JzpexK1YIGJZmUn8a0hoFA04WNivkITM9r1tp6PzHrpi_A/exec",
 
   // Hoja de cálculo del catálogo de Yesos (pública, se lee como CSV vía gviz).
   SHEET_ID: "1GbAmlu9nHVQipFDeOPK4EBrq-5dZrni9cs5tWJDPGvc",
