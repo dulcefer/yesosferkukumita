@@ -4873,8 +4873,16 @@ async function guardarProductoAdmin() {
         // Producto NUEVO: también se crea en Yesos Polo, con la misma pieza sobre el fondo azul.
         // (Solo si la imagen salió del editor; un link de imgbb pegado a mano no se copia a Polo.)
         var imagenPolo = '';
-        if (!editando && _imagenProductoSeleccionada && window.editorImagenProducto && window.editorImagenProducto.imagenPolo) {
-            imagenPolo = await window.editorImagenProducto.imagenPolo();
+        var motivoSinPolo = ''; // por qué NO se pudo preparar la versión de Polo (se muestra en el aviso)
+        if (!editando) {
+            if (!_imagenProductoSeleccionada) {
+                motivoSinPolo = 'la imagen no salió del editor (¿pegaste un link de imgbb en vez de elegir una foto?).';
+            } else if (!window.editorImagenProducto || !window.editorImagenProducto.imagenPolo) {
+                motivoSinPolo = 'el navegador tiene una versión vieja de editor-imagen.js. Sube el número de versión en index.html y recarga con Ctrl+F5.';
+            } else {
+                imagenPolo = await window.editorImagenProducto.imagenPolo();
+                if (!imagenPolo) motivoSinPolo = 'no se pudo cargar imagenes/fondo-azul.webp en el sitio de Fer (¿falta subir ese archivo a la carpeta imagenes?).';
+            }
         }
         var enviarAPolo = !editando && !!imagenPolo;
 
@@ -4930,7 +4938,7 @@ async function guardarProductoAdmin() {
                 } else if (resultado.polo) {
                     notaPolo = ' ⚠️ En Polo NO se pudo agregar: ' + (resultado.polo.error || 'error desconocido') + ' (en Fer sí quedó guardado).';
                 } else {
-                    notaPolo = ' (No se agregó en Polo: necesita la imagen hecha con el editor de fondo.)';
+                    notaPolo = ' ⚠️ NO se agregó en Polo: ' + (motivoSinPolo || 'no se pudo preparar la imagen azul.');
                 }
                 mostrarToast((resultado.reubicado
                     ? '✅ La fila ' + resultado.filaPedida + ' estaba ocupada; el producto se agregó en la fila ' + resultado.fila + '.'
