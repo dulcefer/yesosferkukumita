@@ -151,6 +151,18 @@
     function dibujar() {
         var c = $('canvasImagenProducto'); if (!c) return;
         pintar(c.getContext('2d'), S.fondo, '#d8788a');
+        // Vista previa de la versión de Yesos Polo (fondo azul), siempre al lado de la de Fer
+        var cp = $('canvasImagenPoloProducto');
+        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a');
+    }
+
+    // Imagen final de Fer (fondo rosa) como dataURL, tal como se ve en pantalla
+    async function imagenFer() {
+        var c = $('canvasImagenProducto'); if (!c || !S.foto || !S.producto) return '';
+        await fuentes(); dibujar();
+        var u = c.toDataURL('image/webp', 0.9);
+        if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
+        return u;
     }
 
     // Misma imagen con el fondo azul de Yesos Polo (se genera solo al guardar, fuera de pantalla)
@@ -184,7 +196,11 @@
 
     function redibujar() {
         clearTimeout(S.timer);
-        S.timer = setTimeout(async function () { await fuentes(); dibujar(); exportar(); }, 60);
+        S.timer = setTimeout(async function () {
+            await fuentes(); dibujar(); exportar();
+            // Avisa al formulario: si ya había enlaces de imgbb publicados, dejan de corresponder a esta imagen
+            document.dispatchEvent(new CustomEvent('editorImagenCambio'));
+        }, 60);
     }
 
     function estado(t, error) {
@@ -295,6 +311,7 @@
         sincronizarTitulo();
         S.titulo = val('inputTituloImagen');
         try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
+        try { S.fondoPolo = S.fondoPolo || await cargarImg(FONDO_POLO_SRC); } catch (e) { S.fondoPolo = null; }
         S.producto = await cargarImg(dataUrl);
         redibujar();
         quitarFondo(); // automático
@@ -306,6 +323,7 @@
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
         window._imagenProductoSeleccionada = null;
+        document.dispatchEvent(new CustomEvent('editorImagenCambio'));
     }
 
     // ── Conexión con el formulario ──
@@ -347,6 +365,7 @@
         cargarFoto: cargarFoto,
         reset: reset,
         imagenPolo: imagenPolo,
+        imagenFer: imagenFer,
         ocupado: function () { return S.ocupado; },
         tituloPendiente: function () { return !!S.foto && val('inputTituloImagen') !== S.titulo; }
     };

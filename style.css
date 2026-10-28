@@ -3883,3 +3883,16 @@ body.modo-oscuro .sap-crear-etiqueta-btn { color: #ff9bb0; border-color: #ff9bb0
 body.modo-oscuro .sap-crear-etiqueta-btn:active { background: #3a2530; }
 #sapNuevaEtiquetaPanel { flex-direction: column; gap: 6px; margin-top: 8px; }
 .mp-etiqueta-principal.personalizada { background: #e6f2ec; color: #3f7a5c; }
+
+/* ── Vistas previas Fer (rosa) y Polo (azul) lado a lado + publicar en imgbb por separado ── */
+.sap-previas-img { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sap-previa-img { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sap-previa-img figcaption { font-size: 11px; font-weight: 700; color: #8c7565; text-align: center; }
+#canvasImagenPoloProducto { width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 12px; background: #2f6a9a; }
+.sap-publicar-img { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; border: 1.5px solid #e5ddd5; background: #fbf8f5; }
+.sap-publicar-img strong { font-size: 13px; color: #5c4d43; }
+.sap-publicar-img .panel-nombre-input[readonly] { background: #f3ede7; color: #362a22; cursor: text; }
+body.modo-oscuro .sap-previa-img figcaption { color: #a89080; }
+body.modo-oscuro .sap-publicar-img { background: #2a2218; border-color: #4a3a2e; }
+body.modo-oscuro .sap-publicar-img strong { color: #e0d2c6; }
+body.modo-oscuro .sap-publicar-img .panel-nombre-input[readonly] { background: #1f1913; color: #e0d2c6; }

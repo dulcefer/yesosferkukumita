@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -2079,7 +2079,16 @@
                 <div id="sapExtrasContador" class="sap-nota"></div>
             </div>
             <div id="editorImagenProducto" style="display:none;">
-                <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
+                <div class="sap-previas-img">
+                    <figure class="sap-previa-img">
+                        <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
+                        <figcaption>🌸 Yesos Fer (fondo rosa)</figcaption>
+                    </figure>
+                    <figure class="sap-previa-img" id="sapPreviaPolo">
+                        <canvas id="canvasImagenPoloProducto" width="1024" height="1024"></canvas>
+                        <figcaption>🔵 Yesos Polo (fondo azul)</figcaption>
+                    </figure>
+                </div>
                 <div id="estadoEditorImagen" class="sap-estado"></div>
                 <label class="panel-nombre-label" for="inputTituloImagen">Título en la imagen</label>
                 <div class="sap-fila-titulo">
@@ -2096,6 +2105,23 @@
                 <button class="panel-nombre-btn guardar" id="btnDescargarImagen" type="button">⬇️ Descargar imagen</button>
                 <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Volver a quitar el fondo</button>
                 <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
+
+                <div class="sap-seccion-titulo">Publicar imágenes en imgbb (opcional, antes de guardar)</div>
+                <p class="sap-nota">Publica cada imagen por separado y de una en una. El enlace se copia solo y queda listo para guardar el producto. Si cambias algo de la imagen, hay que publicarla de nuevo. Si no publicas nada aquí, al guardar se suben como siempre.</p>
+                <div class="sap-publicar-img" id="sapPublicarFer">
+                    <strong>🌸 Imagen de Fer</strong>
+                    <button class="panel-nombre-btn guardar" id="btnPublicarFer" type="button" onclick="publicarImagenImgbb('fer')">☁️ Publicar imagen de Fer en imgbb y obtener enlace</button>
+                    <div class="sap-estado" id="estadoPublicarFer"></div>
+                    <label class="panel-nombre-label" for="inputLinkFerObtenido">Link obtenido</label>
+                    <input id="inputLinkFerObtenido" class="panel-nombre-input" type="text" readonly placeholder="Aún no se publica" onclick="this.select()">
+                </div>
+                <div class="sap-publicar-img" id="sapPublicarPolo">
+                    <strong>🔵 Imagen de Polo</strong>
+                    <button class="panel-nombre-btn guardar" id="btnPublicarPolo" type="button" onclick="publicarImagenImgbb('polo')">☁️ Publicar imagen de Polo en imgbb y obtener enlace</button>
+                    <div class="sap-estado" id="estadoPublicarPolo"></div>
+                    <label class="panel-nombre-label" for="inputLinkPoloObtenido">Link obtenido</label>
+                    <input id="inputLinkPoloObtenido" class="panel-nombre-input" type="text" readonly placeholder="Aún no se publica" onclick="this.select()">
+                </div>
             </div>
             
             <label class="panel-nombre-label" for="inputNombreProducto">Nombre *</label>
@@ -2317,9 +2343,9 @@
 </div>
 
     <!-- JavaScript externo -->
-    <script src="config.js?v=4"></script>
-    <script src="app.js?v=10"></script>
-    <script src="editor-imagen.js?v=3"></script>
+    <script src="config.js?v=5"></script>
+    <script src="app.js?v=11"></script>
+    <script src="editor-imagen.js?v=4"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

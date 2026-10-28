@@ -3654,6 +3654,7 @@ function _aplicarModoFormulario() {
     }
     _pintarQuitarImagenActual();
     if (typeof _renderExtrasProducto === 'function') _renderExtrasProducto();
+    if (typeof _actualizarBloqueImgbb === 'function') _actualizarBloqueImgbb();
 }
 
 // "🗑️ Eliminar imagen actual": marca (o desmarca) que la imagen principal se quite al guardar.
@@ -4527,6 +4528,7 @@ function limpiarFormularioProducto() {
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
+    _limpiarLinksImgbb('');
     _imagenesExtraProducto = [];
     _principalElegida = false;
     _estadoExtrasProducto('');
@@ -4749,7 +4751,8 @@ async function _postAppsScript(cuerpo) {
     }
 }
 
-// Sube las fotos adicionales a imgbb (vía Apps Script), 3 a la vez, y devuelve sus links EN ORDEN
+// Sube las fotos adicionales a imgbb (vía Apps Script), de UNA en una (varias a la vez hacían que imgbb
+// respondiera "forbidden"), y devuelve sus links EN ORDEN
 async function _subirImagenesExtraProducto(idToken, progreso, tambienPolo) {
     var items = _imagenesExtraProducto.slice();
     var urls = new Array(items.length);
@@ -4794,9 +4797,135 @@ async function _subirImagenesExtraProducto(idToken, progreso, tambienPolo) {
         } catch (e) { abortado = true; throw e; }
     }
 
-    await Promise.all([trabajador(), trabajador(), trabajador()]);
+    var SUBIDAS_SIMULTANEAS = 1; // súbelo con cuidado: más de una a la vez puede hacer que imgbb bloquee
+    var hilos = [];
+    for (var h = 0; h < SUBIDAS_SIMULTANEAS; h++) hilos.push(trabajador());
+    await Promise.all(hilos);
     urls.polo = urlsPolo; urls.errorPolo = errorPolo;
     return urls;
+}
+
+
+// ──────────────────────────────────────────────────────────────
+// PUBLICAR LA IMAGEN EN IMGBB POR SEPARADO (Fer y Polo), antes de guardar el producto
+// Cada botón sube UNA imagen, guarda su enlace y lo copia al portapapeles. Al guardar el producto,
+// si ya hay enlace se usa ese (no se vuelve a subir); si no hay, se sube como siempre.
+// Si la imagen cambia después de publicarla (título, tamaño, foto nueva…), el enlace se descarta.
+// ──────────────────────────────────────────────────────────────
+var _linkImgbbObtenido = { fer: '', polo: '' };
+var _publicandoImgbb = false;
+var _versionImagenEditor = 0; // sube cada vez que cambia la imagen del editor
+
+function _estadoPublicarImgbb(quien, texto, error) {
+    var el = document.getElementById(quien === 'polo' ? 'estadoPublicarPolo' : 'estadoPublicarFer');
+    if (el) { el.textContent = texto || ''; el.className = 'sap-estado' + (error ? ' error' : ''); }
+}
+
+function _botonesPublicarImgbb(deshabilitar) {
+    ['btnPublicarFer', 'btnPublicarPolo'].forEach(function(id) {
+        var b = document.getElementById(id); if (b) b.disabled = !!deshabilitar;
+    });
+}
+
+// Copia el texto al portapapeles; devuelve true si lo logró (algunos navegadores lo bloquean)
+async function _copiarTextoPortapapeles(texto) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(texto);
+            return true;
+        }
+    } catch (e) { /* se prueba el método de respaldo */ }
+    try {
+        var tmp = document.createElement('textarea');
+        tmp.value = texto; tmp.setAttribute('readonly', '');
+        tmp.style.position = 'fixed'; tmp.style.opacity = '0';
+        document.body.appendChild(tmp); tmp.select();
+        var ok = document.execCommand('copy');
+        tmp.remove();
+        return !!ok;
+    } catch (e2) { return false; }
+}
+
+function _limpiarLinksImgbb(mensaje) {
+    var habiaLink = !!(_linkImgbbObtenido.fer || _linkImgbbObtenido.polo);
+    _linkImgbbObtenido = { fer: '', polo: '' };
+    [['inputLinkFerObtenido', 'fer'], ['inputLinkPoloObtenido', 'polo']].forEach(function(par) {
+        var i = document.getElementById(par[0]); if (i) i.value = '';
+        _estadoPublicarImgbb(par[1], (habiaLink && mensaje) ? mensaje : '', false);
+    });
+}
+
+// La imagen azul de Polo solo se usa al AGREGAR un producto nuevo (al editar no se envía a Polo)
+function _actualizarBloqueImgbb() {
+    var editando = !!_edicionProducto;
+    ['sapPreviaPolo', 'sapPublicarPolo'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.style.display = editando ? 'none' : '';
+    });
+}
+
+document.addEventListener('editorImagenCambio', function() {
+    _versionImagenEditor++;
+    _limpiarLinksImgbb('⚠️ La imagen cambió: vuelve a publicarla para obtener un enlace nuevo.');
+    _actualizarBloqueImgbb();
+});
+
+async function publicarImagenImgbb(quien) {
+    quien = (quien === 'polo') ? 'polo' : 'fer';
+    var user = auth.currentUser;
+    if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
+    var ed = window.editorImagenProducto;
+    if (!ed || !_imagenProductoSeleccionada) {
+        _estadoPublicarImgbb(quien, 'Primero elige una foto para que se arme la imagen.', true);
+        return;
+    }
+    if (quien === 'polo' && _edicionProducto) {
+        _estadoPublicarImgbb('polo', 'La imagen de Polo solo se usa al agregar un producto nuevo.', true);
+        return;
+    }
+    if (_publicandoImgbb) { mostrarToast('Espera a que termine la subida en curso.'); return; }
+    if (ed.ocupado()) { _estadoPublicarImgbb(quien, 'Espera a que termine de quitar el fondo.', true); return; }
+    if (ed.tituloPendiente()) { _estadoPublicarImgbb(quien, 'Presiona "Aplicar" para actualizar el título en la imagen.', true); return; }
+
+    _publicandoImgbb = true;
+    _botonesPublicarImgbb(true);
+    var versionAlEmpezar = _versionImagenEditor;
+    var campo = document.getElementById(quien === 'polo' ? 'inputLinkPoloObtenido' : 'inputLinkFerObtenido');
+    try {
+        _estadoPublicarImgbb(quien, '⏳ Preparando la imagen…');
+        var dataUrl = (quien === 'polo') ? await ed.imagenPolo() : await ed.imagenFer();
+        if (!dataUrl) {
+            throw new Error(quien === 'polo'
+                ? 'No se pudo preparar la imagen azul (¿falta imagenes/fondo-azul.webp en el sitio de Fer?).'
+                : 'No se pudo preparar la imagen.');
+        }
+        _estadoPublicarImgbb(quien, '⏳ Subiendo a imgbb…');
+        var idToken = await user.getIdToken();
+        var j = await _postAppsScript({
+            idToken: idToken,
+            accion: 'subirImagen',
+            soloPolo: quien === 'polo',
+            imagenBase64: dataUrl,
+            nombreArchivo: (quien === 'polo' ? 'polo_' : 'producto_') + Date.now() + '.webp'
+        });
+        var url = j && j.ok ? (quien === 'polo' ? j.urlPolo : j.url) : '';
+        if (!url) throw new Error((j && j.error) || 'imgbb no aceptó la imagen.');
+
+        if (versionAlEmpezar !== _versionImagenEditor) {
+            // Mientras se subía, la imagen cambió: ese enlace ya no corresponde a lo que se ve
+            _estadoPublicarImgbb(quien, '⚠️ La imagen cambió mientras se subía. Vuelve a publicarla.', true);
+            return;
+        }
+        _linkImgbbObtenido[quien] = url;
+        if (campo) campo.value = url;
+        var copiado = await _copiarTextoPortapapeles(url);
+        _estadoPublicarImgbb(quien, '✅ Enlace obtenido' + (copiado ? ' y copiado.' : '. Toca el campo para copiarlo.') + ' Listo para guardar el producto.');
+    } catch (e) {
+        console.error('[publicar imgbb]', e);
+        _estadoPublicarImgbb(quien, '❌ ' + (e && e.message ? e.message : 'No se pudo publicar la imagen.') + ' Puedes volver a intentarlo.', true);
+    } finally {
+        _publicandoImgbb = false;
+        _botonesPublicarImgbb(false);
+    }
 }
 
 async function guardarProductoAdmin() {
@@ -4881,7 +5010,10 @@ async function guardarProductoAdmin() {
         // (Solo si la imagen salió del editor; un link de imgbb pegado a mano no se copia a Polo.)
         var imagenPolo = '';
         var motivoSinPolo = ''; // por qué NO se pudo preparar la versión de Polo (se muestra en el aviso)
-        if (!editando) {
+        // Enlaces ya publicados con los botones "Publicar imagen en imgbb" (si existen, no se vuelve a subir nada)
+        var linkFerListo = _linkImgbbObtenido.fer || '';
+        var linkPoloListo = editando ? '' : (_linkImgbbObtenido.polo || '');
+        if (!editando && !linkPoloListo) {
             if (!_imagenProductoSeleccionada) {
                 motivoSinPolo = 'la imagen no salió del editor (¿pegaste un link de imgbb en vez de elegir una foto?).';
             } else if (!window.editorImagenProducto || !window.editorImagenProducto.imagenPolo) {
@@ -4891,7 +5023,7 @@ async function guardarProductoAdmin() {
                 if (!imagenPolo) motivoSinPolo = 'no se pudo cargar imagenes/fondo-azul.webp en el sitio de Fer (¿falta subir ese archivo a la carpeta imagenes?).';
             }
         }
-        var enviarAPolo = !editando && !!imagenPolo;
+        var enviarAPolo = !editando && (!!imagenPolo || !!linkPoloListo);
 
         // Fotos adicionales: primero se suben a imgbb (una petición por foto); el guardado solo recibe los links
         var imagenesExtraUrls = [];
@@ -4926,11 +5058,11 @@ async function guardarProductoAdmin() {
                 existencia: existencia,
                 enOferta: _toggleProductoActivo('btnEnOfertaProducto'),
                 masVendido: _toggleProductoActivo('btnMasVendidoProducto'),
-                imagenUrl: urlImagen,
-                imagenBase64: _imagenProductoSeleccionada || '',
+                imagenUrl: linkFerListo || urlImagen,
+                imagenBase64: linkFerListo ? '' : (_imagenProductoSeleccionada || ''),
                 quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,
-                polo: enviarAPolo ? { imagenBase64: imagenPolo, imagenesExtra: (imagenesExtraUrls.polo || []).filter(Boolean) } : undefined,
+                polo: enviarAPolo ? { imagenBase64: linkPoloListo ? '' : imagenPolo, imagenUrl: linkPoloListo, imagenesExtra: (imagenesExtraUrls.polo || []).filter(Boolean) } : undefined,
                 nombreArchivo: 'producto_' + Date.now() + '.jpg'
             });
 
