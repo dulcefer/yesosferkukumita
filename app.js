@@ -3654,6 +3654,18 @@ function cerrarSubmenuAgregarProducto() {
 // ──────────────────────────────────────────────────────────────
 var _edicionProducto = null; // { fila, nombre, imagenes } mientras el formulario está en modo edición
 
+// Nombre con el que se guarda la imagen en imgbb: el del producto escrito en el formulario
+// (sin acentos, en minúsculas y con guiones). sufijo opcional: '2' (foto extra), 'polo', etc.
+// Si el nombre está vacío se usa "producto".
+function _nombreArchivoProducto(sufijo) {
+    var el = document.getElementById('inputNombreProducto');
+    var base = String((el && el.value) || '').trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    if (!base) base = 'producto';
+    return base + (sufijo ? '-' + sufijo : '');
+}
+
 function _aplicarModoFormulario() {
     var editando = !!_edicionProducto;
     var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
@@ -4795,7 +4807,7 @@ async function _subirImagenesExtraProducto(idToken, progreso, tambienPolo) {
                 accion: 'subirImagen',
                 tambienPolo: !!tambienPolo,
                 imagenBase64: items[i].dataUrl,
-                nombreArchivo: 'producto_' + Date.now() + '_' + (i + 2) + '.jpg'
+                nombreArchivo: _nombreArchivoProducto(String(i + 2)) + '.jpg'
             }).then(function(j) {
                 if (j && j.ok && j.url) {
                     if (tambienPolo) { urlsPolo[i] = j.urlPolo || ''; if (j.errorPolo) errorPolo = j.errorPolo; }
@@ -4932,7 +4944,7 @@ async function publicarImagenImgbb(quien) {
             accion: 'subirImagen',
             soloPolo: quien === 'polo',
             imagenBase64: dataUrl,
-            nombreArchivo: (quien === 'polo' ? 'polo_' : 'producto_') + Date.now() + '.webp'
+            nombreArchivo: _nombreArchivoProducto(quien === 'polo' ? 'polo' : '') + '.webp'
         });
         var url = j && j.ok ? (quien === 'polo' ? j.urlPolo : j.url) : '';
         if (!url) throw new Error((j && j.error) || 'imgbb no aceptó la imagen.');
@@ -5090,7 +5102,7 @@ async function guardarProductoAdmin() {
                 quitarImagenPrincipal: editando && _quitarImagenPrincipal,
                 imagenesExtra: imagenesExtraUrls,
                 polo: enviarAPolo ? { imagenBase64: linkPoloListo ? '' : imagenPolo, imagenUrl: linkPoloListo, imagenesExtra: (imagenesExtraUrls.polo || []).filter(Boolean) } : undefined,
-                nombreArchivo: 'producto_' + Date.now() + '.jpg'
+                nombreArchivo: _nombreArchivoProducto('') + '.jpg'
             });
 
         if (resultado.ok) {

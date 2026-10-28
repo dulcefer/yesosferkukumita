@@ -209,15 +209,24 @@
     }
 
     // El título de la imagen solo cambia cuando se presiona Enter o el botón "Aplicar"
+    // Siempre envuelve el texto con "¡ ... !" (quita los signos que ya tenga para no duplicarlos).
+    // Solo afecta al texto dentro de la imagen; el nombre del archivo en imgbb sale del nombre
+    // del producto, sin estos signos.
+    function envolverTitulo(t) {
+        t = String(t || '').replace(/[¡!]/g, ' ').replace(/\s+/g, ' ').trim();
+        return t ? '¡ ' + t + ' !' : '';
+    }
+
     function aplicarTitulo() {
-        S.titulo = val('inputTituloImagen');
+        S.titulo = envolverTitulo(val('inputTituloImagen'));
+        var t = $('inputTituloImagen'); if (t) t.value = S.titulo;
         redibujar();
     }
 
     function sincronizarTitulo() {
         var t = $('inputTituloImagen'); if (!t || S.tituloEditado) return;
         var n = val('inputNombreProducto');
-        t.value = n ? '¡ ' + n + ' !' : '';
+        t.value = n; // sin signos: se agregan al aplicar
     }
 
     // Reduce la foto (si es más grande que MAX_LADO_FOTO) y la devuelve como Blob JPEG
@@ -309,7 +318,8 @@
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'block';
         var pv = $('previewImagenProducto'); if (pv) pv.style.display = 'none';
         sincronizarTitulo();
-        S.titulo = val('inputTituloImagen');
+        S.titulo = envolverTitulo(val('inputTituloImagen'));
+        var tIni = $('inputTituloImagen'); if (tIni) tIni.value = S.titulo;
         try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
         try { S.fondoPolo = S.fondoPolo || await cargarImg(FONDO_POLO_SRC); } catch (e) { S.fondoPolo = null; }
         S.producto = await cargarImg(dataUrl);
@@ -367,6 +377,6 @@
         imagenPolo: imagenPolo,
         imagenFer: imagenFer,
         ocupado: function () { return S.ocupado; },
-        tituloPendiente: function () { return !!S.foto && val('inputTituloImagen') !== S.titulo; }
+        tituloPendiente: function () { return !!S.foto && envolverTitulo(val('inputTituloImagen')) !== S.titulo; }
     };
 })();
