@@ -261,10 +261,10 @@ function parsearCSV(texto) {
 // Por defecto 6 = columna G (Imagen Fer, hoja de Yesos). La hoja de Velas
 // Kukúmita usa la columna F (índice 5) para sus imágenes de imgbb, así que
 // las llamadas que leen esa hoja pasan colImagen = 5.
-function csvAProductos(filas, colImagen) {
+function csvAProductos(filas, colImagen, hojaNum) {
     // Sin colImagen → hoja de Yesos (layout nuevo A–K, imágenes en E).
     // Con colImagen numérico → hoja de Velas/Etiquetas (layout anterior de 17 columnas).
-    if (typeof colImagen !== 'number') return csvAProductosYesos(filas);
+    if (typeof colImagen !== 'number') return csvAProductosYesos(filas, hojaNum);
     if (filas.length < 2) return [];
     // Omitir la fila de encabezados (fila 0)
     var productos = [];
@@ -402,7 +402,11 @@ function _formasDesdeCelda(raw) {
 //   E4 Imagenes imgbb (URLs separadas por coma) | F5 Video | G6 Etiqueta Principal
 //   H7 Etiqueta de evento | I8 Medidas alto/ancho (ej. "12/8" o "12 x 8")
 //   J9 existencia | K10 En Oferta ("si") | L11 Más Vendido ("si") | M12 Etiquetas de forma
-function csvAProductosYesos(filas) {
+// hojaNum: número de la pestaña (2-17). Cada producto recibe:
+//   fila  = fila real en la pestaña (i + 1)
+//   hoja  = número de pestaña
+//   id    = hojaNum * 1000 + i  (único en TODO el catálogo; antes el id era solo la fila)
+function csvAProductosYesos(filas, hojaNum) {
     if (filas.length < 2) return [];
     var limpiar = function(s) { return (s || '').replace(/^"+|"+$/g, '').trim(); };
     var lista = function(s) {
@@ -426,7 +430,9 @@ function csvAProductosYesos(filas) {
         var ancho = medidas[1] || '';
 
         productos.push({
-            id:           i,
+            id:           hojaNum ? hojaNum * 1000 + i : i,
+            fila:         i + 1,
+            hoja:         hojaNum || 0,
             nombre:       get(0),
             precioNormal: parseFloat(get(1).replace(/[^0-9.]/g, '')) || 0,
             precioBazar:  parseFloat(get(2).replace(/[^0-9.]/g, '')) || 0,
@@ -492,7 +498,10 @@ function renderizarCatalogoEnGrid(gridId, productos) {
         // ── Data-attributes necesarios para filtros y modal ──
         card.setAttribute('data-num',             String(p.id));
         card.setAttribute('data-idx',             String(p.id));
-        card.setAttribute('data-sheet-row',       String(p.id + 1));
+        card.setAttribute('data-sheet-row',       String(p.fila || (p.id + 1)));
+        card.setAttribute('data-hoja',            String(p.hoja || ''));
+        card.setAttribute('data-pagina',          String(p._pagina || ''));
+        card.setAttribute('data-portada',         p._portada ? '1' : '');
         card.setAttribute('data-forma',           p.forma || '');
         card.setAttribute('data-evento',          p.eventos || '');
         card.setAttribute('data-precio',          String(parseInt(p.precioNormal, 10) || 0));
@@ -559,8 +568,9 @@ function renderizarCatalogoEnGrid(gridId, productos) {
         // ── Badge: número de fila en Google Sheets (esquina superior izquierda) ──
         var badgeFila = document.createElement('span');
         badgeFila.className = 'card-badge-fila';
-        badgeFila.textContent = '#' + (p.id + 1);
-        badgeFila.title = 'Fila ' + (p.id + 1) + ' en Google Sheets';
+        var _filaBadge = p.fila || (p.id + 1);
+        badgeFila.textContent = (p.hoja ? 'H' + p.hoja + ' ' : '') + '#' + _filaBadge;
+        badgeFila.title = (p.hoja ? 'Hoja ' + p.hoja + ' · ' : '') + 'Fila ' + _filaBadge + ' en Google Sheets';
         badgeFila.style.cssText = 'position:absolute; top:6px; left:6px; z-index:2; font-size:10px; font-weight:800; color:#9a8878; background:rgba(245,240,235,0.92); border:1.5px solid #e0d5cc; border-radius:8px; padding:2px 7px; letter-spacing:0.3px; line-height:1.4; pointer-events:none; user-select:none;';
         imgContenedor.appendChild(badgeFila);
 
@@ -795,79 +805,109 @@ function _abrirProductoDesdeURL() {
 })();
 
 // CARGA DESDE GOOGLE SHEETS (CSV público)
+// ──────────────────────────────────────────────────────────────────────────────
+// Catálogo de Yesos = pestañas "Hoja 2" … "Hoja 17" de la misma hoja de cálculo
+// (ver HOJAS_YESOS en config.js). Cada pestaña es una página del catálogo.
+// La página 1 se arma con los primeros 3 productos de las Hojas 2-10 + 3 de Velas.
 // ══════════════════════════════════════════════════════════════════════════════
-function cargarDesdeGoogleSheets() {
-    var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv';
+var HOJAS_YESOS = CONFIG.HOJAS_YESOS || [];
+var HOJA_PREFIJO = CONFIG.HOJA_PREFIJO || 'Hoja ';
+var PORTADA_HOJAS = (typeof CONFIG.PORTADA_HOJAS === 'number') ? CONFIG.PORTADA_HOJAS : 9;
+var PORTADA_POR_FILA = CONFIG.PORTADA_PRODUCTOS_POR_FILA || 3;
+var PAGINAS_VER_MAS = CONFIG.PAGINAS_VER_MAS || {};
 
+function _urlHojaYesos(num) {
+    return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(HOJA_PREFIJO + num);
+}
+
+// Primeros 3 productos de la Hoja 1 de Velas Kukúmita (fila 10 de la página 1).
+// Si falla, la página 1 simplemente queda sin esa fila (no rompe el resto del catálogo).
+function _cargarVelasPortada() {
+    var url = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS + '/gviz/tq?tqx=out:csv';
+    return fetch(url)
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(function(texto) {
+            return csvAProductos(parsearCSV(texto), 5).slice(0, PORTADA_POR_FILA).map(function(p, i) {
+                var clone = Object.assign({}, p);
+                clone.id = 1000 + i;            // rango 1000-1999 reservado a estos "prestados"
+                clone.fila = p.id + 1;          // fila real en la hoja de Velas
+                clone.hoja = 0;
+                clone._origenExterno = 'velas';
+                clone._pagina = 1;
+                return clone;
+            });
+        })
+        .catch(function(err) {
+            console.error('No se pudieron cargar los productos de Velas Kukúmita:', err);
+            return [];
+        });
+}
+
+function cargarDesdeGoogleSheets() {
     mostrarEstadoCarga('Cargando catálogo desde Google Sheets…', false);
 
-    fetch(csvUrl)
-        .then(function(res) {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.text();
-        })
-        .then(function(texto) {
-            var filas = parsearCSV(texto);
+    var peticionesHojas = HOJAS_YESOS.map(function(h) {
+        return fetch(_urlHojaYesos(h.num))
+            .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+            .then(function(texto) {
+                var productos = csvAProductosYesos(parsearCSV(texto), h.num);
+                productos.forEach(function(p) { p._pagina = h.num; });
+                return { num: h.num, productos: productos, error: false };
+            })
+            .catch(function(err) {
+                console.error('Error cargando "' + HOJA_PREFIJO + h.num + '":', err);
+                return { num: h.num, productos: [], error: true };
+            });
+    });
 
-            // ── DIAGNÓSTICO: imprime las primeras 3 filas del CSV en consola ──
-            console.group('[Kukumita] RAW CSV — primeras 3 filas');
-            for (var _di = 0; _di < Math.min(3, filas.length); _di++) {
-                console.log('Fila ' + _di + ' (' + filas[_di].length + ' columnas):');
-                filas[_di].forEach(function(val, idx) {
-                    if (val) console.log('  [' + idx + '] = ' + val.substring(0, 80));
+    Promise.all([Promise.all(peticionesHojas), _cargarVelasPortada()])
+        .then(function(resultado) {
+            var hojas = resultado[0];
+            var velas = resultado[1];
+
+            // ── PÁGINA 1: primeros 3 productos de las Hojas 2..10 (una fila de 3 por hoja) ──
+            // Son COPIAS de los productos reales (que siguen en su propia página).
+            var portada = [];
+            hojas.slice(0, PORTADA_HOJAS).forEach(function(h) {
+                h.productos.slice(0, PORTADA_POR_FILA).forEach(function(p) {
+                    var copia = Object.assign({}, p);
+                    copia._pagina = 1;
+                    copia._portada = true;
+                    portada.push(copia);
                 });
-            }
-            console.groupEnd();
-
-            var productos = csvAProductos(filas);
-
-            // ── Filas reservadas (26-31): siempre se excluyen del catálogo principal ──
-            // Estas filas están reservadas para los 3 productos "prestados" de Etiquetas
-            // (filas 26-28) y los 3 de Velas (filas 29-31) — ver cargarProductosEspecialesVelas().
-            // Se filtran aquí SIEMPRE, sin importar si la fila tiene nombre/datos o no, para
-            // que puedas usarlas como referencia/anotación en la hoja sin que aparezcan
-            // duplicadas ni rompan el conteo fila↔producto.
-            var FILA_RESERVADA_INICIO = 26;
-            var FILA_RESERVADA_FIN    = 31;
-            productos = productos.filter(function(p) {
-                var filaSheet = p.id + 1;
-                return filaSheet < FILA_RESERVADA_INICIO || filaSheet > FILA_RESERVADA_FIN;
             });
 
-            if (productos.length === 0) {
-                mostrarEstadoCarga('La hoja está vacía o no tiene el formato correcto.', true);
+            // ── PÁGINAS 2..17: todos los productos de cada hoja, en el orden de la hoja ──
+            var resto = [];
+            hojas.forEach(function(h) { resto = resto.concat(h.productos); });
+
+            var productos = portada.concat(velas, resto);
+
+            if (resto.length === 0) {
+                mostrarEstadoCarga('No se pudo leer ninguna pestaña del catálogo (Hoja 2 a Hoja 17). Revisa que existan con esos nombres y que la hoja sea pública.', true);
                 return;
             }
 
             listaProductos = productos;
             renderizarCatalogoCompleto();
 
-            // Re-ejecutar los scripts que procesan las cards (subtags, aditivos, miniaturas, etc.)
             if (typeof syncBotonesLike === 'function') syncBotonesLike();
 
             // Disparar evento para que otros sistemas (paginación, filtros) se enteren
             document.dispatchEvent(new CustomEvent('catalogoCargado'));
 
-            // Refrescar carruseles de ofertas/más vendidos con las nuevas cards
             if (typeof window.refrescarCarruseles === 'function') {
                 setTimeout(function() { window.refrescarCarruseles(); }, 50);
             }
 
-            // ── Leer ?producto= de la URL y abrir ese modal automáticamente ──
             _abrirProductoDesdeURL();
 
-            // Log de diagnostico: precios y tipos de cada producto (visible en DevTools > Consola)
             console.group('[Kukumita] Catalogo cargado — ' + listaProductos.length + ' productos');
-            listaProductos.forEach(function(p) {
-                console.log(
-                    p.nombre +
-                    ' | precio=$' + p.precioNormal +
-                    ' | imagen=' + (p.imagen ? p.imagen.substring(0,40)+'…' : 'SIN IMAGEN') +
-                    ' | oferta=' + p.oferta +
-                    ' | masVendido=' + p.masVendido +
-                    ' | tipos=[' + (p.tipos || [p.tipo]).join('|') + ']'
-                );
+            hojas.forEach(function(h) {
+                console.log('Hoja ' + h.num + ': ' + h.productos.length + ' productos' + (h.error ? ' (ERROR al leer la pestaña)' : ''));
             });
+            console.log('Página 1: ' + (portada.length + velas.length) + ' tarjetas (' + portada.length + ' de Yesos + ' + velas.length + ' de Velas)');
             console.groupEnd();
         })
         .catch(function(err) {
@@ -949,77 +989,7 @@ function cargarProductosEtiquetas(forzar) {
         });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PRODUCTOS ESPECIALES INSERTADOS EN LA PRIMERA HOJA (Yesos Fer Kukúmita):
-//   • Zona "Mostrar Más Etiquetas" (fila 9,  posiciones 26-28) → primeras 3
-//     etiquetas de la Hoja 2 de Velas Kukúmita.
-//   • Zona "Mostrar Más Velas"     (fila 10, posiciones 29-31) → primeros 3
-//     productos de la Hoja 1 de Velas Kukúmita.
-// En la hoja de Yesos, las filas 26-31 deben quedar SIN link de imagen en la
-// columna G para que csvAProductos() las ignore y así dejar ese hueco libre
-// para estos 6 productos "prestados".
-// ══════════════════════════════════════════════════════════════════════════════
-var FILA_INICIO_ETIQUETAS = 26; // fila de Google Sheets (Yesos) que le correspondería al 1er producto de "Etiquetas"
-var FILA_INICIO_VELAS     = 29; // ídem para el 1er producto de Velas
-var _especialesInsertados = false;
-
-// Clona un producto (ya parseado desde OTRA hoja) y le asigna el "id" que le
-// haría mostrar en el badge del modal la fila que le correspondería dentro
-// del catálogo de Yesos (data-sheet-row = id + 1), en vez de su fila real
-// en la hoja de Velas Kukúmita.
-function _prepararProductoEspecial(p, filaSheetsSimulada, origen) {
-    var clone = Object.assign({}, p);
-    clone.id = filaSheetsSimulada - 1;
-    clone._origenExterno = origen;
-    return clone;
-}
-
-function cargarProductosEspecialesVelas() {
-    var urlHoja1 = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS + '/gviz/tq?tqx=out:csv';
-    var urlHoja2 = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID_ETIQUETAS +
-        '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NOMBRE_ETIQUETAS);
-
-    Promise.all([
-        fetch(urlHoja1).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
-        fetch(urlHoja2).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    ]).then(function(textos) {
-        var productosVelas     = csvAProductos(parsearCSV(textos[0]), 5).slice(0, 3); // columna F
-        var productosEtiquetas = csvAProductos(parsearCSV(textos[1]), 5).slice(0, 3); // columna F
-
-        var especiales = [];
-        productosEtiquetas.forEach(function(p, i) {
-            especiales.push(_prepararProductoEspecial(p, FILA_INICIO_ETIQUETAS + i, 'etiquetas-externas'));
-        });
-        productosVelas.forEach(function(p, i) {
-            especiales.push(_prepararProductoEspecial(p, FILA_INICIO_VELAS + i, 'velas'));
-        });
-
-        _insertarProductosEspecialesEnListaPrincipal(especiales);
-    }).catch(function(err) {
-        console.error('No se pudieron cargar los productos especiales de Velas Kukúmita:', err);
-    });
-}
-
-function _insertarProductosEspecialesEnListaPrincipal(especiales) {
-    if (!especiales || especiales.length === 0) return;
-    // Punto de inserción: justo antes del primer producto real cuya fila de
-    // Google Sheets sea igual o mayor a donde deberían ir estos especiales.
-    var idx = listaProductos.findIndex(function(p) { return (p.id + 1) >= FILA_INICIO_ETIQUETAS; });
-    if (idx === -1) idx = listaProductos.length;
-    listaProductos.splice.apply(listaProductos, [idx, 0].concat(especiales));
-
-    renderizarCatalogoCompleto();
-    if (typeof syncBotonesLike === 'function') syncBotonesLike();
-    document.dispatchEvent(new CustomEvent('catalogoCargado'));
-}
-
-// Se dispara una sola vez, justo después de que el catálogo principal de
-// Yesos haya cargado por primera vez.
-document.addEventListener('catalogoCargado', function() {
-    if (_especialesInsertados) return;
-    _especialesInsertados = true;
-    cargarProductosEspecialesVelas();
-});
+// (Los productos de Velas de la página 1 ahora se cargan en cargarDesdeGoogleSheets → _cargarVelasPortada.)
 
 
 
@@ -1167,25 +1137,54 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
 
 
-// ===== PAGINACIÓN DE 30 PRODUCTOS POR PÁGINA =====
+// ===== PAGINACIÓN DEL CATÁLOGO =====
+// Dos modos:
+//  • ESTRUCTURADO (sin filtros ni búsqueda): cada página es una pestaña de la hoja de
+//    cálculo. Página 1 = portada (3 productos de las Hojas 2-10 + 3 de Velas), página N =
+//    "Hoja N" completa. Cada tarjeta trae su página en data-pagina.
+//  • FILTRADO (hay filtros o búsqueda activos): los resultados se reparten de 30 en 30,
+//    como siempre, y las copias de la portada (data-portada="1") se ocultan para no
+//    mostrar dos veces el mismo producto.
 (function() {
     const POR_PAGINA = 30;
     let paginaActual = 1;
     let tarjetasVisibles = [];
+    let modoEstructurado = true;
+    let listaPaginas = [];          // números de página disponibles (modo estructurado)
 
-    function obtenerTarjetasVisibles() {
-        return Array.from(document.querySelectorAll('#gridProductos .card-dinamica'))
-            .filter(function(c) {
-                return !c.classList.contains('oculto') &&
-                       !c.classList.contains('oculto-forma-carrusel');
-            });
+    function esPortada(c) { return c.getAttribute('data-portada') === '1'; }
+    function estaOculta(c) {
+        return c.classList.contains('oculto') || c.classList.contains('oculto-forma-carrusel');
+    }
+
+    function obtenerTodas() {
+        return Array.from(document.querySelectorAll('#gridProductos .card-dinamica'));
+    }
+
+    // Hay filtro activo si alguna tarjeta REAL (no copia de la portada) está oculta por un filtro
+    function hayFiltroActivo() {
+        return obtenerTodas().some(function(c) { return !esPortada(c) && estaOculta(c); });
+    }
+
+    function tituloPagina(num) {
+        if (num === 1) return 'Lo mejor de cada categoría';
+        var h = (typeof HOJAS_YESOS !== 'undefined' ? HOJAS_YESOS : []).filter(function(x) { return x.num === num; })[0];
+        return h ? h.titulo : '';
     }
 
     function calcularTotalPaginas() {
-        return Math.ceil(tarjetasVisibles.length / POR_PAGINA);
+        return modoEstructurado ? listaPaginas.length : Math.ceil(tarjetasVisibles.length / POR_PAGINA);
+    }
+
+    function tarjetasDeLaPagina(num) {
+        if (modoEstructurado) {
+            return tarjetasVisibles.filter(function(c) { return parseInt(c.getAttribute('data-pagina'), 10) === num; });
+        }
+        return tarjetasVisibles.slice((num - 1) * POR_PAGINA, num * POR_PAGINA);
     }
 
     function mostrarPagina(num) {
+        if (modoEstructurado && listaPaginas.length && listaPaginas.indexOf(num) === -1) num = listaPaginas[0];
         paginaActual = num;
         // Guardar página en el hash de la URL para que persista al recargar
         var nuevoHash = (window.location.hash || '').replace(/#?pagina=\d+/, '').replace(/^#?&/, '').replace(/^#/, '') || '';
@@ -1193,19 +1192,24 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
         if (window.history && window.history.replaceState) {
             window.history.replaceState(null, '', '#' + hashFinal);
         }
-        var inicio = (num - 1) * POR_PAGINA;
-        var fin = inicio + POR_PAGINA;
         // Quita paginacion-oculto a todas
-        document.querySelectorAll('#gridProductos .card-dinamica').forEach(function(c) {
-            c.classList.remove('paginacion-oculto');
-        });
-        // Oculta las que no están en la página actual (sólo de las visibles)
-        tarjetasVisibles.forEach(function(card, i) {
-            if (i < inicio || i >= fin) {
-                card.classList.add('paginacion-oculto');
-            }
-        });
+        obtenerTodas().forEach(function(c) { c.classList.remove('paginacion-oculto'); });
+
+        if (modoEstructurado) {
+            tarjetasVisibles.forEach(function(card) {
+                if (parseInt(card.getAttribute('data-pagina'), 10) !== num) card.classList.add('paginacion-oculto');
+            });
+        } else {
+            // En modo filtrado las copias de la portada no se muestran (ya aparecen en su página real)
+            obtenerTodas().forEach(function(c) { if (esPortada(c)) c.classList.add('paginacion-oculto'); });
+            var inicio = (num - 1) * POR_PAGINA;
+            var fin = inicio + POR_PAGINA;
+            tarjetasVisibles.forEach(function(card, i) {
+                if (i < inicio || i >= fin) card.classList.add('paginacion-oculto');
+            });
+        }
         renderControles();
+        actualizarBotonVerMas();
         insertarBarrasCategoriaProductos();
         if (_scrollAlCambiarPagina) {
             var grid = document.getElementById('gridProductos');
@@ -1217,18 +1221,55 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
 
     var _scrollAlCambiarPagina = false;
 
+    function irAPagina(n) {
+        _scrollAlCambiarPagina = true; mostrarPagina(n); _scrollAlCambiarPagina = false;
+    }
+
+    // Botón "Ver más …" al final de las páginas que tienen continuación (ver PAGINAS_VER_MAS en config.js)
+    function actualizarBotonVerMas() {
+        var wrap = document.getElementById('pagControlesAbajo');
+        if (!wrap || !wrap.parentNode) return;
+        var btn = document.getElementById('btnVerMasPagina');
+        var destino = (modoEstructurado && typeof PAGINAS_VER_MAS !== 'undefined') ? PAGINAS_VER_MAS[paginaActual] : null;
+        if (!destino || listaPaginas.indexOf(destino) === -1) {
+            if (btn) btn.style.display = 'none';
+            return;
+        }
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.id = 'btnVerMasPagina';
+            btn.type = 'button';
+            btn.style.cssText = 'display:block; margin:18px auto 6px; padding:12px 26px; border:2px solid #8c7565; border-radius:999px; background:#8c7565; color:#fff; font-size:1rem; font-weight:700; font-family:inherit; cursor:pointer; max-width:92%;';
+            wrap.parentNode.insertBefore(btn, wrap);
+        }
+        var nombreDestino = tituloPagina(destino);
+        btn.textContent = 'Ver más ' + (nombreDestino || ('página ' + destino)) + ' →';
+        btn.onclick = function() { irAPagina(destino); };
+        btn.style.display = 'block';
+    }
+
     function renderControles() {
         const total = calcularTotalPaginas();
-        const mostradas = tarjetasVisibles.slice((paginaActual-1)*POR_PAGINA, paginaActual*POR_PAGINA).length;
-        const hayTarjetas = document.querySelectorAll('#gridProductos .card-dinamica').length > 0;
-        const infoTexto = tarjetasVisibles.length > 0
-            ? "Mostrando " + ((paginaActual-1)*POR_PAGINA+1) + "\u2013" + ((paginaActual-1)*POR_PAGINA+mostradas) + " de " + tarjetasVisibles.length + " productos"
-            : (hayTarjetas ? 'Sin resultados para ese filtro' : '');
+        const enPagina = tarjetasDeLaPagina(paginaActual).length;
+        const hayTarjetas = obtenerTodas().length > 0;
+        let infoTexto;
+        if (tarjetasVisibles.length === 0) {
+            infoTexto = hayTarjetas ? 'Sin resultados para ese filtro' : '';
+        } else if (modoEstructurado) {
+            var t = tituloPagina(paginaActual);
+            infoTexto = 'Página ' + paginaActual + (t ? ' · ' + t : '') + ' · ' + enPagina + ' productos';
+        } else {
+            infoTexto = "Mostrando " + ((paginaActual-1)*POR_PAGINA+1) + "\u2013" + ((paginaActual-1)*POR_PAGINA+enPagina) + " de " + tarjetasVisibles.length + " productos";
+        }
 
         ['pagInfoArriba', 'pagInfoAbajo'].forEach(function(id) {
             var el = document.getElementById(id);
             if (el) el.textContent = infoTexto;
         });
+
+        // Lista de páginas que se dibujan como botones
+        var paginas = modoEstructurado ? listaPaginas.slice() : Array.from({length: total}, function(_, k) { return k + 1; });
+        var posActual = paginas.indexOf(paginaActual);
 
         ['pagControlesArriba', 'pagControlesAbajo'].forEach(function(id) {
             var cont = document.getElementById(id);
@@ -1246,25 +1287,25 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             var btnPrev = document.createElement('button');
             btnPrev.className = 'btn-pag';
             btnPrev.textContent = '\u2190 Anterior';
-            btnPrev.disabled = paginaActual === 1;
-            btnPrev.onclick = function() { _scrollAlCambiarPagina = true; mostrarPagina(paginaActual - 1); _scrollAlCambiarPagina = false; };
+            btnPrev.disabled = posActual <= 0;
+            btnPrev.onclick = function() { irAPagina(paginas[posActual - 1]); };
             cont.appendChild(btnPrev);
 
-            for (var i = 1; i <= total; i++) {
-                (function(pg) {
-                    var btn = document.createElement('button');
-                    btn.className = 'btn-pag' + (pg === paginaActual ? ' activo' : '');
-                    btn.textContent = pg;
-                    btn.onclick = function() { _scrollAlCambiarPagina = true; mostrarPagina(pg); _scrollAlCambiarPagina = false; };
-                    cont.appendChild(btn);
-                })(i);
-            }
+            paginas.forEach(function(pg) {
+                var btn = document.createElement('button');
+                btn.className = 'btn-pag' + (pg === paginaActual ? ' activo' : '');
+                btn.textContent = pg;
+                var tt = modoEstructurado ? tituloPagina(pg) : '';
+                if (tt) btn.title = tt;
+                btn.onclick = function() { irAPagina(pg); };
+                cont.appendChild(btn);
+            });
 
             var btnNext = document.createElement('button');
             btnNext.className = 'btn-pag';
             btnNext.textContent = 'Siguiente \u2192';
-            btnNext.disabled = paginaActual === total;
-            btnNext.onclick = function() { _scrollAlCambiarPagina = true; mostrarPagina(paginaActual + 1); _scrollAlCambiarPagina = false; };
+            btnNext.disabled = posActual === -1 || posActual >= paginas.length - 1;
+            btnNext.onclick = function() { irAPagina(paginas[posActual + 1]); };
             cont.appendChild(btnNext);
         });
     }
@@ -1272,7 +1313,23 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     var _primeraVez = true;
 
     function actualizarPaginacion() {
-        tarjetasVisibles = obtenerTarjetasVisibles();
+        modoEstructurado = !hayFiltroActivo();
+        var visibles = obtenerTodas().filter(function(c) { return !estaOculta(c); });
+        if (modoEstructurado) {
+            tarjetasVisibles = visibles;
+            var vistos = {};
+            tarjetasVisibles.forEach(function(c) {
+                var pg = parseInt(c.getAttribute('data-pagina'), 10);
+                if (!isNaN(pg)) vistos[pg] = true;
+            });
+            listaPaginas = Object.keys(vistos).map(Number).sort(function(x, y) { return x - y; });
+            // Tarjetas sin página asignada (no debería pasar): se tratan como página 1
+            tarjetasVisibles.forEach(function(c) { if (isNaN(parseInt(c.getAttribute('data-pagina'), 10))) c.setAttribute('data-pagina', '1'); });
+            if (!listaPaginas.length && tarjetasVisibles.length) listaPaginas = [1];
+        } else {
+            tarjetasVisibles = visibles.filter(function(c) { return !esPortada(c); });
+            listaPaginas = [];
+        }
         var paginaInicial = 1;
         // Solo restaurar la página guardada en el hash durante la carga inicial,
         // no al cambiar filtros (para evitar mostrar páginas desincronizadas).
@@ -1280,8 +1337,10 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             var hash = window.location.hash || '';
             var match = hash.match(/pagina=(\d+)/);
             var paginaGuardada = match ? parseInt(match[1]) : 1;
-            var totalPags = Math.ceil(tarjetasVisibles.length / POR_PAGINA);
-            paginaInicial = (paginaGuardada > 1 && paginaGuardada <= totalPags) ? paginaGuardada : 1;
+            var valida = modoEstructurado
+                ? listaPaginas.indexOf(paginaGuardada) !== -1
+                : (paginaGuardada <= Math.ceil(tarjetasVisibles.length / POR_PAGINA));
+            paginaInicial = (paginaGuardada > 1 && valida) ? paginaGuardada : 1;
             _primeraVez = false;
         }
         mostrarPagina(paginaInicial);
@@ -1320,6 +1379,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
     });
 
     window.actualizarPaginacion = actualizarPaginacion;
+    window.irAPaginaCatalogo = irAPagina;
 })();
 
 
@@ -3633,7 +3693,7 @@ function _aplicarModoFormulario() {
     var editando = !!_edicionProducto;
     var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
     set('sapTitulo', editando ? 'Configurar producto' : 'Agregar producto');
-    set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–L');
+    set('sapDestino', editando ? 'Hoja ' + (_edicionProducto && _edicionProducto.hoja ? _edicionProducto.hoja : '?') + ' · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Elige la hoja · columnas A–M');
     set('sapNotaFinal', editando
         ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva ni eliminas la imagen, se conserva la actual. Para cambiarlo de fila usa el número # del producto.'
         : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
@@ -3700,7 +3760,7 @@ function abrirEditorProducto(p) {
     }
 
     limpiarFormularioProducto();
-    _edicionProducto = { fila: p.id + 1, nombre: p.nombre, imagenes: (p.imagenes || []).slice(),
+    _edicionProducto = { fila: p.fila || (p.id + 1), hoja: p.hoja || 0, nombre: p.nombre, imagenes: (p.imagenes || []).slice(),
                          tipos: (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); }),
                          eventos: String(p.eventos || '').split(/\s+/).filter(Boolean),
                          formas: String(p.forma || '').split('|').filter(Boolean) };
@@ -3757,8 +3817,8 @@ window.abrirEditorProducto = abrirEditorProducto;
 // ──────────────────────────────────────────────────────────────
 var FILA_MIN_DESTINO = 2;
 var FILA_MAX_DESTINO = 1000;      // igual que FILA_MAX en Code.gs
-var FILA_RESERVADA_INI = 26;      // filas 26-31: productos "prestados" de Etiquetas y Velas
-var FILA_RESERVADA_FIN_ = 31;     // igual que en Code.gs
+var FILA_RESERVADA_INI = 0;       // ya no hay filas reservadas (la portada se arma sola); 0 = desactivado
+var FILA_RESERVADA_FIN_ = 0;      // igual que en Code.gs
 
 // Devuelve un texto de error si la fila no se puede usar, o '' si está bien.
 function _errorFilaDestino(n) {
@@ -3794,9 +3854,9 @@ function abrirMoverProducto(card) {
     if (!esCorreoAdmin(user) || !card) return; // por si acaso; el servidor vuelve a verificar
     var fila = parseInt(card.getAttribute('data-sheet-row'), 10);
     if (!fila) return;
-    _moverProducto = { fila: fila, nombre: card.getAttribute('data-nombre') || '' };
+    _moverProducto = { fila: fila, hoja: parseInt(card.getAttribute('data-hoja'), 10) || 0, nombre: card.getAttribute('data-nombre') || '' };
     var info = document.getElementById('mmpProducto');
-    if (info) info.textContent = '«' + _moverProducto.nombre + '» está en la fila ' + fila + '.';
+    if (info) info.textContent = '«' + _moverProducto.nombre + '» está en la ' + (_moverProducto.hoja ? 'Hoja ' + _moverProducto.hoja + ', ' : '') + 'fila ' + fila + '.';
     var input = document.getElementById('inputMoverFila');
     if (input) input.value = '';
     actualizarAvisoMover();
@@ -3825,7 +3885,7 @@ function actualizarAvisoMover() {
         if (err) { msg = err; error = true; }
         else if (n === _moverProducto.fila) { msg = 'El producto ya está en esa fila.'; error = true; }
         else {
-            var ocupante = (listaProductos || []).filter(function(p) { return !p._origenExterno && (p.id + 1) === n; })[0];
+            var ocupante = (listaProductos || []).filter(function(p) { return !p._portada && !p._origenExterno && (p.hoja || 0) === (_moverProducto.hoja || 0) && (p.fila || (p.id + 1)) === n; })[0];
             msg = ocupante
                 ? 'La fila ' + n + ' está ocupada por «' + ocupante.nombre + '»: se intercambiarán (ese producto pasará a la fila ' + _moverProducto.fila + ').'
                 : 'La fila ' + n + ' está libre: el producto se moverá ahí y la fila ' + _moverProducto.fila + ' quedará vacía.';
@@ -3860,6 +3920,7 @@ async function confirmarMoverProducto() {
             body: JSON.stringify({
                 idToken: idToken,
                 accion: 'mover',
+                hoja: _moverProducto.hoja,
                 fila: _moverProducto.fila,
                 nombreOriginal: _moverProducto.nombre, // el servidor comprueba que la fila siga siendo este producto
                 filaDestino: texto
@@ -3898,7 +3959,7 @@ function abrirEliminarProducto() {
         mostrarToast('Ese producto está en una fila reservada y no se puede eliminar desde aquí.');
         return;
     }
-    _eliminarProducto = { fila: fila, nombre: _edicionProducto.nombre };
+    _eliminarProducto = { fila: fila, hoja: _edicionProducto.hoja || 0, nombre: _edicionProducto.nombre };
     var info = document.getElementById('mepProducto');
     if (info) info.textContent = '¿Seguro que quieres eliminar «' + _eliminarProducto.nombre + '» (fila ' + fila + ')?';
     var btn = document.getElementById('btnConfirmarEliminar');
@@ -3934,6 +3995,7 @@ async function confirmarEliminarProducto() {
             body: JSON.stringify({
                 idToken: idToken,
                 accion: 'eliminar',
+                hoja: _eliminarProducto.hoja,
                 fila: _eliminarProducto.fila,
                 nombreOriginal: _eliminarProducto.nombre // el servidor comprueba que la fila siga siendo este producto
             })
@@ -5042,6 +5104,7 @@ async function guardarProductoAdmin() {
         var resultado = await _postAppsScript({
                 idToken: idToken,
                 accion: editando ? 'editar' : 'agregar',
+                hoja: editando ? _edicionProducto.hoja : (parseInt(_campoProducto('inputHojaProducto'), 10) || undefined),
                 fila: editando ? _edicionProducto.fila : undefined,
                 nombreOriginal: editando ? _edicionProducto.nombre : undefined, // el servidor comprueba que la fila siga siendo este producto
                 filaDestino: editando ? undefined : filaDestino,
@@ -5701,7 +5764,8 @@ function inyectarEtiquetasModal(card) {
         badge.onclick = puedeMover ? function(e) { e.stopPropagation(); abrirMoverProducto(card); } : null;
         badge.style.cursor = puedeMover ? 'pointer' : 'default';
         if (filaSheets) {
-            badge.textContent = '# ' + filaSheets + (puedeMover ? ' ↕' : '');
+            var _hojaBadge = card.getAttribute('data-hoja');
+            badge.textContent = (_hojaBadge ? 'Hoja ' + _hojaBadge + ' · ' : '') + '# ' + filaSheets + (puedeMover ? ' ↕' : '');
             badge.title = puedeMover ? 'Fila ' + filaSheets + ' — toca para moverla o intercambiarla' : 'Fila ' + filaSheets + ' en Google Sheets';
             badge.style.display = 'inline-block';
         } else {
@@ -5717,7 +5781,7 @@ function inyectarEtiquetasModal(card) {
         var prodConfig = null;
         if (filaSheets && esCorreoAdmin(auth.currentUser)
             && !card.getAttribute('data-origen-externo') && !!card.closest('#gridProductos')) {
-            var idConfig = parseInt(filaSheets, 10) - 1;
+            var idConfig = parseInt(card.getAttribute('data-idx'), 10);
             prodConfig = listaProductos.find(function(x) { return x.id === idConfig && !x._origenExterno; }) || null;
         }
         btnConfigModal.style.display = prodConfig ? 'flex' : 'none';
