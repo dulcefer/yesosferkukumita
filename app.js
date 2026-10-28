@@ -4934,7 +4934,7 @@ async function publicarImagenImgbb(quien) {
         var dataUrl = (quien === 'polo') ? await ed.imagenPolo() : await ed.imagenFer();
         if (!dataUrl) {
             throw new Error(quien === 'polo'
-                ? 'No se pudo preparar la imagen azul (revisa FONDO_AZUL_URL en config.js y que fondo-azul.webp exista en el repo de Polo).'
+                ? 'No se pudo preparar la imagen azul: ' + ((ed.motivoPolo && ed.motivoPolo()) || 'revisa FONDO_AZUL_URL en config.js y que fondo-azul.webp exista en el repo de Polo.')
                 : 'No se pudo preparar la imagen.');
         }
         _estadoPublicarImgbb(quien, '⏳ Subiendo a imgbb…');
@@ -5059,7 +5059,7 @@ async function guardarProductoAdmin() {
                 motivoSinPolo = 'el navegador tiene una versión vieja de editor-imagen.js. Sube el número de versión en index.html y recarga con Ctrl+F5.';
             } else {
                 imagenPolo = await window.editorImagenProducto.imagenPolo();
-                if (!imagenPolo) motivoSinPolo = 'no se pudo cargar fondo-azul.webp (revisa FONDO_AZUL_URL en config.js y que el archivo exista en el repo de Polo).';
+                if (!imagenPolo) motivoSinPolo = (window.editorImagenProducto.motivoPolo && window.editorImagenProducto.motivoPolo()) || 'no se pudo cargar fondo-azul.webp (revisa FONDO_AZUL_URL en config.js y que el archivo exista en el repo de Polo).';
             }
         }
         var enviarAPolo = !editando && (!!imagenPolo || !!linkPoloListo);

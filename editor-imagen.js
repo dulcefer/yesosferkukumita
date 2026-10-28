@@ -178,17 +178,39 @@
         return u;
     }
 
+    // Carga el fondo azul probando varias direcciones (la primera es FONDO_AZUL_URL de config.js).
+    // Si ninguna carga, guarda en S.motivoPolo qué se intentó. Devuelve true/false (nunca lanza error).
+    async function cargarFondoPolo() {
+        if (S.fondoPolo) return true;
+        var lista = [FONDO_POLO_SRC,
+            'https://cdn.jsdelivr.net/gh/elpologr/yesospolokukumita@main/imagenes/fondo-azul.webp',
+            'https://elpologr.github.io/yesospolokukumita/imagenes/fondo-azul.webp',
+            'imagenes/fondo-azul.webp'].filter(function (u, i, a) { return a.indexOf(u) === i; });
+        for (var k = 0; k < lista.length; k++) {
+            try { S.fondoPolo = await cargarImg(lista[k]); S.motivoPolo = ''; return true; }
+            catch (e) { console.warn('[fondo azul] no cargó:', lista[k]); }
+        }
+        S.motivoPolo = 'no se pudo cargar fondo-azul.webp desde ninguna de estas direcciones: ' + lista.join(' | ') + '. Abre cada una en el navegador para ver cuál responde y revisa tu conexión.';
+        return false;
+    }
+
     // Misma imagen con el fondo azul de Yesos Polo (se genera solo al guardar, fuera de pantalla)
     async function imagenPolo() {
-        if (!S.foto || !S.producto) return '';
-        try { S.fondoPolo = S.fondoPolo || await cargarImg(FONDO_POLO_SRC); }
-        catch (e) { return ''; } // sin el archivo del fondo azul no se puede generar la versión de Polo
+        S.motivoPolo = '';
+        if (!S.foto || !S.producto) { S.motivoPolo = 'no hay una foto lista en el editor (elige una foto y espera a que termine de quitar el fondo).'; return ''; }
+        if (!(await cargarFondoPolo())) return ''; // sin el archivo del fondo azul no se puede generar la versión de Polo
         await fuentes();
-        var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
-        pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a');
-        var u = c.toDataURL('image/webp', 0.9);
-        if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
-        return u;
+        try {
+            var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
+            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a');
+            var u = c.toDataURL('image/webp', 0.9);
+            if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
+            return u;
+        } catch (e) {
+            S.fondoPolo = null; // por si quedó una copia sin permiso de CORS
+            S.motivoPolo = 'el navegador bloqueó exportar la imagen azul (' + (e && e.message ? e.message : 'CORS') + '). Recarga con Ctrl+F5 e inténtalo de nuevo.';
+            return '';
+        }
     }
 
     function exportar() {
@@ -339,7 +361,7 @@
         S.titulo = envolverTitulo(val('inputTituloImagen'));
         var tIni = $('inputTituloImagen'); if (tIni) tIni.value = S.titulo;
         try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
-        try { S.fondoPolo = S.fondoPolo || await cargarImg(FONDO_POLO_SRC); } catch (e) { S.fondoPolo = null; }
+        await cargarFondoPolo();
         S.producto = await cargarImg(dataUrl);
         redibujar();
         quitarFondo(); // automático
@@ -398,6 +420,7 @@
         cargarFoto: cargarFoto,
         reset: reset,
         imagenPolo: imagenPolo,
+        motivoPolo: function () { return S.motivoPolo || ''; },
         imagenFer: imagenFer,
         ocupado: function () { return S.ocupado; },
         tituloPendiente: function () { return !!S.foto && envolverTitulo(val('inputTituloImagen')) !== S.titulo; }
