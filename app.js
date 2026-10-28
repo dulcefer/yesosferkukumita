@@ -815,6 +815,7 @@ var HOJA_PREFIJO = CONFIG.HOJA_PREFIJO || 'Hoja ';
 var PORTADA_HOJAS = (typeof CONFIG.PORTADA_HOJAS === 'number') ? CONFIG.PORTADA_HOJAS : 9;
 var PORTADA_POR_FILA = CONFIG.PORTADA_PRODUCTOS_POR_FILA || 3;
 var PAGINAS_VER_MAS = CONFIG.PAGINAS_VER_MAS || {};
+var PRODUCTOS_POR_HOJA = CONFIG.PRODUCTOS_POR_HOJA || 30;
 
 function _urlHojaYesos(num) {
     return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
@@ -847,24 +848,55 @@ function _cargarVelasPortada() {
 function cargarDesdeGoogleSheets() {
     mostrarEstadoCarga('Cargando catálogo desde Google Sheets…', false);
 
+    // Google Sheets NO da error cuando se pide una pestaña que no existe: devuelve la
+    // primera pestaña del archivo. Para reconocer ese caso se descarga también la pestaña
+    // por defecto: si el contenido de "Hoja N" es idéntico, esa pestaña no existe todavía.
+    var peticionDefecto = fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv')
+        .then(function(res) { return res.ok ? res.text() : null; })
+        .catch(function() { return null; });
+
     var peticionesHojas = HOJAS_YESOS.map(function(h) {
         return fetch(_urlHojaYesos(h.num))
             .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
-            .then(function(texto) {
-                var productos = csvAProductosYesos(parsearCSV(texto), h.num);
-                productos.forEach(function(p) { p._pagina = h.num; });
-                return { num: h.num, productos: productos, error: false };
-            })
+            .then(function(texto) { return { num: h.num, texto: texto, error: false }; })
             .catch(function(err) {
                 console.error('Error cargando "' + HOJA_PREFIJO + h.num + '":', err);
-                return { num: h.num, productos: [], error: true };
+                return { num: h.num, texto: '', error: true };
             });
     });
 
-    Promise.all([Promise.all(peticionesHojas), _cargarVelasPortada()])
+    Promise.all([Promise.all(peticionesHojas), _cargarVelasPortada(), peticionDefecto])
         .then(function(resultado) {
-            var hojas = resultado[0];
+            var crudas = resultado[0];
             var velas = resultado[1];
+            var textoDefecto = resultado[2];
+
+            var hojas = crudas.map(function(r) {
+                var productos = [];
+                var noExiste = false;
+                if (!r.error && r.texto) {
+                    if (textoDefecto && r.texto.trim() === textoDefecto.trim()) {
+                        noExiste = true;   // devolvió la pestaña por defecto → la pestaña no existe
+                    } else {
+                        // Cada hoja muestra como máximo PRODUCTOS_POR_HOJA productos (los primeros, en orden)
+                        productos = csvAProductosYesos(parsearCSV(r.texto), r.num).slice(0, PRODUCTOS_POR_HOJA);
+                        productos.forEach(function(p) { p._pagina = r.num; });
+                    }
+                }
+                return { num: r.num, productos: productos, error: r.error, noExiste: noExiste };
+            });
+
+            // Una hoja de continuación ("pág. 2") solo se crea cuando su hoja de origen ya
+            // está llena (30 productos). Mientras tanto no existe esa página.
+            Object.keys(PAGINAS_VER_MAS).forEach(function(origen) {
+                var hOrigen = hojas.filter(function(h) { return h.num === Number(origen); })[0];
+                var hDestino = hojas.filter(function(h) { return h.num === PAGINAS_VER_MAS[origen]; })[0];
+                if (hDestino && (!hOrigen || hOrigen.productos.length < PRODUCTOS_POR_HOJA)) {
+                    if (hDestino.productos.length) console.warn('Hoja ' + hDestino.num + ' no se muestra: la Hoja ' + origen + ' aún no tiene ' + PRODUCTOS_POR_HOJA + ' productos.');
+                    hDestino.productos = [];
+                    hDestino.oculta = true;
+                }
+            });
 
             // ── PÁGINA 1: primeros 3 productos de las Hojas 2..10 (una fila de 3 por hoja) ──
             // Son COPIAS de los productos reales (que siguen en su propia página).
@@ -885,7 +917,7 @@ function cargarDesdeGoogleSheets() {
             var productos = portada.concat(velas, resto);
 
             if (resto.length === 0) {
-                mostrarEstadoCarga('No se pudo leer ninguna pestaña del catálogo (Hoja 2 a Hoja 17). Revisa que existan con esos nombres y que la hoja sea pública.', true);
+                mostrarEstadoCarga('Todavía no hay productos en las pestañas "Hoja 2" a "Hoja 17" (o no se pudieron leer). Revisa que existan con esos nombres y que la hoja sea pública.', true);
                 return;
             }
 
@@ -905,7 +937,7 @@ function cargarDesdeGoogleSheets() {
 
             console.group('[Kukumita] Catalogo cargado — ' + listaProductos.length + ' productos');
             hojas.forEach(function(h) {
-                console.log('Hoja ' + h.num + ': ' + h.productos.length + ' productos' + (h.error ? ' (ERROR al leer la pestaña)' : ''));
+                console.log('Hoja ' + h.num + ': ' + h.productos.length + ' productos' + (h.error ? ' (ERROR al leer la pestaña)' : '') + (h.noExiste ? ' (la pestaña no existe todavía)' : '') + (h.oculta ? ' (oculta hasta que su hoja de origen tenga ' + PRODUCTOS_POR_HOJA + ')' : ''));
             });
             console.log('Página 1: ' + (portada.length + velas.length) + ' tarjetas (' + portada.length + ' de Yesos + ' + velas.length + ' de Velas)');
             console.groupEnd();
@@ -1257,7 +1289,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             infoTexto = hayTarjetas ? 'Sin resultados para ese filtro' : '';
         } else if (modoEstructurado) {
             var t = tituloPagina(paginaActual);
-            infoTexto = 'Página ' + paginaActual + (t ? ' · ' + t : '') + ' · ' + enPagina + ' productos';
+            infoTexto = 'Página ' + (listaPaginas.indexOf(paginaActual) + 1) + ' de ' + listaPaginas.length + (t ? ' · ' + t : '') + ' · ' + enPagina + ' productos';
         } else {
             infoTexto = "Mostrando " + ((paginaActual-1)*POR_PAGINA+1) + "\u2013" + ((paginaActual-1)*POR_PAGINA+enPagina) + " de " + tarjetasVisibles.length + " productos";
         }
@@ -1294,7 +1326,7 @@ window.insertarBarrasCategoriaProductos = insertarBarrasCategoriaProductos;
             paginas.forEach(function(pg) {
                 var btn = document.createElement('button');
                 btn.className = 'btn-pag' + (pg === paginaActual ? ' activo' : '');
-                btn.textContent = pg;
+                btn.textContent = modoEstructurado ? (paginas.indexOf(pg) + 1) : pg;
                 var tt = modoEstructurado ? tituloPagina(pg) : '';
                 if (tt) btn.title = tt;
                 btn.onclick = function() { irAPagina(pg); };

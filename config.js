@@ -9,7 +9,7 @@
 const CONFIG = {
   // URL de despliegue del Apps Script (Code.gs): agregar / configurar / mover / eliminar productos.
   // Termina en /exec.
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwrQsN8Br0EYD3SItH1O_61yWC7flbIA0_n3VtwdzzRnLM-mydr29Pg3U-Wk6a8AoS85A/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzFPjDEsnNOOGeKJOoE7Zpo9_n_MHQvKuJIa0V4Jl9F0SncH06KKGl1WAwD-NGDJFx_1A/exec",
 
   // Hoja de cálculo del catálogo de Yesos (pública, se lee como CSV vía gviz).
   SHEET_ID: "1GbAmlu9nHVQipFDeOPK4EBrq-5dZrni9cs5tWJDPGvc",
@@ -46,6 +46,9 @@ const CONFIG = {
   ],
   // Cuántas hojas (empezando por la 2) aportan sus primeros 3 productos a la página 1.
   // 9 → Hojas 2 a 10 (filas 1 a 9 de la página 1). La fila 10 es siempre Velas Kukúmita.
+  // Máximo de productos que muestra cada hoja (una página).
+  PRODUCTOS_POR_HOJA: 30,
+
   PORTADA_HOJAS: 9,
   PORTADA_PRODUCTOS_POR_FILA: 3,
 
