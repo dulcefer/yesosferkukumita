@@ -148,20 +148,19 @@
         g.restore();
     }
 
-    // Una línea del logo: halo claro fino + sombra suave + letra negra. Con "flama", la ú se dibuja como "u"
+    // Una línea del logo: letra blanca con borde negro delgado. Con "flama", la ú se dibuja como "u"
     // y encima va una flamita en lugar del acento (como en el logo de Yesos Kukúmita).
     function renglonLogo(g, txt, x, base, tam, flama) {
         g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
         g.font = F_LOGO.replace('#', tam);
-        var d = tam * 0.07, h = tam * 0.11, u = null;
+        var h = Math.max(2, tam * 0.06), u = null; // grosor del borde negro (la mitad queda afuera de la letra)
         if (flama) {
             var ini = g.measureText(flama.antes).width, wu = g.measureText('u').width, tot = g.measureText(txt).width;
             var asc = g.measureText('u').actualBoundingBoxAscent || tam * 0.52;
             u = { x: x - tot / 2 + ini + wu / 2, y: base - asc };
         }
-        g.lineWidth = h; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(txt, x, base);
-        g.fillStyle = 'rgba(0,0,0,.28)'; g.fillText(txt, x - d, base + d);
-        g.fillStyle = '#000'; g.fillText(txt, x, base);
+        g.lineWidth = h; g.strokeStyle = '#000'; g.strokeText(txt, x, base);
+        g.fillStyle = '#fff'; g.fillText(txt, x, base);
         if (u) {
             var fh = tam * 0.62, fw = fh * 0.52, bx = u.x, by = u.y - tam * 0.06;
             g.beginPath();
@@ -169,8 +168,8 @@
             g.bezierCurveTo(bx - fw * 0.55, by - fh * 0.25, bx - fw * 0.15, by - fh * 0.55, bx + fw * 0.12, by - fh);
             g.bezierCurveTo(bx + fw * 0.10, by - fh * 0.60, bx + fw * 0.60, by - fh * 0.35, bx, by);
             g.closePath();
-            g.lineWidth = h * 0.8; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke();
-            g.fillStyle = '#000'; g.fill();
+            g.lineWidth = h; g.strokeStyle = '#000'; g.stroke();
+            g.fillStyle = '#fff'; g.fill();
         }
     }
 
@@ -753,6 +752,39 @@
                 agregarImagen(l, f);
             });
         }
+    });
+
+    // Ver en grande: al tocar la vista previa de Fer o de Polo se abre sobre la pantalla (sin salir del formulario)
+    var visor = null;
+    function cerrarVisor() { if (visor) visor.style.display = 'none'; }
+    function abrirVisor(canvas, nombre) {
+        if (!canvas || !(canvas.width > 0)) return;
+        if (!visor) {
+            var st = document.createElement('style');
+            st.textContent =
+                '#visorImagenEditor{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:12px;cursor:zoom-out}' +
+                '#visorImagenEditor img{max-width:96vw;max-height:84vh;object-fit:contain;border-radius:10px;background:repeating-conic-gradient(#e6e6e6 0% 25%,#fff 0% 50%) 50%/16px 16px;box-shadow:0 8px 40px rgba(0,0,0,.6)}' +
+                '#visorImagenEditor .visor-txt{color:#fff;font:600 15px system-ui,sans-serif;text-align:center}' +
+                '#visorImagenEditor .visor-x{position:absolute;top:10px;right:14px;width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:24px;cursor:pointer}' +
+                '#canvasImagenProducto,#canvasImagenPoloProducto{cursor:zoom-in}';
+            document.head.appendChild(st);
+            visor = document.createElement('div');
+            visor.id = 'visorImagenEditor';
+            visor.innerHTML = '<button type="button" class="visor-x" aria-label="Cerrar">✕</button><img alt=""><div class="visor-txt"></div>';
+            visor.addEventListener('click', cerrarVisor);
+            document.body.appendChild(visor);
+            document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') cerrarVisor(); });
+        }
+        var u = canvas.toDataURL('image/webp', 0.92);
+        if (u.indexOf('data:image/webp') !== 0) u = canvas.toDataURL('image/png');
+        visor.querySelector('img').src = u;
+        visor.querySelector('.visor-txt').textContent = nombre + ' — toca para cerrar';
+        visor.style.display = 'flex';
+    }
+    [['canvasImagenProducto', 'Yesos Fer'], ['canvasImagenPoloProducto', 'Yesos Polo']].forEach(function (par) {
+        var cv = $(par[0]); if (!cv) return;
+        cv.title = 'Toca para verla en grande';
+        cv.addEventListener('click', function () { abrirVisor(cv, par[1]); });
     });
 
     // Descarga la imagen ya editada (PNG 1024×1024) sin necesidad de guardar el producto
