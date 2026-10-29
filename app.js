@@ -3435,10 +3435,10 @@ function mostrarToast(msg, duracionMs) {
     t.textContent = msg;
     t.classList.add('visible');
     clearTimeout(_toastTimer); // un aviso nuevo no debe ser cerrado por el temporizador del anterior
-    // Avisos normales: 2.8 s. Errores/advertencias o mensajes largos: de 10 a 25 s según el largo.
+    // Avisos normales: 2.8 s. Errores/advertencias o mensajes largos: de 25 a 90 s según el largo (toca el aviso para cerrarlo).
     var largo = String(msg || '').length;
     var esLargo = /[❌⚠]/.test(String(msg)) || largo > 90;
-    var ms = duracionMs || (esLargo ? Math.min(25000, Math.max(10000, largo * 100)) : 2800);
+    var ms = duracionMs || (esLargo ? Math.min(90000, Math.max(25000, largo * 250)) : 2800);
     t.onclick = function () { clearTimeout(_toastTimer); t.classList.remove('visible'); };
     _toastTimer = setTimeout(() => t.classList.remove('visible'), ms);
 }
