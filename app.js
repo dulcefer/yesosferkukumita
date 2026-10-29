@@ -3671,9 +3671,6 @@ function _aplicarModoFormulario() {
     var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
     set('sapTitulo', editando ? 'Configurar producto' : 'Agregar producto');
     set('sapDestino', editando ? 'Hoja 1 · fila ' + (_edicionProducto ? _edicionProducto.fila : '') : 'Hoja 1 · columnas A–M');
-    set('sapNotaFinal', editando
-        ? 'Se actualiza la fila de este producto en la hoja. Si no eliges una foto nueva ni eliminas la imagen, se conserva la actual. Para cambiarlo de fila usa el número # del producto.'
-        : 'Se agrega en la fila que elijas o, si no eliges, al final de la hoja. El video es opcional.');
     var bloqueFila = document.getElementById('sapFilaDestinoBloque');
     if (bloqueFila) bloqueFila.style.display = editando ? 'none' : '';
     // El botón "Eliminar producto" solo existe al configurar un producto (no al agregar uno nuevo)
@@ -3711,8 +3708,8 @@ function _pintarQuitarImagenActual() {
     if (img) { img.style.opacity = marcada ? '0.35' : ''; img.style.filter = marcada ? 'grayscale(1)' : ''; }
     if (btn) btn.textContent = marcada ? '↩️ Conservar imagen actual' : '🗑️ Eliminar imagen actual';
     if (nota) nota.textContent = marcada
-        ? 'Esta imagen se eliminará del producto al presionar "Guardar cambios". Si eliges una foto nueva, esa la reemplaza. Las imágenes extra se conservan.'
-        : 'Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.';
+        ? 'Se eliminará al presionar "Guardar cambios".'
+        : 'Imagen actual.';
 }
 
 function _marcarChipProducto(btn, activo) {
@@ -3780,6 +3777,8 @@ function abrirEditorProducto(p) {
     _fijarToggleProducto('btnEnOfertaProducto', !!p.oferta);
     _fijarToggleProducto('btnMasVendidoProducto', !!p.masVendido);
 
+    _sincronizarPlegables();
+    _actualizarTodosRecortes(false);
     abrirSubmenuAgregarProducto();
     validarFormularioProducto();
 }
@@ -4572,6 +4571,73 @@ function ajustarMedidaProducto(idInput, delta) {
 }
 
 // Habilita "Guardar" solo si hay nombre, precio original y al menos una etiqueta principal
+// ── Bloques plegables (links de imgbb, YouTube): se abren solos si traen contenido ──
+function _sincronizarPlegables() {
+    document.querySelectorAll('#submenuAgregarProducto details.sap-plegable').forEach(function(d) {
+        var lleno = false;
+        d.querySelectorAll('input').forEach(function(i) { if (i.value.trim() !== '') lleno = true; });
+        d.open = lleno;
+    });
+}
+function _abrirPlegable(id) { var d = document.getElementById(id); if (d) d.open = true; }
+
+// ── Zonas de etiquetas: solo se ve la mitad; botón para desplegar el resto ──
+var _IDS_CHIPS_RECORTE = ['chipsEtiquetaPrincipal', 'chipsEtiquetaEvento', 'chipsEtiquetaForma'];
+function _colsChips() {
+    return (window.matchMedia && window.matchMedia('(max-width: 420px)').matches) ? 2 : 3;
+}
+function _actualizarRecorteChips(id) {
+    var cont = document.getElementById(id);
+    if (!cont) return;
+    var chips = cont.querySelectorAll('.sap-chip');
+    var cols = _colsChips();
+    var filas = Math.ceil(chips.length / cols);
+    var limite = Math.max(1, Math.ceil(filas / 2)) * cols;
+    var hayMas = chips.length > limite;
+    var expandido = cont.getAttribute('data-expandido') === '1';
+    var ocultas = 0;
+    chips.forEach(function(c, i) {
+        // Las etiquetas marcadas siempre se ven (para no perder de vista lo elegido)
+        var ocultar = hayMas && !expandido && i >= limite && !c.classList.contains('activo');
+        c.classList.toggle('sap-chip-oculto', ocultar);
+        if (ocultar) ocultas++;
+    });
+    var btn = document.getElementById(id + 'Mas');
+    if (btn) {
+        btn.style.display = hayMas ? '' : 'none';
+        btn.textContent = expandido ? '▲ Mostrar menos' : '▼ Mostrar todas (' + ocultas + ' más)';
+    }
+}
+function alternarRecorteChips(id) {
+    var cont = document.getElementById(id);
+    if (!cont) return;
+    cont.setAttribute('data-expandido', cont.getAttribute('data-expandido') === '1' ? '0' : '1');
+    _actualizarRecorteChips(id);
+}
+function _actualizarTodosRecortes(colapsar) {
+    _IDS_CHIPS_RECORTE.forEach(function(id) {
+        var c = document.getElementById(id);
+        if (c && colapsar) c.setAttribute('data-expandido', '0');
+        _actualizarRecorteChips(id);
+    });
+}
+(function _iniciarRecorteChips() {
+    function iniciar() {
+        _IDS_CHIPS_RECORTE.forEach(function(id) {
+            var c = document.getElementById(id);
+            if (!c || c._recorteObs) return;
+            if (window.MutationObserver) {
+                c._recorteObs = new MutationObserver(function() { _actualizarRecorteChips(id); });
+                c._recorteObs.observe(c, { childList: true });
+            }
+        });
+        window.addEventListener('resize', function() { _actualizarTodosRecortes(false); });
+        _actualizarTodosRecortes(true);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+    else iniciar();
+})();
+
 function validarFormularioProducto() {
     var ok = _campoProducto('inputNombreProducto') !== '' && _campoProducto('inputPrecioOriginal') !== ''
              && obtenerEtiquetasPrincipales().length > 0;
@@ -4607,6 +4673,8 @@ function limpiarFormularioProducto() {
         b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false');
         var t = b.querySelector('.sap-toggle-estado'); if (t) t.textContent = 'No';
     });
+    _sincronizarPlegables();
+    _actualizarTodosRecortes(true);
     validarFormularioProducto();
 }
 
@@ -5089,6 +5157,7 @@ async function guardarProductoAdmin() {
         var linkFerListo = _linkImgbbObtenido.fer || '';
         var linkPoloPegado = _extraerUrlImgbb(_campoProducto('inputUrlImagenPoloProducto'));
         if (!editando && _campoProducto('inputUrlImagenPoloProducto') !== '' && !linkPoloPegado) {
+            _abrirPlegable('sapPlegableLinks');
             mostrarToast('El link de la imagen de Polo debe ser de imgbb (https://i.ibb.co/...).');
             return;
         }

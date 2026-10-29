@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -2065,35 +2065,34 @@
                 </div>
                 <input type="file" id="inputAgregarImagenFer" accept="image/*" style="display:none">
                 <input type="file" id="inputAgregarImagenPolo" accept="image/*" style="display:none">
-                <p class="sap-nota">Sube una imagen ya lista solo para Fer o solo para Polo: se muestra <strong>completa</strong>, sin ponerla sobre el fondo rosa o azul. No necesitas haber agregado una foto antes.</p>
             </div>
-            <div class="sap-link-imagen">
-                <label class="panel-nombre-label" for="inputUrlImagenProducto">🌸 Link de imgbb para Fer (ya con su fondo)</label>
+            <details class="sap-plegable" id="sapPlegableLinks">
+                <summary>🔗 Agregar links de imgbb ya listos</summary>
+                <div class="sap-link-imagen">
+                <label class="panel-nombre-label" for="inputUrlImagenProducto">🌸 Link de imgbb para Fer</label>
                 <input id="inputUrlImagenProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagen()">
                 <div id="sapUrlImagenEstado" class="sap-estado"></div>
                 <img id="previewUrlImagenProducto" src="" alt="Vista previa del link" style="display:none;">
-                <p class="sap-nota">Usa el <strong>enlace directo</strong> de imgbb (empieza con https://i.ibb.co/). Con un link no se usa el editor: la imagen se guarda tal cual está.</p>
             </div>
             <div class="sap-link-imagen">
-                <label class="panel-nombre-label" for="inputUrlImagenPoloProducto">🔵 Link de imgbb para Polo (ya con su fondo)</label>
+                <label class="panel-nombre-label" for="inputUrlImagenPoloProducto">🔵 Link de imgbb para Polo</label>
                 <input id="inputUrlImagenPoloProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagenPolo()">
                 <div id="sapUrlImagenPoloEstado" class="sap-estado"></div>
-                <p class="sap-nota">Solo al agregar un producto nuevo. Pega el enlace directo de la imagen de Polo: se guarda tal cual, sin fondo ni editor. Si lo dejas vacío, el producto se guarda solo en Fer.</p>
             </div>
+            </details>
             <div id="sapImagenActual" style="display:none;">
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
-                <p class="sap-nota" id="sapImagenActualNota">Imagen actual. Si eliges una foto nueva (o pegas otro link de imgbb), reemplaza solo la imagen principal; las imágenes extra se conservan.</p>
+                <p class="sap-nota" id="sapImagenActualNota">Imagen actual.</p>
                 <button class="panel-nombre-btn cancelar" id="btnQuitarImagenActual" type="button" onclick="alternarQuitarImagenActual()">🗑️ Eliminar imagen actual</button>
             </div>
             <input type="file" id="inputImagenProducto" accept="image/*" multiple style="display:none" onchange="previsualizarImagenProducto(event)">
             <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none;">
             <div id="sapExtrasBloque">
                 <div class="sap-seccion-titulo">Fotos adicionales (galería)</div>
-                <p class="sap-nota">Puedes elegir hasta 50 fotos por producto. Solo la primera se edita con el editor de arriba; las demás se suben tal cual y se ven en la galería del producto.</p>
                 <div id="sapExtrasEstado" class="sap-estado"></div>
                 <div id="sapExtrasLista" class="sap-extras-lista" style="display:none;"></div>
                 <input type="file" id="inputImagenesExtraProducto" accept="image/*" multiple style="display:none" onchange="agregarImagenesExtraProducto(event)">
-                <button class="panel-nombre-btn cancelar sap-btn-imagen" id="btnAgregarExtras" type="button" onclick="elegirImagenesExtraProducto()">➕ Agregar más fotos</button>
+                <button class="panel-nombre-btn cancelar sap-btn-imagen" id="btnAgregarExtras" type="button" onclick="elegirImagenesExtraProducto()">➕ Agregar más Fotos +50</button>
                 <div id="sapExtrasContador" class="sap-nota"></div>
             </div>
             <div id="editorImagenProducto" style="display:none;">
@@ -2113,7 +2112,6 @@
                     <textarea id="inputTituloImagen" class="panel-nombre-input" rows="3" maxlength="100" style="min-height:0;resize:none;" placeholder="Porta Flores de Yeso" enterkeyhint="enter"></textarea>
                     <button class="panel-nombre-btn guardar" id="btnAplicarTitulo" type="button">✔ Aplicar</button>
                 </div>
-                <p class="sap-nota">Escribe el título (sin los signos ¡ !, se agregan solos). Enter agrega un renglón nuevo (hasta 3); presiona "Aplicar" para verlo en la imagen.</p>
                 <label class="panel-nombre-label">Tamaño del texto (título)</label>
                 <input type="range" id="rangoTamTexto" min="50" max="200" value="100">
                 <label class="panel-nombre-label">Tamaño de la pieza</label>
@@ -2131,20 +2129,18 @@
                     <button class="panel-nombre-btn cancelar" id="btnFotoOriginalFer" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Fer</button>
                     <button class="panel-nombre-btn cancelar" id="btnFotoOriginalPolo" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Polo</button>
                 </div>
-                <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
 
-                <div class="sap-seccion-titulo">Publicar imágenes en imgbb (opcional, antes de guardar)</div>
-                <p class="sap-nota">Publica cada imagen por separado y de una en una. El enlace se copia solo y queda listo para guardar el producto. Si cambias algo de la imagen, hay que publicarla de nuevo. Si no publicas nada aquí, al guardar se suben como siempre.</p>
+                <div class="sap-seccion-titulo">Publicar en imgbb (opcional)</div>
                 <div class="sap-publicar-img" id="sapPublicarFer">
                     <strong>🌸 Imagen de Fer</strong>
-                    <button class="panel-nombre-btn guardar" id="btnPublicarFer" type="button" onclick="publicarImagenImgbb('fer')">☁️ Publicar imagen de Fer en imgbb y obtener enlace</button>
+                    <button class="panel-nombre-btn guardar" id="btnPublicarFer" type="button" onclick="publicarImagenImgbb('fer')">☁️ Publicar imagen de Fer en imgbb</button>
                     <div class="sap-estado" id="estadoPublicarFer"></div>
                     <label class="panel-nombre-label" for="inputLinkFerObtenido">Link obtenido</label>
                     <input id="inputLinkFerObtenido" class="panel-nombre-input" type="text" readonly placeholder="Aún no se publica" onclick="this.select()">
                 </div>
                 <div class="sap-publicar-img" id="sapPublicarPolo">
                     <strong>🔵 Imagen de Polo</strong>
-                    <button class="panel-nombre-btn guardar" id="btnPublicarPolo" type="button" onclick="publicarImagenImgbb('polo')">☁️ Publicar imagen de Polo en imgbb y obtener enlace</button>
+                    <button class="panel-nombre-btn guardar" id="btnPublicarPolo" type="button" onclick="publicarImagenImgbb('polo')">☁️ Publicar imagen de Polo en imgbb</button>
                     <div class="sap-estado" id="estadoPublicarPolo"></div>
                     <label class="panel-nombre-label" for="inputLinkPoloObtenido">Link obtenido</label>
                     <input id="inputLinkPoloObtenido" class="panel-nombre-input" type="text" readonly placeholder="Aún no se publica" onclick="this.select()">
@@ -2183,46 +2179,15 @@
                     </div>
                 </div>
             </div>
-            <p class="sap-nota">Opcional. Se guarda en la columna I como <strong>alto/ancho</strong> (ej. 12/8).</p>
 
             <label class="panel-nombre-label" for="inputDescripcionProducto">Descripción</label>
             <textarea id="inputDescripcionProducto" class="panel-nombre-input" rows="3" maxlength="500" placeholder="Opcional"></textarea>
 
-          <div class="sap-seccion-titulo">Video</div>
-            <label class="panel-nombre-label" for="inputVideoProducto">▶ Link de YouTube (opcional)</label>
-            <input id="inputVideoProducto" class="panel-nombre-input" type="text" inputmode="url" maxlength="400" placeholder="https://www.youtube.com/watch?v=… o código embed">
-            <p class="sap-nota">Puedes pegar el link normal, el link embed o el código &lt;iframe&gt; de YouTube. Se guarda en la columna F como link embed. Si lo dejas vacío, el producto no mostrará botón de video.</p>
-
-            <div class="sap-seccion-titulo">Existencia, oferta y más vendido</div>
-            <label class="panel-nombre-label" for="inputExistenciaProducto">📦 Existencia (piezas ya fabricadas)</label>
-            <div class="sap-medida">
-                <button type="button" class="sap-medida-btn" aria-label="Disminuir existencia" onclick="ajustarExistenciaProducto(-1)">−</button>
-                <input id="inputExistenciaProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="0">
-                <button type="button" class="sap-medida-btn" aria-label="Aumentar existencia" onclick="ajustarExistenciaProducto(1)">+</button>
-            </div>
-            <div class="sap-dos-col">
-                <button type="button" class="sap-chip sap-toggle" id="btnEnOfertaProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🔥 En Oferta: <span class="sap-toggle-estado">No</span></button>
-                <button type="button" class="sap-chip sap-toggle" id="btnMasVendidoProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🏆 Más Vendido: <span class="sap-toggle-estado">No</span></button>
-            </div>
-            <p class="sap-nota">Existencia se guarda en la columna J. En Oferta en la K y Más Vendido en la L (se escribe "si" o "no").</p>
-
-            <div id="sapFilaDestinoBloque">
-                <div class="sap-seccion-titulo">Fila en la hoja</div>
-                <div class="sap-medida">
-                    <button type="button" class="sap-medida-btn" aria-label="Fila anterior" onclick="ajustarFilaDestinoProducto(-1)">−</button>
-                    <input id="inputFilaDestinoProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="2" step="1" placeholder="Última fila disponible">
-                    <button type="button" class="sap-medida-btn" aria-label="Fila siguiente" onclick="ajustarFilaDestinoProducto(1)">+</button>
-                </div>
-                <p class="sap-nota">Opcional. Elige en qué fila de la hoja se guarda (la fila 1 son los encabezados, así que empieza en la 2). Si la dejas vacía, o si la fila elegida ya está ocupada, el producto se agrega en la última fila disponible.</p>
-            </div>
-
-            <p class="sap-nota" id="sapNotaFinal">Se agrega una fila nueva al final de la hoja. El video es opcional.</p>
-
-          
           </div><!-- /sap-col-img -->
           <div class="sap-col-datos">
             <div class="sap-zona sap-zona-principal">
-            <div class="sap-seccion-titulo">Etiqueta principal *</div>
+            <div class="sap-zona-cabecera"><div class="sap-seccion-titulo">Etiqueta principal *</div>
+            <button type="button" class="sap-mini-btn" title="Crear etiqueta principal" aria-label="Crear etiqueta principal" onclick="abrirCrearEtiquetaPrincipal()">+</button></div>
             <div class="sap-chips" id="chipsEtiquetaPrincipal">
                 <button type="button" class="sap-chip" data-valor="arreglos" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🕯️ Arreglos</button>
                 <button type="button" class="sap-chip" data-valor="productos" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">📦 Productos</button>
@@ -2233,7 +2198,7 @@
                 <button type="button" class="sap-chip" data-valor="figuras" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">🗿 Figuras</button>
                 <button type="button" class="sap-chip" data-valor="religioso" aria-pressed="false" onclick="alternarEtiquetaPrincipal(this)">⛪ Religioso</button>
             </div>
-            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaPrincipal()">➕ Crear etiqueta principal</button>
+            <button type="button" class="sap-mas-etiquetas" id="chipsEtiquetaPrincipalMas" style="display:none" onclick="alternarRecorteChips('chipsEtiquetaPrincipal')"></button>
             <div id="sapNuevaEtiquetaPanel" style="display:none;">
                 <label class="panel-nombre-label" for="inputNuevaEtiquetaPrincipal">Nombre de la nueva etiqueta</label>
                 <div class="sap-fila-titulo">
@@ -2242,11 +2207,11 @@
                 </div>
                 <div id="sapNuevaEtiquetaEstado" class="sap-estado"></div>
             </div>
-            <p class="sap-nota">Puedes elegir más de una. Se guarda en la columna G de la hoja. Las etiquetas nuevas quedan guardadas para los próximos productos.</p>
             </div><!-- /sap-zona-principal -->
 
             <div class="sap-zona sap-zona-evento">
-            <div class="sap-seccion-titulo">Etiqueta de evento</div>
+            <div class="sap-zona-cabecera"><div class="sap-seccion-titulo">Etiqueta de evento</div>
+            <button type="button" class="sap-mini-btn" title="Crear etiqueta de evento" aria-label="Crear etiqueta de evento" onclick="abrirCrearEtiquetaExtra('evento')">+</button></div>
             <div class="sap-chips" id="chipsEtiquetaEvento">
                 <button type="button" class="sap-chip" data-valor="primera-comunion" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🙏 Primera comunión</button>
                 <button type="button" class="sap-chip" data-valor="bautizo" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🕊️ Bautizo</button>
@@ -2276,7 +2241,7 @@
                 <button type="button" class="sap-chip" data-valor="apertura-de-negocio" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🏪 Apertura de negocio</button>
                 <button type="button" class="sap-chip" data-valor="condolencias" aria-pressed="false" onclick="alternarEtiquetaEvento(this)">🤍 Condolencias</button>
             </div>
-            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaExtra('evento')">➕ Crear etiqueta de evento</button>
+            <button type="button" class="sap-mas-etiquetas" id="chipsEtiquetaEventoMas" style="display:none" onclick="alternarRecorteChips('chipsEtiquetaEvento')"></button>
             <div id="sapNuevoEventoPanel" style="display:none;">
                 <label class="panel-nombre-label" for="inputNuevoEvento">Nombre de la nueva etiqueta</label>
                 <div class="sap-fila-titulo">
@@ -2285,11 +2250,11 @@
                 </div>
                 <div id="sapNuevoEventoEstado" class="sap-estado"></div>
             </div>
-            <p class="sap-nota">Opcional. Puedes elegir varios. Se guarda en la columna H de la hoja. Las etiquetas nuevas quedan guardadas y su botón de filtro aparece solo en "Busca por Evento".</p>
             </div><!-- /sap-zona-evento -->
 
             <div class="sap-zona sap-zona-forma">
-            <div class="sap-seccion-titulo">Etiquetas de forma</div>
+            <div class="sap-zona-cabecera"><div class="sap-seccion-titulo">Etiquetas de forma</div>
+            <button type="button" class="sap-mini-btn" title="Crear etiqueta de forma" aria-label="Crear etiqueta de forma" onclick="abrirCrearEtiquetaExtra('forma')">+</button></div>
             <div class="sap-chips" id="chipsEtiquetaForma">
                 <button type="button" class="sap-chip" data-valor="animales" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🐾 Animales</button>
                 <button type="button" class="sap-chip" data-valor="personajes" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🎭 Personajes</button>
@@ -2299,7 +2264,7 @@
                 <button type="button" class="sap-chip" data-valor="porta velas" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🕯️ Porta Velas</button>
                 <button type="button" class="sap-chip" data-valor="porta inciensos" aria-pressed="false" onclick="alternarEtiquetaForma(this)">🪔 Porta Inciensos</button>
             </div>
-            <button type="button" class="sap-crear-etiqueta-btn" onclick="abrirCrearEtiquetaExtra('forma')">➕ Crear etiqueta de forma</button>
+            <button type="button" class="sap-mas-etiquetas" id="chipsEtiquetaFormaMas" style="display:none" onclick="alternarRecorteChips('chipsEtiquetaForma')"></button>
             <div id="sapNuevaFormaPanel" style="display:none;">
                 <label class="panel-nombre-label" for="inputNuevaForma">Nombre de la nueva etiqueta</label>
                 <div class="sap-fila-titulo">
@@ -2308,8 +2273,35 @@
                 </div>
                 <div id="sapNuevaFormaEstado" class="sap-estado"></div>
             </div>
-            <p class="sap-nota">Opcional. Puedes elegir varias. Se guarda en la columna M de la hoja y es la que usa el filtro "Filtrar por Forma". Las etiquetas nuevas quedan guardadas y su botón de filtro aparece solo.</p>
             </div><!-- /sap-zona-forma -->
+
+            <details class="sap-plegable" id="sapPlegableVideo">
+                <summary>▶ Agregar link de YouTube</summary>
+                <input id="inputVideoProducto" class="panel-nombre-input" type="text" inputmode="url" maxlength="400" placeholder="Link normal, embed o código &lt;iframe&gt; de YouTube">
+            </details>
+
+            <div class="sap-bloque" id="sapExistenciaBloque">
+                <label class="panel-nombre-label" for="inputExistenciaProducto">📦 Existencia (piezas)</label>
+                <div class="sap-medida">
+                    <button type="button" class="sap-medida-btn" aria-label="Disminuir existencia" onclick="ajustarExistenciaProducto(-1)">−</button>
+                    <input id="inputExistenciaProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="0" max="100000" step="1" placeholder="0">
+                    <button type="button" class="sap-medida-btn" aria-label="Aumentar existencia" onclick="ajustarExistenciaProducto(1)">+</button>
+                </div>
+                <div class="sap-dos-col">
+                    <button type="button" class="sap-chip sap-toggle" id="btnEnOfertaProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🔥 En Oferta: <span class="sap-toggle-estado">No</span></button>
+                    <button type="button" class="sap-chip sap-toggle" id="btnMasVendidoProducto" aria-pressed="false" onclick="alternarToggleProducto(this)">🏆 Más Vendido: <span class="sap-toggle-estado">No</span></button>
+                </div>
+            </div>
+
+            <div class="sap-bloque" id="sapFilaDestinoBloque">
+                <div class="sap-seccion-titulo">Fila en la Hoja de Google Sheets</div>
+                <div class="sap-medida">
+                    <button type="button" class="sap-medida-btn" aria-label="Fila anterior" onclick="ajustarFilaDestinoProducto(-1)">−</button>
+                    <input id="inputFilaDestinoProducto" class="panel-nombre-input" type="number" inputmode="numeric" min="2" step="1" placeholder="Última fila disponible (desde la 2)">
+                    <button type="button" class="sap-medida-btn" aria-label="Fila siguiente" onclick="ajustarFilaDestinoProducto(1)">+</button>
+                </div>
+            </div>
+
 
             
           </div><!-- /sap-col-datos -->
@@ -2371,7 +2363,7 @@
 
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=23"></script>
     <script src="fondo-azul-data.js?v=1"></script>
     <script src="editor-imagen.js?v=18"></script>
 
