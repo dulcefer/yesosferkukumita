@@ -3982,3 +3982,46 @@ body.modo-oscuro .pill-nav-titulo { color: #d9cbbf; }
     .pill-nav-grupo { width: 280px; }
     .pill-nav-titulo { font-size: 1rem; }
 }
+
+/* ══ Formulario de producto: versión compacta (botón + a un lado del título, zonas plegables, etiquetas recortadas) ══ */
+#submenuAgregarProducto .sap-seccion-titulo { margin-top: 4px; }
+#sapBtnImagenSub { display: none; }
+
+/* Título de cada zona de etiquetas con el mini botón cuadrado "+" al lado */
+.sap-zona-cab { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
+.sap-zona-cab .sap-seccion-titulo { margin: 0; }
+.sap-crear-mini {
+    width: 28px; height: 28px; flex-shrink: 0; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1.5px dashed #e8607a; background: rgba(255,255,255,0.6); color: #e8607a;
+    border-radius: 7px; font-size: 20px; font-weight: 700; line-height: 1; font-family: inherit;
+}
+.sap-crear-mini:active { background: #fdeff2; }
+body.modo-oscuro .sap-crear-mini { color: #ff9bb0; border-color: #ff9bb0; background: rgba(0,0,0,0.2); }
+body.modo-oscuro .sap-crear-mini:active { background: #3a2530; }
+
+/* Etiquetas: solo se ve la mitad de las filas; el botón despliega el resto */
+.sap-chips.colapsado { overflow: hidden; box-sizing: border-box; }
+.sap-ver-mas {
+    width: 100%; padding: 7px 10px; margin-top: -4px; cursor: pointer;
+    border: none; background: transparent; color: #6b5548;
+    font-size: 13px; font-weight: 700; font-family: inherit;
+}
+.sap-ver-mas:active { background: rgba(0,0,0,0.05); border-radius: 8px; }
+body.modo-oscuro .sap-ver-mas { color: #e0d5cc; }
+
+/* Secciones plegadas (links de imgbb, YouTube) */
+.sap-plegable { border: 1.5px solid #e6ddd4; border-radius: 12px; background: #fff; }
+.sap-plegable > summary {
+    list-style: none; cursor: pointer; padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 14px; font-weight: 700; color: #362a22;
+}
+.sap-plegable > summary::-webkit-details-marker { display: none; }
+.sap-plegable > summary::after { content: '▾'; margin-left: auto; color: #8c7565; }
+.sap-plegable[open] > summary::after { content: '▴'; }
+.sap-plegable > summary .sap-ok { display: none; color: #2e9d5b; margin-left: 6px; }
+.sap-plegable.con-datos > summary .sap-ok { display: inline; }
+.sap-plegable-cuerpo { display: flex; flex-direction: column; gap: 10px; padding: 0 14px 14px; }
+body.modo-oscuro .sap-plegable { background: #2a2218; border-color: #4a3a2e; }
+body.modo-oscuro .sap-plegable > summary { color: #e0d5cc; }
