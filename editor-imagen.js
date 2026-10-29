@@ -253,6 +253,22 @@
         return u;
     }
 
+    // Carga una imagen (del propio sitio o de otro dominio) de forma robusta:
+    // 1) <img> con CORS y un parámetro extra, para no reutilizar una copia en caché guardada SIN permisos CORS
+    //    (pasa cuando ese mismo archivo ya se cargó antes con un <img> normal);
+    // 2) fetch → blob, que además dice el motivo real del fallo (HTTP 404, bloqueo, sin conexión…).
+    async function cargarImgRobusta(src) {
+        try { return await cargarImg(src + (src.indexOf('?') < 0 ? '?' : '&') + 'cors=1'); } catch (e1) {}
+        var r;
+        try { r = await fetch(src, { cache: 'reload' }); }
+        catch (e2) { throw new Error('no respondió (' + (e2 && e2.message ? e2.message : 'sin conexión o bloqueado') + ')'); }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        var ou = URL.createObjectURL(await r.blob());
+        try { return await cargarImg(ou); }
+        catch (e3) { throw new Error('el archivo llegó pero no se pudo abrir como imagen'); }
+        finally { URL.revokeObjectURL(ou); }
+    }
+
     // Carga el fondo azul probando varias direcciones (la primera es FONDO_AZUL_URL de config.js).
     // Si ninguna carga, guarda en S.motivoPolo qué se intentó. Devuelve true/false (nunca lanza error).
     async function cargarFondoPolo() {
@@ -263,11 +279,12 @@
             'https://cdn.jsdelivr.net/gh/elpologr/yesospolokukumita@main/imagenes/fondo-azul.webp',
             'https://elpologr.github.io/yesospolokukumita/imagenes/fondo-azul.webp'
         ].filter(function (u, i, a) { return a.indexOf(u) === i; });
+        var fallos = [];
         for (var k = 0; k < lista.length; k++) {
-            try { S.fondoPolo = await cargarImg(lista[k]); S.motivoPolo = ''; return true; }
-            catch (e) { console.warn('[fondo azul] no cargó:', lista[k]); }
+            try { S.fondoPolo = await cargarImgRobusta(lista[k]); S.motivoPolo = ''; return true; }
+            catch (e) { fallos.push(lista[k] + ' → ' + (e && e.message ? e.message : 'falló')); console.warn('[fondo azul] no cargó:', lista[k], e); }
         }
-        S.motivoPolo = 'no se pudo cargar fondo-azul.webp desde ninguna de estas direcciones: ' + lista.join(' | ') + '. Abre cada una en el navegador para ver cuál responde y revisa tu conexión.';
+        S.motivoPolo = 'no se pudo cargar fondo-azul.webp. Resultado de cada dirección: ' + fallos.join(' | ') + '. Si dice HTTP 404 el archivo no está en esa ruta; si dice "no respondió", revisa tu conexión o extensiones que bloqueen github.';
         return false;
     }
 
