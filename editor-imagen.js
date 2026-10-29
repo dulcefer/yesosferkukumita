@@ -39,7 +39,7 @@
     ].join('\n');
 
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
-    var F_SERIF = '800 #px "Playfair Display", serif';
+    var F_LOGO  = '900 #px "Playfair Display", serif';
 
     var S = { fondo: null, fondoPolo: null, foto: null, tam: 100, x: 0, y: 0, tamTexto: 100,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
@@ -148,8 +148,47 @@
         g.restore();
     }
 
+    // Una línea del logo: halo claro fino + sombra suave + letra negra. Con "flama", la ú se dibuja como "u"
+    // y encima va una flamita en lugar del acento (como en el logo de Yesos Kukúmita).
+    function renglonLogo(g, txt, x, base, tam, flama) {
+        g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
+        g.font = F_LOGO.replace('#', tam);
+        var d = tam * 0.07, h = tam * 0.11, u = null;
+        if (flama) {
+            var ini = g.measureText(flama.antes).width, wu = g.measureText('u').width, tot = g.measureText(txt).width;
+            var asc = g.measureText('u').actualBoundingBoxAscent || tam * 0.52;
+            u = { x: x - tot / 2 + ini + wu / 2, y: base - asc };
+        }
+        g.lineWidth = h; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(txt, x, base);
+        g.fillStyle = 'rgba(0,0,0,.28)'; g.fillText(txt, x - d, base + d);
+        g.fillStyle = '#000'; g.fillText(txt, x, base);
+        if (u) {
+            var fh = tam * 0.62, fw = fh * 0.52, bx = u.x, by = u.y - tam * 0.06;
+            g.beginPath();
+            g.moveTo(bx, by);
+            g.bezierCurveTo(bx - fw * 0.55, by - fh * 0.25, bx - fw * 0.15, by - fh * 0.55, bx + fw * 0.12, by - fh);
+            g.bezierCurveTo(bx + fw * 0.10, by - fh * 0.60, bx + fw * 0.60, by - fh * 0.35, bx, by);
+            g.closePath();
+            g.lineWidth = h * 0.8; g.strokeStyle = 'rgba(255,255,255,.9)'; g.stroke();
+            g.fillStyle = '#000'; g.fill();
+        }
+    }
+
+    // Logo en la esquina inferior derecha. W/H = tamaño real del lienzo; esc = escala respecto a 1024 px.
+    // Fer dice "Yesos Fer Kukúmita" y Polo "Yesos Polo Kukúmita" (los dos con el mismo tamaño de letra).
+    function pintarLogo(g, esc, W, H, quien) {
+        g.save();
+        g.translate(W - TAM * esc, H - TAM * esc); g.scale(esc, esc);
+        var cx = 837, maxW = 330, t1 = 64;
+        g.font = F_LOGO.replace('#', t1);
+        while (g.measureText('Yesos Polo').width > maxW && t1 > 20) { t1 -= 2; g.font = F_LOGO.replace('#', t1); }
+        renglonLogo(g, quien === 'polo' ? 'Yesos Polo' : 'Yesos Fer', cx, 934, t1, null);
+        renglonLogo(g, 'Kukumita', cx, 1000, Math.round(t1 * 0.82), { antes: 'Kuk' });
+        g.restore();
+    }
+
     // Pinta la imagen completa (fondo + pieza + título + marca) en el contexto g, con el fondo indicado
-    function pintar(g, fondo, colorRespaldo, L) {
+    function pintar(g, fondo, colorRespaldo, L, quien) {
         var cv = g.canvas, prod = L && L.producto;
 
         // Imagen agregada con "Agregar imagen Fer/Polo": se muestra COMPLETA, tal como se subió.
@@ -163,6 +202,7 @@
             g.clearRect(0, 0, cw, ch);
             g.drawImage(prod, 0, 0, cw, ch);
             pintarTitulo(g, cw / TAM); // el título (si hay) queda ARRIBA de la imagen
+            pintarLogo(g, cw / TAM, cw, ch, quien);
             return;
         }
         cv.classList.remove('img-completa');
@@ -192,18 +232,17 @@
         // Título
         pintarTitulo(g, 1);
 
-        // Marca
-        texto(g, 'Yesos Fer', 862, 930, 54, F_SERIF, '#111', '#fff', 8, 290);
-        texto(g, 'Kukúmita', 862, 988, 66, F_SERIF, '#111', '#fff', 8, 290);
+        // Logo (esquina inferior derecha)
+        pintarLogo(g, 1, TAM, TAM, quien);
     }
 
     // Lo que se ve en pantalla (fondo rosa de Yesos Fer)
     function dibujar() {
         var c = $('canvasImagenProducto'); if (!c) return;
-        pintar(c.getContext('2d'), S.fondo, '#d8788a', S.lado.fer);
+        pintar(c.getContext('2d'), S.fondo, '#d8788a', S.lado.fer, 'fer');
         // Vista previa de la versión de Yesos Polo (fondo azul), siempre al lado de la de Fer
         var cp = $('canvasImagenPoloProducto');
-        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo);
+        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo, 'polo');
     }
 
     // Imagen final de Fer (fondo rosa) como dataURL, tal como se ve en pantalla
@@ -242,7 +281,7 @@
         await fuentes();
         try {
             var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
-            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo);
+            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo, 'polo');
             var u = c.toDataURL('image/webp', 0.9);
             if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
             return u;
@@ -265,7 +304,7 @@
         try {
             await Promise.all([
                 document.fonts.load('700 60px Fredoka'),
-                document.fonts.load('800 40px "Playfair Display"')
+                document.fonts.load('900 40px "Playfair Display"')
             ]);
         } catch (e) {}
     }
@@ -641,7 +680,7 @@
         if (!S.foto && !S.sinFoto) await abrirEditorSinFoto();
         L.v++; L.foto = url; L.producto = producto; L.quitado = false; L.agregada = true; L.completa = true;
         actualizarBotonesFondo();
-        estado('🖼️ Imagen agregada para ' + N + ' (se muestra completa; el título se pone arriba si lo aplicas). Si quieres usarla como pieza sobre el fondo, presiona "✂️ Quitar fondo ' + N + '".');
+        estado('🖼️ Imagen agregada para ' + N + ' (se muestra completa, con el título arriba si lo aplicas y el logo abajo a la derecha). Si quieres usarla como pieza sobre el fondo, presiona "✂️ Quitar fondo ' + N + '".');
         redibujar();
         // Avisa al formulario (app.js): con Fer cuenta como imagen principal del producto
         document.dispatchEvent(new CustomEvent('editorImagenAgregada', { detail: { lado: l } }));
