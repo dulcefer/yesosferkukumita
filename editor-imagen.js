@@ -43,7 +43,7 @@
 
     var S = { fondo: null, fondoPolo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
-              worker: null, workerTimer: null, id: 0, repetir: false };
+              worker: null, workerTimer: null, id: 0, repetir: false, fondoQuitado: false };
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
@@ -479,8 +479,26 @@
         } });
     }
 
-    async function quitarFondo() {
+    // Texto/visibilidad de los botones según si la foto ya se recortó o sigue original
+    function actualizarBotonesFondo() {
+        var b = $('btnQuitarFondo'), r = $('btnFotoOriginal');
+        if (b) b.textContent = S.fondoQuitado ? '✂️ Volver a quitar el fondo' : '✂️ Quitar el fondo';
+        if (r) r.style.display = S.fondoQuitado ? '' : 'none';
+    }
+
+    // Deja la foto tal como se subió (sin recortar)
+    async function usarFotoOriginal() {
         if (!S.foto || S.ocupado) return;
+        S.producto = await cargarImg(S.foto);
+        S.fondoQuitado = false;
+        actualizarBotonesFondo();
+        estado('Foto original. Si quieres recortarla, presiona "✂️ Quitar el fondo".');
+        redibujar();
+    }
+
+    async function quitarFondo() {
+        if (!S.foto) return;
+        if (S.ocupado) { S.repetir = true; estado('⏳ Esperando a que termine el proceso anterior…'); return; }
         S.ocupado = true; S.repetir = false;
         var miId = S.id; // si mientras trabaja se elige otra foto, este resultado ya no sirve
         var btn = $('btnQuitarFondo'); if (btn) btn.disabled = true;
@@ -497,6 +515,7 @@
             var img = await cargarImg(URL.createObjectURL(res));
             if (miId !== S.id) return; // se eligió otra foto: se descarta; el finally lanza el proceso de la nueva
             S.producto = recortar(refinarRecorte(img));
+            S.fondoQuitado = true;
             estado('✅ Fondo quitado. Ajusta tamaño y posición si hace falta.');
         } catch (e) {
             console.error('[editor-imagen]', e);
@@ -504,6 +523,7 @@
         } finally {
             S.ocupado = false;
             if (btn) btn.disabled = false;
+            actualizarBotonesFondo();
             redibujar();
             if (S.repetir) { S.repetir = false; quitarFondo(); } // había una foto nueva esperando
         }
@@ -511,7 +531,7 @@
 
     async function cargarFoto(dataUrl) {
         S.foto = dataUrl; S.tam = 100; S.x = 0; S.y = 0;
-        S.id++; if (S.ocupado) S.repetir = true; // si aún procesaba la foto anterior, la nueva espera su turno
+        S.id++; S.repetir = false; S.fondoQuitado = false; // si aún procesaba la foto anterior, su resultado se descarta
         ['rangoTamImagen', 'rangoXImagen', 'rangoYImagen'].forEach(function (id, i) {
             var r = $(id); if (r) r.value = i === 0 ? 100 : 0;
         });
@@ -524,11 +544,13 @@
         await cargarFondoPolo();
         S.producto = await cargarImg(dataUrl);
         redibujar();
-        quitarFondo(); // automático
+        actualizarBotonesFondo();
+        // El fondo ya NO se quita solo: se hace con el botón "✂️ Quitar el fondo" (o se deja la foto como está)
+        estado('📷 Foto lista. Escribe el título, o presiona "✂️ Quitar el fondo" si quieres recortar la pieza.');
     }
 
     function reset() {
-        S.id++; S.repetir = false; S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; S.repetir = false; S.fondoQuitado = false; S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
@@ -558,6 +580,7 @@
         if (r) r.addEventListener('input', function () { S[par[1]] = Number(r.value); redibujar(); });
     });
     var bq = $('btnQuitarFondo'); if (bq) bq.addEventListener('click', quitarFondo);
+    var bo = $('btnFotoOriginal'); if (bo) bo.addEventListener('click', usarFotoOriginal);
 
     // Descarga la imagen ya editada (PNG 1024×1024) sin necesidad de guardar el producto
     async function descargar() {

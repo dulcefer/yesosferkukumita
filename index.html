@@ -2106,7 +2106,8 @@
                 <label class="panel-nombre-label">Mover arriba / abajo</label>
                 <input type="range" id="rangoYImagen" min="-300" max="300" value="0">
                 <button class="panel-nombre-btn guardar" id="btnDescargarImagen" type="button">⬇️ Descargar imagen</button>
-                <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Volver a quitar el fondo</button>
+                <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Quitar el fondo</button>
+                <button class="panel-nombre-btn cancelar" id="btnFotoOriginal" type="button" style="display:none;">↩️ Usar la foto original (sin recortar)</button>
                 <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
 
                 <div class="sap-seccion-titulo">Publicar imágenes en imgbb (opcional, antes de guardar)</div>
@@ -2348,7 +2349,7 @@
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
     <script src="app.js?v=17"></script>
-    <script src="editor-imagen.js?v=9"></script>
+    <script src="editor-imagen.js?v=10"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>
