@@ -2108,6 +2108,8 @@
                     <button class="panel-nombre-btn guardar" id="btnAplicarTitulo" type="button">✔ Aplicar</button>
                 </div>
                 <p class="sap-nota">Escribe el título (sin los signos ¡ !, se agregan solos). Enter agrega un renglón nuevo (hasta 3); presiona "Aplicar" para verlo en la imagen.</p>
+                <label class="panel-nombre-label">Tamaño del texto (título)</label>
+                <input type="range" id="rangoTamTexto" min="50" max="200" value="100">
                 <label class="panel-nombre-label">Tamaño de la pieza</label>
                 <input type="range" id="rangoTamImagen" min="40" max="140" value="100">
                 <label class="panel-nombre-label">Mover izquierda / derecha</label>
@@ -2364,7 +2366,7 @@
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
     <script src="app.js?v=18"></script>
-    <script src="editor-imagen.js?v=13"></script>
+    <script src="editor-imagen.js?v=14"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

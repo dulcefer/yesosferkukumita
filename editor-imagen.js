@@ -41,7 +41,7 @@
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
     var F_SERIF = '800 #px "Playfair Display", serif';
 
-    var S = { fondo: null, fondoPolo: null, foto: null, tam: 100, x: 0, y: 0,
+    var S = { fondo: null, fondoPolo: null, foto: null, tam: 100, x: 0, y: 0, tamTexto: 100,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
               worker: null, workerTimer: null, id: 0, repetir: false, sinFoto: false,
               // Cada versión (Fer / Polo) tiene su propia imagen de la pieza: foto de origen, resultado y si ya se le quitó el fondo.
@@ -129,6 +129,25 @@
         g.fillStyle = relleno; g.fillText(txt, x, y);
     }
 
+    // Título arriba de la imagen. esc = escala respecto al lienzo de 1024 px; S.tamTexto (%) lo agranda o encoge.
+    function pintarTitulo(g, esc) {
+        var titulo = S.titulo; if (!titulo) return;
+        var m = (S.tamTexto || 100) / 100;
+        g.save(); g.scale(esc, esc);
+        var lineas = titulo.split('\n');
+        if (lineas.length === 1) {
+            var t1 = 72 * m;
+            texto(g, titulo, TAM / 2, 50 + t1 / 2, t1, F_TIT, '#fff', '#111', 12 * m, 940);
+        } else {
+            // 2 o 3 renglones: letra un poco más chica para que no choquen con la pieza
+            var tamL = (lineas.length === 2 ? 64 : 54) * m, sepL = tamL * 1.08, y0 = 50 + tamL / 2;
+            lineas.forEach(function (ln, i) {
+                texto(g, ln, TAM / 2, y0 + i * sepL, tamL, F_TIT, '#fff', '#111', 12 * m, 940);
+            });
+        }
+        g.restore();
+    }
+
     // Pinta la imagen completa (fondo + pieza + título + marca) en el contexto g, con el fondo indicado
     function pintar(g, fondo, colorRespaldo, L) {
         var cv = g.canvas, prod = L && L.producto;
@@ -143,6 +162,7 @@
             cv.classList.add('img-completa');
             g.clearRect(0, 0, cw, ch);
             g.drawImage(prod, 0, 0, cw, ch);
+            pintarTitulo(g, cw / TAM); // el título (si hay) queda ARRIBA de la imagen
             return;
         }
         cv.classList.remove('img-completa');
@@ -170,19 +190,7 @@
         }
 
         // Título
-        var titulo = S.titulo;
-        if (titulo) {
-            var lineas = titulo.split('\n');
-            if (lineas.length === 1) {
-                texto(g, titulo, TAM / 2, 86, 72, F_TIT, '#fff', '#111', 12, 940);
-            } else {
-                // 2 o 3 renglones: letra un poco más chica para que no choquen con la pieza
-                var tamL = lineas.length === 2 ? 64 : 54, sepL = tamL * 1.08, y0 = 50 + tamL / 2;
-                lineas.forEach(function (ln, i) {
-                    texto(g, ln, TAM / 2, y0 + i * sepL, tamL, F_TIT, '#fff', '#111', 12, 940);
-                });
-            }
-        }
+        pintarTitulo(g, 1);
 
         // Marca
         texto(g, 'Yesos Fer', 862, 930, 54, F_SERIF, '#111', '#fff', 8, 290);
@@ -633,7 +641,7 @@
         if (!S.foto && !S.sinFoto) await abrirEditorSinFoto();
         L.v++; L.foto = url; L.producto = producto; L.quitado = false; L.agregada = true; L.completa = true;
         actualizarBotonesFondo();
-        estado('🖼️ Imagen agregada para ' + N + ' (se muestra completa, tal como la subiste). Si quieres usarla como pieza sobre el fondo, presiona "✂️ Quitar fondo ' + N + '".');
+        estado('🖼️ Imagen agregada para ' + N + ' (se muestra completa; el título se pone arriba si lo aplicas). Si quieres usarla como pieza sobre el fondo, presiona "✂️ Quitar fondo ' + N + '".');
         redibujar();
         // Avisa al formulario (app.js): con Fer cuenta como imagen principal del producto
         document.dispatchEvent(new CustomEvent('editorImagenAgregada', { detail: { lado: l } }));
@@ -642,6 +650,7 @@
     async function cargarFoto(dataUrl) {
         S.foto = dataUrl; S.sinFoto = false; S.tam = 100; S.x = 0; S.y = 0;
         S.id++; S.repetir = false; // si aún procesaba la foto anterior, su resultado se descarta
+        S.tamTexto = 100; var rt = $('rangoTamTexto'); if (rt) rt.value = 100;
         ['rangoTamImagen', 'rangoXImagen', 'rangoYImagen'].forEach(function (id, i) {
             var r = $(id); if (r) r.value = i === 0 ? 100 : 0;
         });
@@ -663,7 +672,8 @@
     }
 
     function reset() {
-        S.id++; S.repetir = false; S.foto = null; S.sinFoto = false; ['fer', 'polo'].forEach(function (l) { var L = S.lado[l]; L.v++; L.foto = null; L.producto = null; L.quitado = false; L.completa = false; L.agregada = false; }); S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; S.repetir = false; S.foto = null; S.sinFoto = false; ['fer', 'polo'].forEach(function (l) { var L = S.lado[l]; L.v++; L.foto = null; L.producto = null; L.quitado = false; L.completa = false; L.agregada = false; }); S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0; S.tamTexto = 100;
+        var rt = $('rangoTamTexto'); if (rt) rt.value = 100;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
@@ -688,7 +698,7 @@
         });
     }
     var ba = $('btnAplicarTitulo'); if (ba) ba.addEventListener('click', aplicarTitulo);
-    [['rangoTamImagen', 'tam'], ['rangoXImagen', 'x'], ['rangoYImagen', 'y']].forEach(function (par) {
+    [['rangoTamImagen', 'tam'], ['rangoXImagen', 'x'], ['rangoYImagen', 'y'], ['rangoTamTexto', 'tamTexto']].forEach(function (par) {
         var r = $(par[0]);
         if (r) r.addEventListener('input', function () { S[par[1]] = Number(r.value); redibujar(); });
     });
@@ -733,10 +743,9 @@
         ocupado: function () { return S.ocupado; },
         // ¿Ese lado ('fer' o 'polo') ya tiene imagen lista?
         tieneImagen: function (l) { return !!(S.lado[l] && S.lado[l].producto); },
-        // El título solo importa si alguna imagen lo lleva (las imágenes "completas" no lo usan)
         tituloPendiente: function () {
-            var usa = ['fer', 'polo'].some(function (l) { return S.lado[l].producto && !S.lado[l].completa; });
-            return usa && envolverTitulo(val('inputTituloImagen')) !== S.titulo;
+            var hay = !!(S.lado.fer.producto || S.lado.polo.producto);
+            return hay && envolverTitulo(val('inputTituloImagen')) !== S.titulo;
         }
     };
 })();
