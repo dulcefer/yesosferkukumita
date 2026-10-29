@@ -258,6 +258,7 @@
     //    (pasa cuando ese mismo archivo ya se cargó antes con un <img> normal);
     // 2) fetch → blob, que además dice el motivo real del fallo (HTTP 404, bloqueo, sin conexión…).
     async function cargarImgRobusta(src) {
+        if (/^data:/i.test(src)) return cargarImg(src); // incrustada en el código: no hay descarga que pueda fallar
         try { return await cargarImg(src + (src.indexOf('?') < 0 ? '?' : '&') + 'cors=1'); } catch (e1) {}
         var r;
         try { r = await fetch(src, { cache: 'reload' }); }
@@ -275,14 +276,14 @@
         if (S.fondoPolo) return true;
         // 1º la copia del propio sitio (imagenes/fondo-azul.webp, igual que el fondo rosa: la más segura, sin permisos de otro dominio)
         // y después las direcciones del repo de Polo como respaldo.
-        var lista = ['imagenes/fondo-azul.webp', FONDO_POLO_SRC,
+        var lista = [window.FONDO_AZUL_DATA || '', 'imagenes/fondo-azul.webp', FONDO_POLO_SRC,
             'https://cdn.jsdelivr.net/gh/elpologr/yesospolokukumita@main/imagenes/fondo-azul.webp',
             'https://elpologr.github.io/yesospolokukumita/imagenes/fondo-azul.webp'
-        ].filter(function (u, i, a) { return a.indexOf(u) === i; });
+        ].filter(function (u, i, a) { return u && a.indexOf(u) === i; });
         var fallos = [];
         for (var k = 0; k < lista.length; k++) {
             try { S.fondoPolo = await cargarImgRobusta(lista[k]); S.motivoPolo = ''; return true; }
-            catch (e) { fallos.push(lista[k] + ' → ' + (e && e.message ? e.message : 'falló')); console.warn('[fondo azul] no cargó:', lista[k], e); }
+            catch (e) { fallos.push((/^data:/i.test(lista[k]) ? '(fondo incluido en el código)' : lista[k]) + ' → ' + (e && e.message ? e.message : 'falló')); console.warn('[fondo azul] no cargó:', /^data:/i.test(lista[k]) ? 'fondo incluido' : lista[k], e); }
         }
         S.motivoPolo = 'no se pudo cargar fondo-azul.webp. Resultado de cada dirección: ' + fallos.join(' | ') + '. Si dice HTTP 404 el archivo no está en esa ruta; si dice "no respondió", revisa tu conexión o extensiones que bloqueen github.';
         return false;
