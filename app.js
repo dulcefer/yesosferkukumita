@@ -5062,15 +5062,9 @@ async function guardarProductoAdmin() {
         // Enlaces ya publicados con los botones "Publicar imagen en imgbb" (si existen, no se vuelve a subir nada)
         var linkFerListo = _linkImgbbObtenido.fer || '';
         var linkPoloListo = editando ? '' : (_linkImgbbObtenido.polo || '');
+        // Ya NO se arma la imagen azul al guardar: Polo solo recibe el enlace que se obtuvo con "Publicar imagen en imgbb" (Polo).
         if (!editando && !linkPoloListo) {
-            if (!(window.editorImagenProducto && window.editorImagenProducto.tieneImagen ? window.editorImagenProducto.tieneImagen('polo') : _imagenProductoSeleccionada)) {
-                motivoSinPolo = 'la imagen no salió del editor (¿pegaste un link de imgbb en vez de elegir una foto?).';
-            } else if (!window.editorImagenProducto || !window.editorImagenProducto.imagenPolo) {
-                motivoSinPolo = 'el navegador tiene una versión vieja de editor-imagen.js. Sube el número de versión en index.html y recarga con Ctrl+F5.';
-            } else {
-                imagenPolo = await window.editorImagenProducto.imagenPolo();
-                if (!imagenPolo) motivoSinPolo = (window.editorImagenProducto.motivoPolo && window.editorImagenProducto.motivoPolo()) || 'no se pudo preparar la imagen de Polo (abre la consola con F12 para ver el detalle y recarga con Ctrl+F5).';
-            }
+            motivoSinPolo = 'primero presiona "Publicar imagen en imgbb" en la sección de Polo para obtener su enlace. Este producto quedó guardado solo en Fer.';
         }
         var enviarAPolo = !editando && (!!imagenPolo || !!linkPoloListo);
 
