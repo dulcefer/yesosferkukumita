@@ -41,9 +41,14 @@
     var F_TIT   = '700 #px Fredoka, "Baloo 2", sans-serif';
     var F_SERIF = '800 #px "Playfair Display", serif';
 
-    var S = { fondo: null, fondoPolo: null, foto: null, producto: null, tam: 100, x: 0, y: 0,
+    var S = { fondo: null, fondoPolo: null, foto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
-              worker: null, workerTimer: null, id: 0, repetir: false, fondoQuitado: false };
+              worker: null, workerTimer: null, id: 0, repetir: false,
+              // Cada versión (Fer / Polo) tiene su propia imagen de la pieza: foto de origen, resultado y si ya se le quitó el fondo.
+              // v sube cada vez que cambia su foto (sirve para descartar resultados viejos).
+              lado: { fer: { foto: null, producto: null, quitado: false, v: 0 },
+                      polo: { foto: null, producto: null, quitado: false, v: 0 } } };
+    var NOMBRE_LADO = { fer: 'Fer', polo: 'Polo' };
 
     function $(id) { return document.getElementById(id); }
     function val(id) { var e = $(id); return e ? e.value.trim() : ''; }
@@ -124,13 +129,13 @@
     }
 
     // Pinta la imagen completa (fondo + pieza + título + marca) en el contexto g, con el fondo indicado
-    function pintar(g, fondo, colorRespaldo) {
+    function pintar(g, fondo, colorRespaldo, prod) {
         g.clearRect(0, 0, TAM, TAM);
         if (fondo) g.drawImage(fondo, 0, 0, TAM, TAM);
         else { g.fillStyle = colorRespaldo; g.fillRect(0, 0, TAM, TAM); }
 
         // Pieza
-        var p = S.producto;
+        var p = prod;
         if (p) {
             var w = p.naturalWidth || p.width, h = p.naturalHeight || p.height;
             var esc = Math.min(620 / w, 730 / h) * (S.tam / 100), dw = w * esc, dh = h * esc;
@@ -163,15 +168,15 @@
     // Lo que se ve en pantalla (fondo rosa de Yesos Fer)
     function dibujar() {
         var c = $('canvasImagenProducto'); if (!c) return;
-        pintar(c.getContext('2d'), S.fondo, '#d8788a');
+        pintar(c.getContext('2d'), S.fondo, '#d8788a', S.lado.fer.producto);
         // Vista previa de la versión de Yesos Polo (fondo azul), siempre al lado de la de Fer
         var cp = $('canvasImagenPoloProducto');
-        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a');
+        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo.producto);
     }
 
     // Imagen final de Fer (fondo rosa) como dataURL, tal como se ve en pantalla
     async function imagenFer() {
-        var c = $('canvasImagenProducto'); if (!c || !S.foto || !S.producto) return '';
+        var c = $('canvasImagenProducto'); if (!c || !S.foto || !S.lado.fer.producto) return '';
         await fuentes(); dibujar();
         var u = c.toDataURL('image/webp', 0.9);
         if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
@@ -199,12 +204,12 @@
     // Misma imagen con el fondo azul de Yesos Polo (se genera solo al guardar, fuera de pantalla)
     async function imagenPolo() {
         S.motivoPolo = '';
-        if (!S.foto || !S.producto) { S.motivoPolo = 'no hay una foto lista en el editor (elige una foto y espera a que termine de quitar el fondo).'; return ''; }
+        if (!S.foto || !S.lado.polo.producto) { S.motivoPolo = 'no hay una foto lista en el editor (elige una foto y espera a que termine de quitar el fondo).'; return ''; }
         if (!(await cargarFondoPolo())) return ''; // sin el archivo del fondo azul no se puede generar la versión de Polo
         await fuentes();
         try {
             var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
-            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a');
+            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo.producto);
             var u = c.toDataURL('image/webp', 0.9);
             if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
             return u;
@@ -481,32 +486,53 @@
         } });
     }
 
-    // Texto/visibilidad de los botones según si la foto ya se recortó o sigue original
+    // Texto/visibilidad de los botones de cada lado según si su foto ya se recortó o sigue original
     function actualizarBotonesFondo() {
-        var b = $('btnQuitarFondo'), r = $('btnFotoOriginal');
-        if (b) b.textContent = S.fondoQuitado ? '✂️ Volver a quitar el fondo' : '✂️ Quitar el fondo';
-        if (r) r.style.display = S.fondoQuitado ? '' : 'none';
+        ['fer', 'polo'].forEach(function (l) {
+            var N = NOMBRE_LADO[l], q = S.lado[l].quitado;
+            var b = $('btnQuitarFondo' + N), r = $('btnFotoOriginal' + N);
+            if (b) b.textContent = (q ? '✂️ Volver a quitar fondo ' : '✂️ Quitar fondo ') + N;
+            if (r) r.style.display = q ? '' : 'none';
+        });
     }
 
-    // Deja la foto tal como se subió (sin recortar)
-    async function usarFotoOriginal() {
-        if (!S.foto || S.ocupado) return;
-        S.producto = await cargarImg(S.foto);
-        S.fondoQuitado = false;
+    function botonesQuitar(deshabilitar) {
+        ['Fer', 'Polo'].forEach(function (N) { var b = $('btnQuitarFondo' + N); if (b) b.disabled = deshabilitar; });
+    }
+
+    // Deja la foto de ese lado tal como se subió (sin recortar)
+    async function usarFotoOriginal(l) {
+        var L = S.lado[l]; if (!L.foto || S.ocupado) return;
+        L.producto = await cargarImg(L.foto);
+        L.quitado = false;
         actualizarBotonesFondo();
-        estado('Foto original. Si quieres recortarla, presiona "✂️ Quitar el fondo".');
+        estado('Foto original para ' + NOMBRE_LADO[l] + '. Si quieres recortarla, presiona "✂️ Quitar fondo ' + NOMBRE_LADO[l] + '".');
         redibujar();
     }
 
-    async function quitarFondo() {
-        if (!S.foto) return;
-        if (S.ocupado) { S.repetir = true; estado('⏳ Esperando a que termine el proceso anterior…'); return; }
-        S.ocupado = true; S.repetir = false;
-        var miId = S.id; // si mientras trabaja se elige otra foto, este resultado ya no sirve
-        var btn = $('btnQuitarFondo'); if (btn) btn.disabled = true;
-        estado('⏳ Quitando el fondo… la primera vez descarga el modelo y puede tardar un poco.');
+    // Quita el fondo de la foto de UN lado ('fer' o 'polo')
+    async function quitarFondo(l) {
+        var L = S.lado[l]; if (!L || !L.foto) return;
+        var N = NOMBRE_LADO[l];
+        if (S.ocupado) { S.repetir = l; estado('⏳ Esperando a que termine el proceso anterior…'); return; }
+        S.repetir = false;
+
+        // Si el otro lado usa la misma foto y ya la recortó, se reutiliza su resultado (no hay que procesar de nuevo)
+        var otro = S.lado[l === 'fer' ? 'polo' : 'fer'];
+        if (otro.quitado && otro.producto && otro.foto === L.foto) {
+            L.producto = otro.producto; L.quitado = true;
+            actualizarBotonesFondo();
+            estado('✅ Fondo quitado para ' + N + ' (se reutilizó el recorte de la otra imagen).');
+            redibujar();
+            return;
+        }
+
+        S.ocupado = true;
+        var gen = S.id, ver = L.v; // si mientras trabaja se cambia esta foto, este resultado ya no sirve
+        botonesQuitar(true);
+        estado('⏳ Quitando el fondo (' + N + ')… la primera vez descarga el modelo y puede tardar un poco.');
         try {
-            var blob = await fotoLigera(S.foto);
+            var blob = await fotoLigera(L.foto);
             var res;
             try {
                 res = await quitarFondoEnWorker(blob);
@@ -515,25 +541,61 @@
                 res = await quitarFondoEnPagina(blob);
             }
             var img = await cargarImg(URL.createObjectURL(res));
-            if (miId !== S.id) return; // se eligió otra foto: se descarta; el finally lanza el proceso de la nueva
-            S.producto = recortar(refinarRecorte(img));
-            S.fondoQuitado = true;
-            estado('✅ Fondo quitado. Ajusta tamaño y posición si hace falta.');
+            if (gen !== S.id || ver !== L.v) return; // se cambió la foto: se descarta
+            L.producto = recortar(refinarRecorte(img));
+            L.quitado = true;
+            estado('✅ Fondo quitado (' + N + '). Ajusta tamaño y posición si hace falta.');
         } catch (e) {
             console.error('[editor-imagen]', e);
-            if (miId === S.id) estado('⚠️ No se pudo quitar el fondo. Se usa la foto tal cual; puedes reintentar.', true);
+            if (gen === S.id && ver === L.v) estado('⚠️ No se pudo quitar el fondo (' + N + '). Se usa la foto tal cual; puedes reintentar.', true);
         } finally {
             S.ocupado = false;
-            if (btn) btn.disabled = false;
+            botonesQuitar(false);
             actualizarBotonesFondo();
             redibujar();
-            if (S.repetir) { S.repetir = false; quitarFondo(); } // había una foto nueva esperando
+            if (S.repetir) { var pend = S.repetir; S.repetir = false; quitarFondo(pend); } // había otra petición esperando
         }
+    }
+
+    // Lee una imagen elegida desde el equipo. Conserva la transparencia (PNG/WebP ya recortados) y reduce las muy grandes.
+    function leerArchivoImagen(archivo) {
+        return new Promise(function (ok, err) {
+            var lector = new FileReader();
+            lector.onerror = function () { err(new Error('lectura')); };
+            lector.onload = async function () {
+                try {
+                    var url = lector.result, img = await cargarImg(url);
+                    var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, 1600 / Math.max(w, h));
+                    if (k >= 1) return ok(url);
+                    var c = document.createElement('canvas'); c.width = Math.round(w * k); c.height = Math.round(h * k);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    ok(archivo.type === 'image/jpeg' ? c.toDataURL('image/jpeg', 0.92) : c.toDataURL('image/png'));
+                } catch (e) { err(e); }
+            };
+            lector.readAsDataURL(archivo);
+        });
+    }
+
+    // "Agregar imagen Fer/Polo": una imagen distinta solo para ese lado (la otra conserva la suya)
+    async function agregarImagen(l, archivo) {
+        if (!archivo || !S.foto) return;
+        var L = S.lado[l], N = NOMBRE_LADO[l];
+        if (archivo.type && archivo.type.indexOf('image/') !== 0) { estado('⚠️ Ese archivo no es una imagen.', true); return; }
+        var url;
+        try { url = await leerArchivoImagen(archivo); }
+        catch (e) { estado('⚠️ No se pudo leer esa imagen (' + N + ').', true); return; }
+        var producto;
+        try { producto = await cargarImg(url); }
+        catch (e) { estado('⚠️ No se pudo abrir esa imagen (' + N + ').', true); return; }
+        L.v++; L.foto = url; L.producto = producto; L.quitado = false;
+        actualizarBotonesFondo();
+        estado('🖼️ Imagen agregada para ' + N + '. Si no está recortada, presiona "✂️ Quitar fondo ' + N + '"; si ya viene sin fondo, déjala así.');
+        redibujar();
     }
 
     async function cargarFoto(dataUrl) {
         S.foto = dataUrl; S.tam = 100; S.x = 0; S.y = 0;
-        S.id++; S.repetir = false; S.fondoQuitado = false; // si aún procesaba la foto anterior, su resultado se descarta
+        S.id++; S.repetir = false; // si aún procesaba la foto anterior, su resultado se descarta
         ['rangoTamImagen', 'rangoXImagen', 'rangoYImagen'].forEach(function (id, i) {
             var r = $(id); if (r) r.value = i === 0 ? 100 : 0;
         });
@@ -544,15 +606,18 @@
         var tIni = $('inputTituloImagen'); if (tIni) tIni.value = S.titulo;
         try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
         await cargarFondoPolo();
-        S.producto = await cargarImg(dataUrl);
+        var img = await cargarImg(dataUrl);
+        ['fer', 'polo'].forEach(function (l) {
+            var L = S.lado[l]; L.v++; L.foto = dataUrl; L.producto = img; L.quitado = false;
+        });
         redibujar();
         actualizarBotonesFondo();
-        // El fondo ya NO se quita solo: se hace con el botón "✂️ Quitar el fondo" (o se deja la foto como está)
-        estado('📷 Foto lista. Escribe el título, o presiona "✂️ Quitar el fondo" si quieres recortar la pieza.');
+        // El fondo NO se quita solo: se hace con "Quitar fondo Fer" / "Quitar fondo Polo" (o se deja la foto como está)
+        estado('📷 Foto lista. Escribe el título, o quita el fondo de la imagen de Fer y/o de Polo con los botones de abajo.');
     }
 
     function reset() {
-        S.id++; S.repetir = false; S.fondoQuitado = false; S.foto = null; S.producto = null; S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; S.repetir = false; S.foto = null; ['fer', 'polo'].forEach(function (l) { var L = S.lado[l]; L.v++; L.foto = null; L.producto = null; L.quitado = false; }); S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
@@ -581,8 +646,19 @@
         var r = $(par[0]);
         if (r) r.addEventListener('input', function () { S[par[1]] = Number(r.value); redibujar(); });
     });
-    var bq = $('btnQuitarFondo'); if (bq) bq.addEventListener('click', quitarFondo);
-    var bo = $('btnFotoOriginal'); if (bo) bo.addEventListener('click', usarFotoOriginal);
+    ['fer', 'polo'].forEach(function (l) {
+        var N = NOMBRE_LADO[l];
+        var bq = $('btnQuitarFondo' + N); if (bq) bq.addEventListener('click', function () { quitarFondo(l); });
+        var bo = $('btnFotoOriginal' + N); if (bo) bo.addEventListener('click', function () { usarFotoOriginal(l); });
+        var ba2 = $('btnAgregarImagen' + N), inp = $('inputAgregarImagen' + N);
+        if (ba2 && inp) {
+            ba2.addEventListener('click', function () { inp.click(); });
+            inp.addEventListener('change', function () {
+                var f = inp.files && inp.files[0]; inp.value = ''; // se limpia para poder elegir el mismo archivo otra vez
+                agregarImagen(l, f);
+            });
+        }
+    });
 
     // Descarga la imagen ya editada (PNG 1024×1024) sin necesidad de guardar el producto
     async function descargar() {

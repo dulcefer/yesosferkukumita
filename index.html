@@ -2106,8 +2106,20 @@
                 <label class="panel-nombre-label">Mover arriba / abajo</label>
                 <input type="range" id="rangoYImagen" min="-300" max="300" value="0">
                 <button class="panel-nombre-btn guardar" id="btnDescargarImagen" type="button">⬇️ Descargar imagen</button>
-                <button class="panel-nombre-btn cancelar" id="btnQuitarFondo" type="button">✂️ Quitar el fondo</button>
-                <button class="panel-nombre-btn cancelar" id="btnFotoOriginal" type="button" style="display:none;">↩️ Usar la foto original (sin recortar)</button>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="panel-nombre-btn cancelar" id="btnQuitarFondoFer" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Fer</button>
+                    <button class="panel-nombre-btn cancelar" id="btnQuitarFondoPolo" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Polo</button>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenFer" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Fer</button>
+                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenPolo" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Polo</button>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="panel-nombre-btn cancelar" id="btnFotoOriginalFer" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Fer</button>
+                    <button class="panel-nombre-btn cancelar" id="btnFotoOriginalPolo" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Polo</button>
+                </div>
+                <input type="file" id="inputAgregarImagenFer" accept="image/*" style="display:none">
+                <input type="file" id="inputAgregarImagenPolo" accept="image/*" style="display:none">
                 <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
 
                 <div class="sap-seccion-titulo">Publicar imágenes en imgbb (opcional, antes de guardar)</div>
@@ -2349,7 +2361,7 @@
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
     <script src="app.js?v=17"></script>
-    <script src="editor-imagen.js?v=11"></script>
+    <script src="editor-imagen.js?v=12"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>
