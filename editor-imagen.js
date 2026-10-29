@@ -182,10 +182,12 @@
     // Si ninguna carga, guarda en S.motivoPolo qué se intentó. Devuelve true/false (nunca lanza error).
     async function cargarFondoPolo() {
         if (S.fondoPolo) return true;
-        var lista = [FONDO_POLO_SRC,
+        // 1º la copia del propio sitio (imagenes/fondo-azul.webp, igual que el fondo rosa: la más segura, sin permisos de otro dominio)
+        // y después las direcciones del repo de Polo como respaldo.
+        var lista = ['imagenes/fondo-azul.webp', FONDO_POLO_SRC,
             'https://cdn.jsdelivr.net/gh/elpologr/yesospolokukumita@main/imagenes/fondo-azul.webp',
-            'https://elpologr.github.io/yesospolokukumita/imagenes/fondo-azul.webp',
-            'imagenes/fondo-azul.webp'].filter(function (u, i, a) { return a.indexOf(u) === i; });
+            'https://elpologr.github.io/yesospolokukumita/imagenes/fondo-azul.webp'
+        ].filter(function (u, i, a) { return a.indexOf(u) === i; });
         for (var k = 0; k < lista.length; k++) {
             try { S.fondoPolo = await cargarImg(lista[k]); S.motivoPolo = ''; return true; }
             catch (e) { console.warn('[fondo azul] no cargó:', lista[k]); }
