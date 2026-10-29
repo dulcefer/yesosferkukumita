@@ -2068,11 +2068,17 @@
                 <p class="sap-nota">Sube una imagen ya lista solo para Fer o solo para Polo: se muestra <strong>completa</strong>, sin ponerla sobre el fondo rosa o azul. No necesitas haber agregado una foto antes.</p>
             </div>
             <div class="sap-link-imagen">
-                <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb que ya tengas</label>
+                <label class="panel-nombre-label" for="inputUrlImagenProducto">🌸 Link de imgbb para Fer (ya con su fondo)</label>
                 <input id="inputUrlImagenProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagen()">
                 <div id="sapUrlImagenEstado" class="sap-estado"></div>
                 <img id="previewUrlImagenProducto" src="" alt="Vista previa del link" style="display:none;">
                 <p class="sap-nota">Usa el <strong>enlace directo</strong> de imgbb (empieza con https://i.ibb.co/). Con un link no se usa el editor: la imagen se guarda tal cual está.</p>
+            </div>
+            <div class="sap-link-imagen">
+                <label class="panel-nombre-label" for="inputUrlImagenPoloProducto">🔵 Link de imgbb para Polo (ya con su fondo)</label>
+                <input id="inputUrlImagenPoloProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagenPolo()">
+                <div id="sapUrlImagenPoloEstado" class="sap-estado"></div>
+                <p class="sap-nota">Solo al agregar un producto nuevo. Pega el enlace directo de la imagen de Polo: se guarda tal cual, sin fondo ni editor. Si lo dejas vacío, el producto se guarda solo en Fer.</p>
             </div>
             <div id="sapImagenActual" style="display:none;">
                 <img id="sapImagenActualImg" src="" alt="Imagen actual del producto">
@@ -2365,7 +2371,7 @@
 
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
     <script src="fondo-azul-data.js?v=1"></script>
     <script src="editor-imagen.js?v=18"></script>
 

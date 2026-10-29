@@ -4078,6 +4078,31 @@ function alCambiarUrlImagen() {
     validarFormularioProducto();
 }
 
+// ── Link de imgbb para POLO (la imagen ya trae su fondo; se manda tal cual, sin editor) ──
+function _estadoUrlImagenPolo(txt, error) {
+    var e = document.getElementById('sapUrlImagenPoloEstado');
+    if (!e) return;
+    e.textContent = txt || '';
+    e.classList.toggle('error', !!error);
+}
+
+function alCambiarUrlImagenPolo() {
+    var input = document.getElementById('inputUrlImagenPoloProducto');
+    if (!input) return;
+    var crudo = input.value.trim();
+    if (crudo === '') { _estadoUrlImagenPolo(''); return; }
+    var url = _extraerUrlImgbb(crudo);
+    if (!url) {
+        var esPagina = /^https?:\/\/(www\.)?ibb\.co\//i.test(crudo);
+        _estadoUrlImagenPolo(esPagina
+            ? 'Ese es el link de la página. En imgbb copia el "Enlace directo" (https://i.ibb.co/...).'
+            : 'El link debe ser de imgbb y empezar con https://i.ibb.co/', true);
+        return;
+    }
+    if (url !== crudo) input.value = url; // si pegó código embed, queda solo el link limpio
+    _estadoUrlImagenPolo('✔ Se usará este link como imagen de Polo.');
+}
+
 // Limpia el campo de link (al elegir un archivo, o al reiniciar el formulario)
 function _limpiarUrlImagen() {
     var input = document.getElementById('inputUrlImagenProducto');
@@ -4556,7 +4581,7 @@ function validarFormularioProducto() {
 
 function limpiarFormularioProducto() {
     ['inputNombreProducto', 'inputPrecioOriginal', 'inputPrecioBazar',
-     'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputImagenProducto',
+     'inputDescripcionProducto', 'inputUrlImagenProducto', 'inputUrlImagenPoloProducto', 'inputImagenProducto',
      'inputAltoProducto', 'inputAnchoProducto', 'inputExistenciaProducto', 'inputVideoProducto', 'inputFilaDestinoProducto'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
@@ -4564,6 +4589,7 @@ function limpiarFormularioProducto() {
     _imagenProductoSeleccionada = null;
     _quitarImagenPrincipal = false;
     _limpiarUrlImagen();
+    _estadoUrlImagenPolo('');
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
@@ -5061,10 +5087,15 @@ async function guardarProductoAdmin() {
         var motivoSinPolo = ''; // por qué NO se pudo preparar la versión de Polo (se muestra en el aviso)
         // Enlaces ya publicados con los botones "Publicar imagen en imgbb" (si existen, no se vuelve a subir nada)
         var linkFerListo = _linkImgbbObtenido.fer || '';
-        var linkPoloListo = editando ? '' : (_linkImgbbObtenido.polo || '');
+        var linkPoloPegado = _extraerUrlImgbb(_campoProducto('inputUrlImagenPoloProducto'));
+        if (!editando && _campoProducto('inputUrlImagenPoloProducto') !== '' && !linkPoloPegado) {
+            mostrarToast('El link de la imagen de Polo debe ser de imgbb (https://i.ibb.co/...).');
+            return;
+        }
+        var linkPoloListo = editando ? '' : (linkPoloPegado || _linkImgbbObtenido.polo || '');
         // Ya NO se arma la imagen azul al guardar: Polo solo recibe el enlace que se obtuvo con "Publicar imagen en imgbb" (Polo).
         if (!editando && !linkPoloListo) {
-            motivoSinPolo = 'primero presiona "Publicar imagen en imgbb" en la sección de Polo para obtener su enlace. Este producto quedó guardado solo en Fer.';
+            motivoSinPolo = 'no pegaste el link de imgbb de Polo. Este producto quedó guardado solo en Fer.';
         }
         var enviarAPolo = !editando && (!!imagenPolo || !!linkPoloListo);
 
