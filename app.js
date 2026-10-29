@@ -4897,10 +4897,20 @@ function _limpiarLinksImgbb(mensaje) {
 // La imagen azul de Polo solo se usa al AGREGAR un producto nuevo (al editar no se envía a Polo)
 function _actualizarBloqueImgbb() {
     var editando = !!_edicionProducto;
-    ['sapPreviaPolo', 'sapPublicarPolo'].forEach(function(id) {
+    ['sapPreviaPolo', 'sapPublicarPolo', 'btnAgregarImagenPolo'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.style.display = editando ? 'none' : '';
     });
 }
+
+// "Agregar imagen Fer/Polo" (editor-imagen.js): con Fer cuenta como la imagen principal, igual que al elegir una foto
+document.addEventListener('editorImagenAgregada', function(ev) {
+    if (ev && ev.detail && ev.detail.lado === 'fer') {
+        _limpiarUrlImagen();        // la imagen elegida sustituye al link pegado
+        _principalElegida = true;
+    }
+    _renderExtrasProducto();
+    validarFormularioProducto();
+});
 
 document.addEventListener('editorImagenCambio', function() {
     _versionImagenEditor++;
@@ -4913,8 +4923,8 @@ async function publicarImagenImgbb(quien) {
     var user = auth.currentUser;
     if (!esCorreoAdmin(user)) { mostrarToast('No tienes permisos de administrador.'); return; }
     var ed = window.editorImagenProducto;
-    if (!ed || !_imagenProductoSeleccionada) {
-        _estadoPublicarImgbb(quien, 'Primero elige una foto para que se arme la imagen.', true);
+    if (!ed || !(ed.tieneImagen ? ed.tieneImagen(quien) : _imagenProductoSeleccionada)) {
+        _estadoPublicarImgbb(quien, 'Primero elige una foto, o usa "Agregar imagen ' + (quien === 'polo' ? 'Polo' : 'Fer') + '".', true);
         return;
     }
     if (quien === 'polo' && _edicionProducto) {
@@ -5053,7 +5063,7 @@ async function guardarProductoAdmin() {
         var linkFerListo = _linkImgbbObtenido.fer || '';
         var linkPoloListo = editando ? '' : (_linkImgbbObtenido.polo || '');
         if (!editando && !linkPoloListo) {
-            if (!_imagenProductoSeleccionada) {
+            if (!(window.editorImagenProducto && window.editorImagenProducto.tieneImagen ? window.editorImagenProducto.tieneImagen('polo') : _imagenProductoSeleccionada)) {
                 motivoSinPolo = 'la imagen no salió del editor (¿pegaste un link de imgbb en vez de elegir una foto?).';
             } else if (!window.editorImagenProducto || !window.editorImagenProducto.imagenPolo) {
                 motivoSinPolo = 'el navegador tiene una versión vieja de editor-imagen.js. Sube el número de versión en index.html y recarga con Ctrl+F5.';

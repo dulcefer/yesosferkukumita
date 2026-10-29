@@ -3571,7 +3571,7 @@ textarea.panel-nombre-input { resize: vertical; min-height: 70px; }
 /* ══ Editor de imagen del producto ══ */
 #editorImagenProducto { display: flex; flex-direction: column; gap: 10px; }
 #editorImagenProducto[style*="none"] { display: none !important; }
-#canvasImagenProducto { width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 12px; background: #d8788a; }
+#canvasImagenProducto { width: 100%; height: auto; border-radius: 12px; background: #d8788a; }
 #editorImagenProducto input[type="range"] { width: 100%; accent-color: #d8788a; }
 .sap-estado { font-size: 13px; color: #8c7565; min-height: 18px; }
 .sap-estado.error { color: #c0392b; }
@@ -3888,7 +3888,9 @@ body.modo-oscuro .sap-crear-etiqueta-btn:active { background: #3a2530; }
 .sap-previas-img { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .sap-previa-img { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .sap-previa-img figcaption { font-size: 11px; font-weight: 700; color: #8c7565; text-align: center; }
-#canvasImagenPoloProducto { width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: 12px; background: #2f6a9a; }
+#canvasImagenPoloProducto { width: 100%; height: auto; border-radius: 12px; background: #2f6a9a; }
+/* Imagen agregada "completa": sin fondo rosa/azul detrás (si trae transparencia se ve el cuadriculado) */
+#canvasImagenProducto.img-completa, #canvasImagenPoloProducto.img-completa { background: repeating-conic-gradient(#e6e6e6 0% 25%, #fff 0% 50%) 50% / 16px 16px; }
 .sap-publicar-img { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; border: 1.5px solid #e5ddd5; background: #fbf8f5; }
 .sap-publicar-img strong { font-size: 13px; color: #5c4d43; }
 .sap-publicar-img .panel-nombre-input[readonly] { background: #f3ede7; color: #362a22; cursor: text; }

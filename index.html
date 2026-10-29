@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -2058,6 +2058,15 @@
                 <span class="sap-agregar-imagen-icono">🖼️</span>
                 <span class="sap-agregar-imagen-textos"><strong id="sapBtnImagenTitulo">Agregar imagen</strong><small id="sapBtnImagenSub">Se convierte a WebP y se sube a ImgBB</small></span>
             </button>
+            <div id="sapAgregarImagenLados">
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenFer" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Fer</button>
+                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenPolo" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Polo</button>
+                </div>
+                <input type="file" id="inputAgregarImagenFer" accept="image/*" style="display:none">
+                <input type="file" id="inputAgregarImagenPolo" accept="image/*" style="display:none">
+                <p class="sap-nota">Sube una imagen ya lista solo para Fer o solo para Polo: se muestra <strong>completa</strong>, sin ponerla sobre el fondo rosa o azul. No necesitas haber agregado una foto antes.</p>
+            </div>
             <div class="sap-link-imagen">
                 <label class="panel-nombre-label" for="inputUrlImagenProducto">…o pega un link de imgbb que ya tengas</label>
                 <input id="inputUrlImagenProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagen()">
@@ -2111,15 +2120,9 @@
                     <button class="panel-nombre-btn cancelar" id="btnQuitarFondoPolo" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Polo</button>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenFer" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Fer</button>
-                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenPolo" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Polo</button>
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="panel-nombre-btn cancelar" id="btnFotoOriginalFer" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Fer</button>
                     <button class="panel-nombre-btn cancelar" id="btnFotoOriginalPolo" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Polo</button>
                 </div>
-                <input type="file" id="inputAgregarImagenFer" accept="image/*" style="display:none">
-                <input type="file" id="inputAgregarImagenPolo" accept="image/*" style="display:none">
                 <p class="sap-nota">Los precios y el nombre de arriba se ponen solos en la imagen. Esta imagen es la que se sube a imgbb.</p>
 
                 <div class="sap-seccion-titulo">Publicar imágenes en imgbb (opcional, antes de guardar)</div>
@@ -2360,8 +2363,8 @@
 
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
-    <script src="app.js?v=17"></script>
-    <script src="editor-imagen.js?v=12"></script>
+    <script src="app.js?v=18"></script>
+    <script src="editor-imagen.js?v=13"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

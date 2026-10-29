@@ -43,11 +43,12 @@
 
     var S = { fondo: null, fondoPolo: null, foto: null, tam: 100, x: 0, y: 0,
               tituloEditado: false, titulo: '', ocupado: false, timer: null,
-              worker: null, workerTimer: null, id: 0, repetir: false,
+              worker: null, workerTimer: null, id: 0, repetir: false, sinFoto: false,
               // Cada versión (Fer / Polo) tiene su propia imagen de la pieza: foto de origen, resultado y si ya se le quitó el fondo.
               // v sube cada vez que cambia su foto (sirve para descartar resultados viejos).
-              lado: { fer: { foto: null, producto: null, quitado: false, v: 0 },
-                      polo: { foto: null, producto: null, quitado: false, v: 0 } } };
+              // completa = se muestra tal cual (sin fondo, título ni marca); agregada = vino de "Agregar imagen Fer/Polo".
+              lado: { fer: { foto: null, producto: null, quitado: false, completa: false, agregada: false, v: 0 },
+                      polo: { foto: null, producto: null, quitado: false, completa: false, agregada: false, v: 0 } } };
     var NOMBRE_LADO = { fer: 'Fer', polo: 'Polo' };
 
     function $(id) { return document.getElementById(id); }
@@ -129,10 +130,33 @@
     }
 
     // Pinta la imagen completa (fondo + pieza + título + marca) en el contexto g, con el fondo indicado
-    function pintar(g, fondo, colorRespaldo, prod) {
+    function pintar(g, fondo, colorRespaldo, L) {
+        var cv = g.canvas, prod = L && L.producto;
+
+        // Imagen agregada con "Agregar imagen Fer/Polo": se muestra COMPLETA, tal como se subió.
+        // El canvas toma la proporción de la imagen (máx. TAM px por lado, sin ampliarla), así no se recorta ni se estira.
+        if (prod && L.completa) {
+            var iw = prod.naturalWidth || prod.width, ih = prod.naturalHeight || prod.height;
+            var kk = Math.min(1, TAM / Math.max(iw, ih));
+            var cw = Math.max(1, Math.round(iw * kk)), ch = Math.max(1, Math.round(ih * kk));
+            if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+            cv.classList.add('img-completa');
+            g.clearRect(0, 0, cw, ch);
+            g.drawImage(prod, 0, 0, cw, ch);
+            return;
+        }
+        cv.classList.remove('img-completa');
+        if (cv.width !== TAM || cv.height !== TAM) { cv.width = TAM; cv.height = TAM; }
+
         g.clearRect(0, 0, TAM, TAM);
         if (fondo) g.drawImage(fondo, 0, 0, TAM, TAM);
         else { g.fillStyle = colorRespaldo; g.fillRect(0, 0, TAM, TAM); }
+
+        // Sin primera foto y este lado todavía vacío: solo se muestra el fondo con un aviso (no se exporta)
+        if (!prod && S.sinFoto) {
+            texto(g, 'Sin imagen', TAM / 2, TAM / 2, 64, F_TIT, 'rgba(255,255,255,.85)', null, 0, 900);
+            return;
+        }
 
         // Pieza
         var p = prod;
@@ -168,15 +192,15 @@
     // Lo que se ve en pantalla (fondo rosa de Yesos Fer)
     function dibujar() {
         var c = $('canvasImagenProducto'); if (!c) return;
-        pintar(c.getContext('2d'), S.fondo, '#d8788a', S.lado.fer.producto);
+        pintar(c.getContext('2d'), S.fondo, '#d8788a', S.lado.fer);
         // Vista previa de la versión de Yesos Polo (fondo azul), siempre al lado de la de Fer
         var cp = $('canvasImagenPoloProducto');
-        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo.producto);
+        if (cp) pintar(cp.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo);
     }
 
     // Imagen final de Fer (fondo rosa) como dataURL, tal como se ve en pantalla
     async function imagenFer() {
-        var c = $('canvasImagenProducto'); if (!c || !S.foto || !S.lado.fer.producto) return '';
+        var c = $('canvasImagenProducto'); if (!c || !S.lado.fer.producto) return '';
         await fuentes(); dibujar();
         var u = c.toDataURL('image/webp', 0.9);
         if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
@@ -204,12 +228,13 @@
     // Misma imagen con el fondo azul de Yesos Polo (se genera solo al guardar, fuera de pantalla)
     async function imagenPolo() {
         S.motivoPolo = '';
-        if (!S.foto || !S.lado.polo.producto) { S.motivoPolo = 'no hay una foto lista en el editor (elige una foto y espera a que termine de quitar el fondo).'; return ''; }
-        if (!(await cargarFondoPolo())) return ''; // sin el archivo del fondo azul no se puede generar la versión de Polo
+        if (!S.lado.polo.producto) { S.motivoPolo = 'no hay una imagen lista para Polo en el editor (elige una foto o usa "Agregar imagen Polo").'; return ''; }
+        // Una imagen "completa" no usa el fondo azul, así que no lo necesita
+        if (!S.lado.polo.completa && !(await cargarFondoPolo())) return ''; // sin el archivo del fondo azul no se puede generar la versión de Polo
         await fuentes();
         try {
             var c = document.createElement('canvas'); c.width = TAM; c.height = TAM;
-            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo.producto);
+            pintar(c.getContext('2d'), S.fondoPolo, '#2f6a9a', S.lado.polo);
             var u = c.toDataURL('image/webp', 0.9);
             if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
             return u;
@@ -221,7 +246,8 @@
     }
 
     function exportar() {
-        var c = $('canvasImagenProducto'); if (!c || !S.foto) return;
+        var c = $('canvasImagenProducto');
+        if (!c || !S.lado.fer.producto) { window._imagenProductoSeleccionada = null; return; } // Fer aún sin imagen
         var u = c.toDataURL('image/webp', 0.9);
         if (u.indexOf('data:image/webp') !== 0) u = c.toDataURL('image/jpeg', 0.9); // Safari viejo
         window._imagenProductoSeleccionada = u;
@@ -505,6 +531,7 @@
         var L = S.lado[l]; if (!L.foto || S.ocupado) return;
         L.producto = await cargarImg(L.foto);
         L.quitado = false;
+        L.completa = !!L.agregada; // una imagen agregada vuelve a verse completa; la foto base, sobre el fondo
         actualizarBotonesFondo();
         estado('Foto original para ' + NOMBRE_LADO[l] + '. Si quieres recortarla, presiona "✂️ Quitar fondo ' + NOMBRE_LADO[l] + '".');
         redibujar();
@@ -512,15 +539,16 @@
 
     // Quita el fondo de la foto de UN lado ('fer' o 'polo')
     async function quitarFondo(l) {
-        var L = S.lado[l]; if (!L || !L.foto) return;
+        var L = S.lado[l]; if (!L) return;
         var N = NOMBRE_LADO[l];
+        if (!L.foto) { estado('⚠️ Primero agrega una imagen para ' + N + '.', true); return; }
         if (S.ocupado) { S.repetir = l; estado('⏳ Esperando a que termine el proceso anterior…'); return; }
         S.repetir = false;
 
         // Si el otro lado usa la misma foto y ya la recortó, se reutiliza su resultado (no hay que procesar de nuevo)
         var otro = S.lado[l === 'fer' ? 'polo' : 'fer'];
         if (otro.quitado && otro.producto && otro.foto === L.foto) {
-            L.producto = otro.producto; L.quitado = true;
+            L.producto = otro.producto; L.quitado = true; L.completa = false;
             actualizarBotonesFondo();
             estado('✅ Fondo quitado para ' + N + ' (se reutilizó el recorte de la otra imagen).');
             redibujar();
@@ -543,7 +571,7 @@
             var img = await cargarImg(URL.createObjectURL(res));
             if (gen !== S.id || ver !== L.v) return; // se cambió la foto: se descarta
             L.producto = recortar(refinarRecorte(img));
-            L.quitado = true;
+            L.quitado = true; L.completa = false; // ya recortada, vuelve a ir sobre el fondo
             estado('✅ Fondo quitado (' + N + '). Ajusta tamaño y posición si hace falta.');
         } catch (e) {
             console.error('[editor-imagen]', e);
@@ -576,9 +604,24 @@
         });
     }
 
-    // "Agregar imagen Fer/Polo": una imagen distinta solo para ese lado (la otra conserva la suya)
+    // Abre el editor SIN foto base (para "Agregar imagen Fer/Polo" cuando aún no se eligió la primera imagen)
+    async function abrirEditorSinFoto() {
+        if (S.foto || S.sinFoto) return;
+        S.sinFoto = true;
+        S.id++; S.repetir = false;
+        var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'block';
+        var pv = $('previewImagenProducto'); if (pv) pv.style.display = 'none';
+        sincronizarTitulo();
+        S.titulo = envolverTitulo(val('inputTituloImagen'));
+        var tIni = $('inputTituloImagen'); if (tIni) tIni.value = S.titulo;
+        try { S.fondo = S.fondo || await cargarImg(FONDO_SRC); } catch (e) { S.fondo = null; }
+        await cargarFondoPolo();
+    }
+
+    // "Agregar imagen Fer/Polo": una imagen distinta solo para ese lado (la otra conserva la suya).
+    // Funciona con o sin foto base, y la imagen se muestra COMPLETA (sin ponerla sobre el fondo rosa/azul).
     async function agregarImagen(l, archivo) {
-        if (!archivo || !S.foto) return;
+        if (!archivo) return;
         var L = S.lado[l], N = NOMBRE_LADO[l];
         if (archivo.type && archivo.type.indexOf('image/') !== 0) { estado('⚠️ Ese archivo no es una imagen.', true); return; }
         var url;
@@ -587,14 +630,17 @@
         var producto;
         try { producto = await cargarImg(url); }
         catch (e) { estado('⚠️ No se pudo abrir esa imagen (' + N + ').', true); return; }
-        L.v++; L.foto = url; L.producto = producto; L.quitado = false;
+        if (!S.foto && !S.sinFoto) await abrirEditorSinFoto();
+        L.v++; L.foto = url; L.producto = producto; L.quitado = false; L.agregada = true; L.completa = true;
         actualizarBotonesFondo();
-        estado('🖼️ Imagen agregada para ' + N + '. Si no está recortada, presiona "✂️ Quitar fondo ' + N + '"; si ya viene sin fondo, déjala así.');
+        estado('🖼️ Imagen agregada para ' + N + ' (se muestra completa, tal como la subiste). Si quieres usarla como pieza sobre el fondo, presiona "✂️ Quitar fondo ' + N + '".');
         redibujar();
+        // Avisa al formulario (app.js): con Fer cuenta como imagen principal del producto
+        document.dispatchEvent(new CustomEvent('editorImagenAgregada', { detail: { lado: l } }));
     }
 
     async function cargarFoto(dataUrl) {
-        S.foto = dataUrl; S.tam = 100; S.x = 0; S.y = 0;
+        S.foto = dataUrl; S.sinFoto = false; S.tam = 100; S.x = 0; S.y = 0;
         S.id++; S.repetir = false; // si aún procesaba la foto anterior, su resultado se descarta
         ['rangoTamImagen', 'rangoXImagen', 'rangoYImagen'].forEach(function (id, i) {
             var r = $(id); if (r) r.value = i === 0 ? 100 : 0;
@@ -608,7 +654,7 @@
         await cargarFondoPolo();
         var img = await cargarImg(dataUrl);
         ['fer', 'polo'].forEach(function (l) {
-            var L = S.lado[l]; L.v++; L.foto = dataUrl; L.producto = img; L.quitado = false;
+            var L = S.lado[l]; L.v++; L.foto = dataUrl; L.producto = img; L.quitado = false; L.completa = false; L.agregada = false;
         });
         redibujar();
         actualizarBotonesFondo();
@@ -617,7 +663,7 @@
     }
 
     function reset() {
-        S.id++; S.repetir = false; S.foto = null; ['fer', 'polo'].forEach(function (l) { var L = S.lado[l]; L.v++; L.foto = null; L.producto = null; L.quitado = false; }); S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
+        S.id++; S.repetir = false; S.foto = null; S.sinFoto = false; ['fer', 'polo'].forEach(function (l) { var L = S.lado[l]; L.v++; L.foto = null; L.producto = null; L.quitado = false; L.completa = false; L.agregada = false; }); S.tituloEditado = false; S.titulo = ''; S.tam = 100; S.x = 0; S.y = 0;
         var ed = $('editorImagenProducto'); if (ed) ed.style.display = 'none';
         var t = $('inputTituloImagen'); if (t) t.value = '';
         estado('');
@@ -662,7 +708,8 @@
 
     // Descarga la imagen ya editada (PNG 1024×1024) sin necesidad de guardar el producto
     async function descargar() {
-        var c = $('canvasImagenProducto'); if (!c || !S.foto) return;
+        var c = $('canvasImagenProducto'); if (!c) return;
+        if (!S.lado.fer.producto) { estado('⚠️ Agrega primero la imagen de Fer para poder descargarla.', true); return; }
         await fuentes(); dibujar(); // asegura que lo descargado sea lo que se ve
         c.toBlob(function (b) {
             if (!b) { estado('⚠️ No se pudo generar la imagen para descargar.', true); return; }
@@ -684,6 +731,12 @@
         motivoPolo: function () { return S.motivoPolo || ''; },
         imagenFer: imagenFer,
         ocupado: function () { return S.ocupado; },
-        tituloPendiente: function () { return !!S.foto && envolverTitulo(val('inputTituloImagen')) !== S.titulo; }
+        // ¿Ese lado ('fer' o 'polo') ya tiene imagen lista?
+        tieneImagen: function (l) { return !!(S.lado[l] && S.lado[l].producto); },
+        // El título solo importa si alguna imagen lo lleva (las imágenes "completas" no lo usan)
+        tituloPendiente: function () {
+            var usa = ['fer', 'polo'].some(function (l) { return S.lado[l].producto && !S.lado[l].completa; });
+            return usa && envolverTitulo(val('inputTituloImagen')) !== S.titulo;
+        }
     };
 })();
