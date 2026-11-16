@@ -4765,6 +4765,36 @@ function _leerImagenProducto(archivo, maxLado, calidad, maxMini) {
     });
 }
 
+// Si la imagen es un PNG/WebP con fondo transparente, la devuelve como PNG (conservando la transparencia).
+// Si no tiene transparencia real (o no es PNG/WebP), devuelve null y se usa el flujo normal (JPG).
+function _leerPngTransparente(archivo, maxLado) {
+    return new Promise(function(resolve) {
+        if (!archivo || !/^image\/(png|webp)$/i.test(archivo.type || '')) { resolve(null); return; }
+        var lector = new FileReader();
+        lector.onerror = function() { resolve(null); };
+        lector.onload = function(e) {
+            var img = new Image();
+            img.onload = function() {
+                try {
+                    var escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+                    var c = document.createElement('canvas');
+                    c.width = Math.max(1, Math.round(img.width * escala));
+                    c.height = Math.max(1, Math.round(img.height * escala));
+                    var g = c.getContext('2d');
+                    g.drawImage(img, 0, 0, c.width, c.height);
+                    var d = g.getImageData(0, 0, c.width, c.height).data, n = c.width * c.height, claros = 0;
+                    for (var i = 3; i < d.length; i += 4) if (d[i] < 20) claros++;
+                    // Se considera transparente si al menos 0.5 % de los píxeles lo son
+                    resolve(claros / n >= 0.005 ? c.toDataURL('image/png') : null);
+                } catch (err) { resolve(null); }
+            };
+            img.onerror = function() { resolve(null); };
+            img.src = e.target.result;
+        };
+        lector.readAsDataURL(archivo);
+    });
+}
+
 // Procesa (una por una, para no saturar la memoria del celular) las fotos adicionales
 async function _procesarExtrasProducto(archivos) {
     _procesandoFotosProducto = true;
@@ -4810,10 +4840,12 @@ async function previsualizarImagenProducto(event) {
 
     // 1ª foto: se reduce (máx. 1200 px, JPG) y pasa por el editor de imagen
     try {
-        var principal = await _leerImagenProducto(archivos[0], 1200, 0.9, 0);
+        // Si es un PNG/WebP con fondo transparente, se conserva tal cual y el editor solo le pone el fondo (sin quitar nada)
+        var pngTransparente = window.editorImagenProducto ? await _leerPngTransparente(archivos[0], 1600) : null;
+        var principal = pngTransparente ? { full: pngTransparente } : await _leerImagenProducto(archivos[0], 1200, 0.9, 0);
         if (window.editorImagenProducto) {
-            // editor-imagen.js quita el fondo y arma la imagen final con el fondo rosa
-            window.editorImagenProducto.cargarFoto(principal.full);
+            // editor-imagen.js arma la imagen final con el fondo rosa (y quita el fondo si la foto lo trae)
+            window.editorImagenProducto.cargarFoto(principal.full, !!pngTransparente);
         } else {
             _imagenProductoSeleccionada = principal.full;
             var preview = document.getElementById('previewImagenProducto');

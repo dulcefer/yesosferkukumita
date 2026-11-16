@@ -117,6 +117,25 @@
         return o;
     }
 
+    // Para PNG que ya vienen con fondo transparente: solo recorta los bordes vacíos (no borra nada de la pieza)
+    function recortarBordes(img) {
+        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        var g = c.getContext('2d'); g.drawImage(img, 0, 0);
+        var d = g.getImageData(0, 0, w, h).data;
+        var x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
+            if (d[(y * w + x) * 4 + 3] > 8) {
+                if (x < x0) x0 = x; if (x > x1) x1 = x;
+                if (y < y0) y0 = y; if (y > y1) y1 = y;
+            }
+        }
+        if (x1 <= x0 || y1 <= y0) return img;
+        var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+        o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+        return o;
+    }
+
     // Texto con contorno que se encoge solo si no cabe en maxW
     function texto(g, txt, x, y, tam, fam, relleno, borde, grosor, maxW) {
         g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
@@ -703,7 +722,8 @@
         document.dispatchEvent(new CustomEvent('editorImagenAgregada', { detail: { lado: l } }));
     }
 
-    async function cargarFoto(dataUrl) {
+    // yaSinFondo = true cuando la foto es un PNG transparente: se centra y se pone sobre el fondo, sin pasar por el quitafondos
+    async function cargarFoto(dataUrl, yaSinFondo) {
         S.foto = dataUrl; S.sinFoto = false; S.tam = 100; S.x = 0; S.y = 0;
         S.id++; S.repetir = false; // si aún procesaba la foto anterior, su resultado se descarta
         S.tamTexto = 100; var rt = $('rangoTamTexto'); if (rt) rt.value = 100;
@@ -720,9 +740,11 @@
         var img = await cargarImg(dataUrl);
         ['fer', 'polo'].forEach(function (l) {
             var L = S.lado[l]; L.v++; L.foto = dataUrl; L.producto = img; L.quitado = false; L.completa = false; L.agregada = false;
+            if (yaSinFondo) { L.producto = recortarBordes(img); L.quitado = true; }
         });
         redibujar();
         actualizarBotonesFondo();
+        if (yaSinFondo) { estado('✅ PNG transparente detectado: ya está sobre el fondo de Fer y de Polo. Escribe el título y ajusta tamaño y posición si hace falta.'); return; }
         // El fondo NO se quita solo: se hace con "Quitar fondo Fer" / "Quitar fondo Polo" (o se deja la foto como está)
         estado('📷 Foto lista. Escribe el título, o quita el fondo de la imagen de Fer y/o de Polo con los botones de abajo.');
     }
