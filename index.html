@@ -37,6 +37,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css?v=10">
+    <style>
+        /* Sin la opción "Publicar también en Yesos Polo", el formulario oculta todo lo de Polo */
+        #submenuAgregarProducto.sap-sin-polo .sap-solo-polo { display: none !important; }
+        #submenuAgregarProducto.sap-sin-polo .sap-previas-img { grid-template-columns: 1fr; }
+    </style>
+    <link rel="stylesheet" href="mesa-admin.css?v=1">
+    <link rel="stylesheet" href="cubo-3d.css?v=1">
 
     <!-- Estilos botones de modo catálogo -->
     <style>
@@ -400,6 +407,15 @@
                 <div>
                     Agregar producto
                     <span class="op-sub">Sube la imagen de un producto nuevo</span>
+                </div>
+            </button>
+
+            <!-- ══ BOTÓN MESA — SOLO ADMINISTRADORES (mesa-admin.js) ══ -->
+            <button class="btn-opcion-perfil" id="btnAbrirMesa" style="display:none;" onclick="abrirMesaDesdeBoton(event)" title="Ctrl/Cmd + clic: abrir en pestaña nueva">
+                <span class="op-icono">🖤</span>
+                <div>
+                    Mesa
+                    <span class="op-sub">Mesa isométrica de 100×100 para tus imágenes</span>
                 </div>
             </button>
 
@@ -2054,6 +2070,7 @@
         <div class="sap-cuerpo">
           <div class="sap-col-img">
             <div class="sap-seccion-titulo">Imagen</div>
+            <button type="button" class="sap-chip sap-toggle" id="btnPublicarEnPolo" aria-pressed="false" style="width:100%;" onclick="alternarPublicarEnPolo()">🔵 Publicar también en Yesos Polo: <span class="sap-toggle-estado">No</span></button>
             <button class="sap-agregar-imagen" type="button" onclick="elegirImagenProducto()">
                 <span class="sap-agregar-imagen-icono">🖼️</span>
                 <span class="sap-agregar-imagen-textos"><strong id="sapBtnImagenTitulo">Agregar imagen</strong><small id="sapBtnImagenSub">Se convierte a WebP y se sube a ImgBB</small></span>
@@ -2061,7 +2078,7 @@
             <div id="sapAgregarImagenLados">
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="panel-nombre-btn cancelar" id="btnAgregarImagenFer" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Fer</button>
-                    <button class="panel-nombre-btn cancelar" id="btnAgregarImagenPolo" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Polo</button>
+                    <button class="panel-nombre-btn cancelar sap-solo-polo" id="btnAgregarImagenPolo" type="button" style="flex:1 1 150px;">🖼️ Agregar imagen Polo</button>
                 </div>
                 <input type="file" id="inputAgregarImagenFer" accept="image/*" style="display:none">
                 <input type="file" id="inputAgregarImagenPolo" accept="image/*" style="display:none">
@@ -2074,7 +2091,7 @@
                 <div id="sapUrlImagenEstado" class="sap-estado"></div>
                 <img id="previewUrlImagenProducto" src="" alt="Vista previa del link" style="display:none;">
             </div>
-            <div class="sap-link-imagen">
+            <div class="sap-link-imagen sap-solo-polo">
                 <label class="panel-nombre-label" for="inputUrlImagenPoloProducto">🔵 Link de imgbb para Polo</label>
                 <input id="inputUrlImagenPoloProducto" class="panel-nombre-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://i.ibb.co/..." oninput="alCambiarUrlImagenPolo()">
                 <div id="sapUrlImagenPoloEstado" class="sap-estado"></div>
@@ -2101,7 +2118,7 @@
                         <canvas id="canvasImagenProducto" width="1024" height="1024"></canvas>
                         <figcaption>🌸 Yesos Fer (fondo rosa)</figcaption>
                     </figure>
-                    <figure class="sap-previa-img" id="sapPreviaPolo">
+                    <figure class="sap-previa-img sap-solo-polo" id="sapPreviaPolo">
                         <canvas id="canvasImagenPoloProducto" width="1024" height="1024"></canvas>
                         <figcaption>🔵 Yesos Polo (fondo azul)</figcaption>
                     </figure>
@@ -2122,12 +2139,16 @@
                 <input type="range" id="rangoYImagen" min="-300" max="300" value="0">
                 <button class="panel-nombre-btn guardar" id="btnDescargarImagen" type="button">⬇️ Descargar imagen</button>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button class="panel-nombre-btn cancelar" id="btnYaFondoFer" type="button" style="flex:1 1 150px;">🌸 Ya trae fondo rosa (solo textos)</button>
+                    <button class="panel-nombre-btn cancelar sap-solo-polo" id="btnYaFondoPolo" type="button" style="flex:1 1 150px;">🔵 Ya trae fondo azul (solo textos)</button>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="panel-nombre-btn cancelar" id="btnQuitarFondoFer" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Fer</button>
-                    <button class="panel-nombre-btn cancelar" id="btnQuitarFondoPolo" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Polo</button>
+                    <button class="panel-nombre-btn cancelar sap-solo-polo" id="btnQuitarFondoPolo" type="button" style="flex:1 1 150px;">✂️ Quitar fondo Polo</button>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:8px;">
                     <button class="panel-nombre-btn cancelar" id="btnFotoOriginalFer" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Fer</button>
-                    <button class="panel-nombre-btn cancelar" id="btnFotoOriginalPolo" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Polo</button>
+                    <button class="panel-nombre-btn cancelar sap-solo-polo" id="btnFotoOriginalPolo" type="button" style="display:none; flex:1 1 150px;">↩️ Foto original Polo</button>
                 </div>
 
                 <div class="sap-seccion-titulo">Publicar en imgbb (opcional)</div>
@@ -2138,7 +2159,7 @@
                     <label class="panel-nombre-label" for="inputLinkFerObtenido">Link obtenido</label>
                     <input id="inputLinkFerObtenido" class="panel-nombre-input" type="text" readonly placeholder="Aún no se publica" onclick="this.select()">
                 </div>
-                <div class="sap-publicar-img" id="sapPublicarPolo">
+                <div class="sap-publicar-img sap-solo-polo" id="sapPublicarPolo">
                     <strong>🔵 Imagen de Polo</strong>
                     <button class="panel-nombre-btn guardar" id="btnPublicarPolo" type="button" onclick="publicarImagenImgbb('polo')">☁️ Publicar imagen de Polo en imgbb</button>
                     <div class="sap-estado" id="estadoPublicarPolo"></div>
@@ -2363,9 +2384,11 @@
 
     <!-- JavaScript externo -->
     <script src="config.js?v=12"></script>
-    <script src="app.js?v=24"></script>
+    <script src="app.js?v=26"></script>
     <script src="fondo-azul-data.js?v=1"></script>
-    <script src="editor-imagen.js?v=19"></script>
+    <script src="editor-imagen.js?v=20"></script>
+    <script src="mesa-admin.js?v=1"></script>
+    <script src="cubo-3d.js?v=1"></script>
 
     <!-- ── AUTO-FIX MÓVIL: detecta y elimina cualquier elemento que desborde el viewport ── -->
     <script>

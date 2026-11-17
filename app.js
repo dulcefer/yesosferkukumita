@@ -3735,6 +3735,7 @@ function abrirEditorProducto(p) {
 
     limpiarFormularioProducto();
     _edicionProducto = { fila: p.fila || (p.id + 1), hoja: p.hoja || 0, nombre: p.nombre, imagenes: (p.imagenes || []).slice(),
+                         precioOriginal: p.precioNormal, imagenPrincipal: p.imagen || (p.imagenes || [])[0] || '',
                          tipos: (p.tipos || []).map(function(t) { return String(t).trim().toLowerCase(); }),
                          eventos: String(p.eventos || '').split(/\s+/).filter(Boolean),
                          formas: String(p.forma || '').split('|').filter(Boolean) };
@@ -4656,6 +4657,7 @@ function limpiarFormularioProducto() {
     _quitarImagenPrincipal = false;
     _limpiarUrlImagen();
     _estadoUrlImagenPolo('');
+    _fijarPublicarEnPolo(false); // por defecto: solo Fer
     var preview = document.getElementById('previewImagenProducto');
     if (preview) { preview.style.display = 'none'; preview.src = ''; }
     if (window.editorImagenProducto) window.editorImagenProducto.reset();
@@ -5023,10 +5025,28 @@ function _limpiarLinksImgbb(mensaje) {
 // La imagen azul de Polo solo se usa al AGREGAR un producto nuevo (al editar no se envía a Polo)
 function _actualizarBloqueImgbb() {
     var editando = !!_edicionProducto;
-    ['sapPreviaPolo', 'sapPublicarPolo', 'btnAgregarImagenPolo'].forEach(function(id) {
+    ['sapPreviaPolo', 'sapPublicarPolo', 'btnAgregarImagenPolo', 'btnPublicarEnPolo'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.style.display = editando ? 'none' : '';
     });
+    // Sin la opción "Publicar también en Yesos Polo" (o al editar) se ocultan todas las partes de Polo (clase sap-solo-polo)
+    var raiz = document.getElementById('submenuAgregarProducto');
+    if (raiz) raiz.classList.toggle('sap-sin-polo', editando || !_publicarEnPolo);
 }
+
+// Opción aparte: por defecto un producto nuevo se publica SOLO en Yesos Fer. Si se activa, también se publica en
+// Yesos Polo (segundo imgbb + producto nuevo en la hoja de Polo vía Apps Script), como antes.
+var _publicarEnPolo = false;
+function _fijarPublicarEnPolo(valor) {
+    _publicarEnPolo = !!valor;
+    var btn = document.getElementById('btnPublicarEnPolo');
+    if (btn) {
+        btn.classList.toggle('activo', _publicarEnPolo);
+        btn.setAttribute('aria-pressed', _publicarEnPolo ? 'true' : 'false');
+        var t = btn.querySelector('.sap-toggle-estado'); if (t) t.textContent = _publicarEnPolo ? 'Sí' : 'No';
+    }
+    _actualizarBloqueImgbb();
+}
+function alternarPublicarEnPolo() { _fijarPublicarEnPolo(!_publicarEnPolo); }
 
 // "Agregar imagen Fer/Polo" (editor-imagen.js): con Fer cuenta como la imagen principal, igual que al elegir una foto
 document.addEventListener('editorImagenAgregada', function(ev) {
@@ -5183,22 +5203,23 @@ async function guardarProductoAdmin() {
 
         // Producto NUEVO: también se crea en Yesos Polo, con la misma pieza sobre el fondo azul.
         // (Solo si la imagen salió del editor; un link de imgbb pegado a mano no se copia a Polo.)
+        var publicarPolo = !editando && _publicarEnPolo; // opción "Publicar también en Yesos Polo"
         var imagenPolo = '';
         var motivoSinPolo = ''; // por qué NO se pudo preparar la versión de Polo (se muestra en el aviso)
         // Enlaces ya publicados con los botones "Publicar imagen en imgbb" (si existen, no se vuelve a subir nada)
         var linkFerListo = _linkImgbbObtenido.fer || '';
         var linkPoloPegado = _extraerUrlImgbb(_campoProducto('inputUrlImagenPoloProducto'));
-        if (!editando && _campoProducto('inputUrlImagenPoloProducto') !== '' && !linkPoloPegado) {
+        if (publicarPolo && _campoProducto('inputUrlImagenPoloProducto') !== '' && !linkPoloPegado) {
             _abrirPlegable('sapPlegableLinks');
             mostrarToast('El link de la imagen de Polo debe ser de imgbb (https://i.ibb.co/...).');
             return;
         }
-        var linkPoloListo = editando ? '' : (linkPoloPegado || _linkImgbbObtenido.polo || '');
+        var linkPoloListo = !publicarPolo ? '' : (linkPoloPegado || _linkImgbbObtenido.polo || '');
         // Ya NO se arma la imagen azul al guardar: Polo solo recibe el enlace que se obtuvo con "Publicar imagen en imgbb" (Polo).
-        if (!editando && !linkPoloListo) {
+        if (publicarPolo && !linkPoloListo) {
             motivoSinPolo = 'no pegaste el link de imgbb de Polo. Este producto quedó guardado solo en Fer.';
         }
-        var enviarAPolo = !editando && (!!imagenPolo || !!linkPoloListo);
+        var enviarAPolo = publicarPolo && (!!imagenPolo || !!linkPoloListo);
 
         // Fotos adicionales: primero se suben a imgbb (una petición por foto); el guardado solo recibe los links
         var imagenesExtraUrls = [];
@@ -5242,21 +5263,40 @@ async function guardarProductoAdmin() {
             });
 
         if (resultado.ok) {
+            // Mesa (mesa-admin.js): el producto nuevo se pone solo en la mesa que le toca; al editar se mantiene su vínculo
+            // y, si cambió el precio original, se mueve a la mesa que corresponde.
+            var avisoMesa = '';
+            try {
+                if (editando && typeof window.mesaProductoEditado === 'function') {
+                    avisoMesa = await window.mesaProductoEditado({
+                        nombreAntes: _edicionProducto.nombre, imagenAntes: _edicionProducto.imagenPrincipal || '',
+                        nombre: nombre, imagenNueva: resultado.url || linkFerListo || urlImagen || _edicionProducto.imagenPrincipal || '',
+                        precioAntes: _edicionProducto.precioOriginal, precioNuevo: Number(precioOriginal),
+                        etiquetas: etiquetas.concat(obtenerEtiquetasForma())
+                    }) || '';
+                } else if (!editando && typeof window.mesaAgregarProductoNuevo === 'function') {
+                    avisoMesa = await window.mesaAgregarProductoNuevo({
+                        nombre: nombre, precioOriginal: Number(precioOriginal),
+                        etiquetas: etiquetas.concat(obtenerEtiquetasForma()),
+                        imagenUrl: resultado.url || linkFerListo || urlImagen || ''
+                    }) || '';
+                }
+            } catch (eMesa) { console.warn('[mesa] producto', eMesa); }
             if (editando) {
-                mostrarToast('✅ Producto actualizado (fila ' + resultado.fila + '). Recarga la página en unos segundos para ver los cambios.');
+                mostrarToast('✅ Producto actualizado (fila ' + resultado.fila + '). Recarga la página en unos segundos para ver los cambios.' + avisoMesa, avisoMesa ? 8000 : undefined);
             } else {
-                var notaPolo;
+                var notaPolo = '';
                 if (resultado.polo && resultado.polo.ok) {
                     notaPolo = ' También se agregó en Polo (fila ' + resultado.polo.fila + ').' +
                         (imagenesExtraUrls.errorPolo ? ' ⚠️ Alguna foto extra no se copió a Polo.' : '');
                 } else if (resultado.polo) {
                     notaPolo = ' ⚠️ En Polo NO se pudo agregar: ' + (resultado.polo.error || 'error desconocido') + ' (en Fer sí quedó guardado).';
-                } else {
+                } else if (publicarPolo) {
                     notaPolo = ' ⚠️ NO se agregó en Polo: ' + (motivoSinPolo || 'no se pudo preparar la imagen azul.');
                 }
                 mostrarToast((resultado.reubicado
                     ? '✅ La fila ' + resultado.filaPedida + ' estaba ocupada; el producto se agregó en la fila ' + resultado.fila + '.'
-                    : '✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.') + notaPolo);
+                    : '✅ Producto agregado en la fila ' + resultado.fila + ' de la hoja.') + notaPolo + avisoMesa, avisoMesa ? 8000 : undefined);
             }
             limpiarFormularioProducto();
             cerrarSubmenuAgregarProducto(); // también sale del modo edición
